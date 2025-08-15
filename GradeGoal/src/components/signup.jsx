@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../utils/api';
 
 
@@ -97,7 +97,7 @@ export default function Signup() {
                 </Card.Body>
             </Card>
             <div className='w-100 text-center mt-2'>
-                Already have an account? <a href="/login">Log In</a>
+                Already have an account? <Link to="/login">Log In</Link>
             </div>
         </>
     );

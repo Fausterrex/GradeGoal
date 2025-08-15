@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { loginUser, registerUser } from '../utils/api';
@@ -38,15 +38,8 @@ function Login() {
 	            const password = passwordRef.current.value;
             const cred = await signInWithEmailAndPassword(auth, email, password);
             const firebaseUser = cred.user;
-            try {
-                await loginUser(firebaseUser.uid);
-            } catch (backendErr) {
-                await registerUser({
-                    uid: firebaseUser.uid,
-                    email: firebaseUser.email,
-                    displayName: firebaseUser.displayName || ''
-                });
-            }
+
+            await loginUser(firebaseUser.uid);
             setSuccess('Logged in successfully!');
             setTimeout(() => {
                 navigate('/maindashboard');
@@ -83,6 +76,9 @@ function Login() {
                             <Form.Label>Password</Form.Label>
                             <Form.Control type='password' ref={passwordRef} required />
                         </Form.Group>
+                            <div className='w-100 text-center mt-2'>
+                                <Link to="/forgot-password">Forgot Password</Link>
+                            </div>
                         <Button disabled={loading} className='w-100 mt-3' type='submit'>
                             {loading ? 'Logging In...' : 'Log In'}
                         </Button>
@@ -90,7 +86,7 @@ function Login() {
                 </Card.Body>
             </Card>
             <div className='w-100 text-center mt-2'>
-                Need an account? <a href="/signup">Sign up</a>
+                <p>Need an account? <Link to="/signup">Sign up</Link></p>
             </div>
         </>
     );
