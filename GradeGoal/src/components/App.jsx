@@ -6,6 +6,7 @@ import { Container } from "react-bootstrap";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from './maindashboard'
+import PrivateRoute from "./PrivateRoute";
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
             <AuthProvider>
               <Routes>
                 <Route path="/" element={<Login/>}/>
-                <Route path="/maindashboard" element={<Dashboard/>}/>
+                <Route path="/maindashboard" element={<PrivateRoute component={Dashboard} />} />
                 <Route path="/signup" element={<Signup/>}/>
                 <Route path="/login" element={<Login/>}/>
                 <Route path="/forgot-password" element={<ForgotPassword/>}/>
