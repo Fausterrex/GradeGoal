@@ -29,4 +29,19 @@ export async function loginUser(uid) {
   return response.json().catch(() => ({}));
 }
 
+export async function googleSignIn(userData) {
+  const response = await fetch(`${API_BASE_URL}/api/gradeGoal/google-signin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Google sign-in failed with status ${response.status}`);
+  }
+  return response.json().catch(() => ({}));
+}
+
 

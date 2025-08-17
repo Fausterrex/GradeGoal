@@ -30,4 +30,17 @@ public class gradeGoalService {
     public gradeGoal findByUidOrThrow(String uid) {
         return repo.findByUid(uid).orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
+
+    @Transactional
+    public gradeGoal findOrCreateUser(gradeGoal userData) {
+        return repo.findByUid(userData.getUid())
+                .map(existing -> {
+                    existing.setEmail(userData.getEmail());
+                    existing.setDisplayName(userData.getDisplayName());
+                    return repo.save(existing);
+                })
+                .orElseGet(() -> {
+                    return repo.save(userData);
+                });
+    }
 }

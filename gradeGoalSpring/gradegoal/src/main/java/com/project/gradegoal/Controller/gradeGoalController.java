@@ -15,19 +15,27 @@ public class gradeGoalController {
 
     private final gradeGoalService gradeGoalService;
 
-    // Signup or upsert
     @PostMapping("/gradeGoal")
     public gradeGoal postGradeGoal(@RequestBody gradeGoal gradeGoal) {
         return gradeGoalService.postGradeGoal(gradeGoal);
     }
 
-    // Login by uid (simple fetch)
     @GetMapping("/gradeGoal/{uid}")
     public ResponseEntity<?> getByUid(@PathVariable String uid) {
         try {
             return ResponseEntity.ok(gradeGoalService.findByUidOrThrow(uid));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(404).body("User not found");
+        }
+    }
+
+    @PostMapping("/gradeGoal/google-signin")
+    public ResponseEntity<?> googleSignIn(@RequestBody gradeGoal userData) {
+        try {
+            gradeGoal user = gradeGoalService.findOrCreateUser(userData);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Google sign-in failed: " + e.getMessage());
         }
     }
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import Signup from "./signup";
 import Login from "./login";
-import ForgotPassword from "./ForgotPassword";
+import ForgotPassword from "./forgotpassword";
 import { Container } from "react-bootstrap";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -16,8 +16,8 @@ function App() {
         style={{ minHeight: "100vh" }}
       >
         <div className="w-50" style={{ minWidth: "300px" }}>
-          <Router>
-            <AuthProvider>
+          <AuthProvider>
+            <Router>
               <Routes>
                 <Route path="/" element={<Login/>}/>
                 <Route path="/maindashboard" element={<PrivateRoute component={Dashboard} />} />
@@ -25,8 +25,8 @@ function App() {
                 <Route path="/login" element={<Login/>}/>
                 <Route path="/forgot-password" element={<ForgotPassword/>}/>
               </Routes>
-            </AuthProvider>
-          </Router>
+            </Router>
+          </AuthProvider>
         </div>
       </Container>
   );

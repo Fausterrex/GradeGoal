@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -24,6 +25,14 @@ export function AuthProvider({ children }) {
         return signInWithEmailAndPassword(auth, email, password);
     }
 
+    function loginWithUid(uid) {
+        return Promise.resolve();
+    }
+
+    function refreshCurrentUser() {
+        return auth.currentUser ? Promise.resolve(auth.currentUser) : Promise.reject('No user');
+    }
+
     function logout() {
         return signOut(auth);
     }
@@ -34,6 +43,7 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
+            console.log('Auth state changed:', user);
             setCurrentUser(user);
         });
         return unsubscribe;
@@ -43,9 +53,13 @@ export function AuthProvider({ children }) {
         currentUser,
         signup,
         login,
+        loginWithUid,
+        refreshCurrentUser,
         logout,
         resetPassword
     };
+
+    console.log('AuthContext currentUser:', currentUser);
 
     return (
         <AuthContext.Provider value={value}>
