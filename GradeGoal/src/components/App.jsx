@@ -1,7 +1,7 @@
 import React from "react";
 import Signup from "./signup";
 import Login from "./login";
-import ForgotPassword from "./ForgotPassword";
+import ForgotPassword from "./forgotpassword";
 import { Container } from "react-bootstrap";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";

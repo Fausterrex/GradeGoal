@@ -2,9 +2,9 @@ import React, { useRef, useState } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
-import { loginUser, registerUser } from '../utils/api';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
+import { loginUser, registerUser, googleSignIn } from '../utils/api';
 import './style.css';
 import './index.css';
 import googleLogo from '../drawables/google.png';
@@ -12,7 +12,7 @@ import googleLogo from '../drawables/google.png';
 function Login() {
     const emailRef = useRef();
     const passwordRef = useRef();
-    const { login } = useAuth();
+    const { login, loginWithUid, refreshCurrentUser } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -63,6 +63,37 @@ function Login() {
         }
         setLoading(false);
     }
+
+    const handleGoogleLogin = async () => {
+        try {
+            setError('');
+            setSuccess('');
+            setLoading(true);
+
+            const result = await signInWithPopup(auth, googleProvider);
+            const firebaseUser = result.user;
+
+            const userData = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || firebaseUser.email
+            };
+
+            await googleSignIn(userData);
+            await loginWithUid(firebaseUser.uid);
+            await refreshCurrentUser();
+            
+            setSuccess('Logged in with Google successfully!');
+            setTimeout(() => {
+                navigate('/maindashboard');
+            }, 1500);
+        } catch (error) {
+            console.error('Google login failed:', error);
+            setError('Failed to log in with Google: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div id='main-card' className='min-h-screen flex items-center justify-center items-center bg-gray-100 overflow-hidden'>
@@ -115,6 +146,32 @@ function Login() {
                         <Button disabled={loading} className='login-btn w-[300px]' type='submit'>
                             {loading ? 'Logging In...' : 'Log In'}
                         </Button>
+                        <div className="flex items-center justify-center mt-3">
+                            <button 
+                                type="button"
+                                className="bg-white text-gray-700 w-12 h-12 !rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center" 
+                                onClick={handleGoogleLogin}
+                                disabled={loading}
+                            >
+                                <img 
+                                    src="https://www.svgrepo.com/show/355037/google.svg" 
+                                    alt="Google" 
+                                    className="w-6 h-6"
+                                />
+                            </button>
+
+                            <button 
+                                className="bg-white text-gray-700 w-12 h-12 !rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center mx-3"
+                                onClick={() => setError('Facebook login not implemented yet')}
+                            >
+                                <img 
+                                src="https://www.svgrepo.com/show/452196/facebook-1.svg" 
+                                alt="Facebook" 
+                                className="w-5 h-5"
+                                />
+                            </button>
+                        </div>
+
                     </Form>
                     
                     <div className="divider">

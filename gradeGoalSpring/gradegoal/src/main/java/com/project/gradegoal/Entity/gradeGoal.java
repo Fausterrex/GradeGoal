@@ -18,8 +18,6 @@ public class gradeGoal {
     @Column(length = 255)
     private String displayName;
 
-    public gradeGoal() {}
-
     public gradeGoal(String uid, String email, String displayName) {
         this.uid = uid;
         this.email = email;
