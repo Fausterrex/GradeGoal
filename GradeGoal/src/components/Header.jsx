@@ -7,7 +7,7 @@ export default function Header() {
       <div className="!max-w-6xl !mx-auto !px-8 !flex !items-center !justify-between">
         
         <div className="!flex-shrink-0">
-          <Link to="/" className="!text-[#3B389f] !font-bold !text-2xl !uppercase !tracking-wider !hover:text-[#2d2a7a] !transition-colors !duration-200">
+          <Link to="/landing" className="!text-[#3B389f] !font-bold !text-2xl !uppercase !tracking-wider !hover:text-[#2d2a7a] !transition-colors !duration-200">
             LOGO
           </Link>
         </div>
