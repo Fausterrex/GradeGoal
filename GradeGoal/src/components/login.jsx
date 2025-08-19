@@ -53,6 +53,10 @@ function Login() {
         } catch (error) {
             if (error.code === 'auth/invalid-credential') {
                 setError('Incorrect email or password. Please try again.');
+            } else if (error.code === 'auth/user-not-found') {
+                setError('Incorrect email or password. Please try again.');
+            } else if (error.code === 'auth/wrong-password') {
+                setError('Incorrect email or password. Please try again.');
             } else if (error.code === 'auth/invalid-email') {
                 setError('Please enter a valid email address.');
             } else if (error.code === 'auth/weak-password') {
