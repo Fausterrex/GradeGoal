@@ -54,7 +54,12 @@ function App() {
                 </div>
               </div>
             }/>
-              <Route path="/landing"  element={<Landingpage/>}/>
+              <Route path="/landing"  element={
+                <div className="flex flex-col h-screen w-full">
+                <Header />
+                <div className="flex-1 overflow-hidden">
+                  </div><Landingpage/>
+                  </div>}/>
             </Routes>
           </main>
           

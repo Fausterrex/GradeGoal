@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom"; // ✅ Import Link
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
-
+import Calcu from "../drawables/cacluuu.png";
 export default function GPASection() {
   const cards = [
     {
@@ -14,8 +14,8 @@ export default function GPASection() {
     },
     {
       title: "Know your Progress",
-      value: 2,
-      description: "Updated as of Nov 20",
+      value: 2.75,
+      description: "Updated as of August 19",
       bg: "bg-white",
       cardHeaderBG: "bg-[#92C3C4]",
     },
@@ -29,7 +29,7 @@ export default function GPASection() {
   ];
   return (
     
-    <div className="page flex flex-col items-center justify-center h-screen w-full bg-gray-50">
+    <div className="page flex flex-col items-center justify-center h-screen w-screen bg-gray-50">
       {/* Cards Section */}
       <div className="flex flex-col md:flex-row items-center gap-0">
         {cards.map((card, index) => {
@@ -56,11 +56,11 @@ export default function GPASection() {
           return (
             <div
               key={index}
-              className={`${cardSize} p-0 m-0 rounded-2xl shadow-lg hover:shadow-xl border border-gray-300 transition-transform transform hover:-translate-y-2 flex flex-col justify-center items-center ${rotation} ${translate} ${lift} ${zIndex} ${card.bg}`}
+              className={`${cardSize} p-0 m-0 rounded-4xl shadow-lg hover:shadow-xl border border-gray-300 transition-transform transform hover:-translate-y-2 flex flex-col justify-center items-center ${rotation} ${translate} ${lift} ${zIndex} ${card.bg}`}
             >
               
-          <div className={`${card.cardHeaderBG} w-full text-center py-3 rounded-t-2xl `}>
-            <h3 className="text-white text-lg font-semibold">
+          <div className={`${card.cardHeaderBG} w-full text-center py-3 rounded-t-4xl `}>
+            <h3 className="text-gray-800 text-lg font--semibold">
               {card.title}
             </h3>
           </div>
@@ -69,12 +69,12 @@ export default function GPASection() {
                 {index === 0 ? (
                   <>
                     {/* Horizontal Progress Bar */}
-                    <p className="text-2xl font-bold text-indigo-700 my-5">
+                    <p className="text-5xl font-extrabold text-indigo-700 my-5">
                       {card.value}
                     </p>
                     <div className="w-3/4 bg-gray-200 rounded-full h-5">
                       <div
-                        className=" bg-indigo-700 h-5 rounded-full transition-all duration-500"
+                        className=" bg-[#92C3C4] h-5 rounded-full transition-all duration-500"
                         style={{ width: `${(card.value / 4) * 100}%` }}
                       ></div>
                     </div>
@@ -86,15 +86,21 @@ export default function GPASection() {
                       text={`${card.value}`}
                       styles={buildStyles({
                         textColor: "#4338ca",
-                        pathColor: "#4338ca",
-                        trailColor: "#e5e7eb",
+                        pathColor: "#BFA4D0",
+                        trailColor: "#00000025",
+                        textSize: "24px",
+                        fontWeight: 700,               // numeric font weight
+                        fontFamily: "Arial, sans-serif", // must set a font family
+                        textShadow: "2px 2px 4px #000000",
                       })}
                     />
                   </div>
                 ) : (
-                  <p className="text-4xl font-bold text-indigo-700 my-7">
+                  <div>
+                   <p className="text-5xl font-bold text-indigo-700 my-7">
                     {card.value}
                   </p>
+                </div>
                 )}
               </div>
               <p className="text-black font-bold my-9">{card.description}</p>

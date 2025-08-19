@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Logo from '../drawables/logo.png';
 
 export default function Header() {
   return (
@@ -7,12 +8,11 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between">
         
         {/* Logo */}
-        <div className="flex-shrink-0">
+        <div className="w-15 h-15 bg-gradient-to-r from-[#BE80FF] via-[#7538C4] to-[#7538C4] shadow-xl flex items-center justify-center rounded-full">
           <Link
             to="/landing"
-            className="text-[#3B389f] font-bold text-2xl uppercase tracking-wider hover:text-[#2d2a7a] transition-colors duration-200"
           >
-            LOGO
+            <img src={Logo} alt='logo' className='h-auto w-auto object-obtain'/>
           </Link>
         </div>
 

@@ -148,6 +148,10 @@ function Login() {
                         >
                             {loading ? 'Logging In...' : 'Log In'}
                         </Button>
+                          <div className="!relative !text-center !mb-6 !w-full">
+                            <div className="!absolute !top-1/2 !left-0 !right-0 !h-px !bg-gray-300"></div>
+                            <span className="!bg-white !px-4 !text-gray-500 !text-sm !relative !z-10">or</span>
+                        </div>
                         
                         <div className="!flex !items-center !justify-center !mt-3">
                             <button 
@@ -176,15 +180,9 @@ function Login() {
                         </div>
                     </Form>
                     
-                    <div className="!relative !text-center !mb-6 !w-full">
-                        <div className="!absolute !top-1/2 !left-0 !right-0 !h-px !bg-gray-300"></div>
-                        <span className="!bg-white !px-4 !text-gray-500 !text-sm !relative !z-10">or</span>
-                    </div>
+                  
                     
-                    <Button className="!w-full !max-w-sm !border !border-gray-300 !rounded-full !py-3.5 !text-base !font-medium !text-gray-700 !bg-white !transition-all !duration-300 !mb-6 !hover:bg-gray-50 !hover:border-gray-400 !hover:-translate-y-0.5 !flex !justify-center !items-center !shadow">
-                        <img src={googleLogo} alt="Google" className="!w-5 !h-5 !mr-2" />
-                        Continue with Google
-                    </Button>
+                    
                     
                     <div className="!text-center !text-gray-500 !text-sm">
                         <p>Don't have an account? <Link to="/signup" className="!text-[#3B389f] !underline !font-semibold !transition-colors !duration-200 !hover:text-[#2d2a7a]">Sign Up</Link></p>
