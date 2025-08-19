@@ -18,12 +18,12 @@ function App() {
             <Routes>
               <Route path="/" element={
                 <div className="flex flex-col h-screen w-full">
-                <Header />
-                <div className="flex-1 overflow-hidden w-1xl mx-auto">
-                  <Landingpage/>
+                  <Header />
+                  <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                    <Landingpage/>
+                  </div>
                 </div>
-              </div>
-            }/>
+              }/>
               <Route path="/maindashboard" element={
                 <div className="flex flex-col h-screen w-full">
                   <PrivateRoute component={Dashboard}/>
@@ -31,12 +31,12 @@ function App() {
               }/>
               <Route path="/signup" element={
                 <div className="flex flex-col h-screen w-full">
-                <Header />
-                <div className="flex-1 overflow-hidden w-1xl mx-auto">
-                  <Signup/>
+                  <Header />
+                  <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                    <Signup/>
+                  </div>
                 </div>
-              </div>
-            }/>
+              }/>
               <Route path="/login" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
@@ -47,12 +47,12 @@ function App() {
               }/>
               <Route path="/forgot-password" element={
                 <div className="flex flex-col h-screen w-full">
-                <Header />
-                <div className="flex-1 overflow-hidden">
-                  <ForgotPassword/>
+                  <Header />
+                  <div className="flex-1 overflow-hidden">
+                    <ForgotPassword/>
+                  </div>
                 </div>
-              </div>
-            }/>
+              }/>
             </Routes>
           </main>
         </div>

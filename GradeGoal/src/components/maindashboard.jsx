@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 function MainDashboard() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  
   const displayName = currentUser?.displayName || currentUser?.email || 'Unknown User';
 
   async function handleLogout() {

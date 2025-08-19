@@ -14,10 +14,34 @@ export default function Signup() {
     const [loading, setLoading] = useState(false);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [emailError, setEmailError] = useState(''); 
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim()) {
+            setEmailError('');
+            return false;
+        }
+        if (!emailRegex.test(email)) {
+            setEmailError('Please enter a valid email address.');
+            return false;
+        }
+        setEmailError('');
+        return true;
+    };
+
+    const handleEmailChange = (e) => {
+        validateEmail(e.target.value);
+    };
+
+    const handleEmailBlur = (e) => {
+        validateEmail(e.target.value);
+    };
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        setEmailError('');
         
         if (!firstName.trim()) {
             return setError('Please enter your first name.');
@@ -27,9 +51,8 @@ export default function Signup() {
             return setError('Please enter your last name.');
         }
         
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(emailRef.current.value)) {
-            return setError('Please enter a valid email address.');
+        if (!validateEmail(emailRef.current.value)) {
+            return;
         }
         
         if (passwordRef.current.value.length < 6) {
@@ -127,8 +150,17 @@ export default function Signup() {
                                 ref={emailRef} 
                                 required 
                                 placeholder='Email'
-                                className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
+                                className={`w-full px-4 py-3 border rounded-3xl shadow-lg focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none ${
+                                    emailError 
+                                        ? 'border-red-500 focus:border-red-500' 
+                                        : 'border-gray-300 focus:border-[#3B389f]'
+                                }`}
+                                onChange={handleEmailChange}
+                                onBlur={handleEmailBlur}
                             />
+                            {emailError && (
+                                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                            )}
                         </div>
                         <div className="mb-4">
                             <input 

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 .page{
-  background: url('./drawables/background.png') no-repeat center center;
+  background: url('./drawables/landingpage-background.png') no-repeat center center;
   background-size: cover;
   max-height: 100vh;
 }

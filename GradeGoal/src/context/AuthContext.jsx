@@ -30,15 +30,22 @@ export function AuthProvider({ children }) {
     }
 
     function updateCurrentUserWithData(userData) {
-        console.log('updateCurrentUserWithData called with:', userData);
-        console.log('Current currentUser:', currentUser);
+        const firebaseUser = auth.currentUser;
         
-        if (currentUser && userData) {
+        if (firebaseUser && userData) {
+            const updatedUser = {
+                ...firebaseUser,
+                ...userData
+            };
+            console.log('Updated user object:', updatedUser);
+            setCurrentUser(updatedUser);
+            return updatedUser;
+        } else if (currentUser && userData) {
             const updatedUser = {
                 ...currentUser,
                 ...userData
             };
-            console.log('Updated user object:', updatedUser);
+            console.log('Updated user object (fallback):', updatedUser);
             setCurrentUser(updatedUser);
             return updatedUser;
         }

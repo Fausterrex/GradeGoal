@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../firebase';
-import { loginUser, registerUser, googleSignIn, facebookSignIn } from '../utils/api';
+import { loginUser, googleSignIn, facebookSignIn } from '../utils/api';
 
 function Login() {
     const emailRef = useRef();
@@ -14,15 +14,38 @@ function Login() {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [emailError, setEmailError] = useState('');
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim()) {
+            setEmailError('');
+            return false;
+        }
+        if (!emailRegex.test(email)) {
+            setEmailError('Please enter a valid email address.');
+            return false;
+        }
+        setEmailError('');
+        return true;
+    };
+
+    const handleEmailChange = (e) => {
+        validateEmail(e.target.value);
+    };
+
+    const handleEmailBlur = (e) => {
+        validateEmail(e.target.value);
+    };
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        setEmailError('');
         
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const emailValue = (emailRef.current.value || '').trim();
-        if (!emailRegex.test(emailValue)) {
-            return setError('Please enter a valid email address.');
+        if (!validateEmail(emailValue)) {
+            return;
         }
 
         if (passwordRef.current.value.length < 6) {
@@ -39,6 +62,7 @@ function Login() {
             const cred = await signInWithEmailAndPassword(auth, email, password);
             const firebaseUser = cred.user;
             const userDataFromDB = await loginUser(firebaseUser.uid);
+
             const userData = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
@@ -125,14 +149,13 @@ function Login() {
         } catch (error) {
             console.error('Facebook login failed:', error);
             setError('Failed to log in with Facebook: ' + error.message);
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="h-full flex justify-center items-center min-h-screen">
+        <div className="h-full flex justify-center items-center">
             <div className="w-[50vh] max-w-5xl border-0 rounded-2xl shadow-2xl bg-white">
                 <div className="bg-[#3B389f] border-0 rounded-t-2xl p-6 text-center">
                     <h2 className="text-white text-2xl font-bold m-0">Log In</h2>
@@ -150,15 +173,26 @@ function Login() {
                     )}
                     
                     <form onSubmit={handleSubmit} className="w-full flex flex-col items-center mb-6">
-                        <div className="mb-4 w-full max-w-sm">
+                        <div className="mb-7 w-full max-w-sm">
                             <div className="relative flex items-center">
                                 <input 
                                     type='email' 
                                     ref={emailRef} 
                                     required 
                                     placeholder='Email'
-                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-base transition-all duration-200 focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
+                                    className={`w-full pl-10 pr-10 py-3 border rounded-lg text-base transition-all duration-200 focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none ${
+                                        emailError 
+                                            ? 'border-red-500 focus:border-red-500' 
+                                            : 'border-gray-300 focus:border-[#3B389f]'
+                                    }`}
+                                    onChange={handleEmailChange}
+                                    onBlur={handleEmailBlur}
                                 />
+                                {emailError && (
+                                    <div className="absolute -bottom-6 left-0 text-red-500 text-sm">
+                                        {emailError}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         
