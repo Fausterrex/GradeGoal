@@ -49,30 +49,41 @@ function ForgotPassword() {
     }
 
     return (
-        <>
-            <Card>
-                <Card.Body>
-                    <h2 className='text-center mb-4'>Reset Password</h2>
-                    {error && <Alert variant='danger'>{error}</Alert>}
-                    {success && <Alert variant='success'>{success}</Alert>}
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group id="email" className="mb-3">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control type='email' ref={emailRef} required />
-                        </Form.Group>
-                        <Button disabled={loading} className='w-100 mt-3' type='submit'>
-                            {loading ? 'Sending Reset Email...' : 'Send Reset Email'}
-                        </Button>
-                    </Form>
-                    <div className='w-100 text-center mt-2'>
-                        <Link to="/login">Back to Log In</Link>
-                    </div>
-                </Card.Body>
-            </Card>
-            <div className='w-100 text-center mt-2'>
-                <p>Need an account? <Link to="/signup">Sign up</Link></p>
+        <div className="!min-h-screen !flex !justify-center !items-center !p-8 !bg-gradient-to-br !from-purple-100 !to-purple-200">
+            <div className="!w-full !max-w-md">
+                <Card className="!border-0 !rounded-2xl !shadow-2xl !bg-white">
+                    <Card.Body className="!p-8">
+                        <h2 className="!text-center !mb-6 !text-2xl !font-bold !text-gray-800">Reset Password</h2>
+                        {error && <Alert variant='danger' className="!mb-6">{error}</Alert>}
+                        {success && <Alert variant='success' className="!mb-6">{success}</Alert>}
+                        <Form onSubmit={handleSubmit}>
+                            <Form.Group className="!mb-6">
+                                <Form.Label className="!font-semibold !text-gray-700 !mb-2">Email</Form.Label>
+                                <Form.Control 
+                                    type='email' 
+                                    ref={emailRef} 
+                                    required 
+                                    className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-lg !shadow-sm !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                />
+                            </Form.Group>
+                            <Button 
+                                disabled={loading} 
+                                className="!w-full !bg-[#3B389f] !border-0 !rounded-lg !py-3 !text-base !font-semibold !text-white !transition-all !duration-300 !hover:bg-[#2d2a7a] !hover:-translate-y-0.5 !hover:shadow-lg !disabled:opacity-70 !disabled:transform-none" 
+                                type='submit'
+                            >
+                                {loading ? 'Sending Reset Email...' : 'Send Reset Email'}
+                            </Button>
+                        </Form>
+                        <div className="!text-center !mt-6">
+                            <Link to="/login" className="!text-[#3B389f] !hover:text-[#2d2a7a] !transition-colors !duration-200">Back to Log In</Link>
+                        </div>
+                    </Card.Body>
+                </Card>
+                <div className="!text-center !mt-6 !text-gray-600">
+                    <p>Need an account? <Link to="/signup" className="!text-[#3B389f] !hover:text-[#2d2a7a] !transition-colors !duration-200">Sign up</Link></p>
+                </div>
             </div>
-        </>
+        </div>
     );
 }
 

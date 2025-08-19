@@ -3,8 +3,7 @@ import { Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../utils/api';
-import './index.css';
-import './style.css';
+
 export default function Signup() {
     const emailRef = useRef();
     const passwordRef = useRef();
@@ -71,63 +70,78 @@ export default function Signup() {
     }
 
     return (
-        <>
-            <Card id='main-card' className='min-h-screen flex items-center justify-center items-center bg-gray-100 overflow-hidden'>
-                <Card.Header className='text-white p-4 rounded-t-xl border-0 shadow-sm bg-purple-700'>
-                    <h2 id='header-signup' className='text-center mb-0 font-semibold text-xl'>Sign Up</h2>
+        <div className="h-[92.5vh] !flex !justify-center !items-center  ">
+            <Card className="!w-full !max-w-2xl !border-0 !rounded-2xl !shadow-2xl !bg-white">
+                <Card.Header className="!bg-[#3B389f] !text-white !p-6 !rounded-t-2xl !border-0 !shadow-lg">
+                    <h2 className="!text-center !mb-0 !font-semibold !text-2xl">Sign Up</h2>
                 </Card.Header>
-                <Card.Body className='p-6 px-5'>
-                    {error && <Alert variant='danger'>{error}</Alert>}
-                    {success && <Alert variant='success'>{success}</Alert>}
+                <Card.Body className="!p-8">
+                    {error && <Alert variant='danger' className="!mb-6">{error}</Alert>}
+                    {success && <Alert variant='success' className="!mb-6">{success}</Alert>}
                     <Form onSubmit={handleSubmit}>
-                        <Row className='px-5'>
-                            <Col>
-                                <Form.Group id="first-name" className='mb-3 shadow' >
-                                    <Form.Control 
-                                    type='text'
-                                    placeholder='First Name' />
+                        <div className="!flex !gap-4 !mb-4">
+                            <div className="!w-1/2">
+                                <Form.Group className="!mb-3">
+                                <Form.Control 
+                                    type="text"
+                                    placeholder="First Name"
+                                    className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-3xl !shadow-lg !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                />
                                 </Form.Group>
-                            </Col>
-                            <Col>
-                                <Form.Group id="last-name" className='mb-3 shadow'>
-                                    <Form.Control
-                                    type='text' 
-                                    placeholder='Last Name'
-                                    />
+                            </div>
+                            <div className="!w-1/2">
+                                <Form.Group className="!mb-3">
+                                <Form.Control 
+                                    type="text"
+                                    placeholder="Last Name"
+                                    className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-3xl !shadow-lg !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                />
                                 </Form.Group>
-                            </Col>
-                        </Row>
-                        <Form.Group id="email" className="form-group mb-3 mx-5 shadow">
-                            <Form.Control type='email' 
-                            ref={emailRef} 
-                            required 
-                            placeholder='Email'/>
+                            </div>
+                        </div>
+                        <Form.Group className="!mb-4">
+                            <Form.Control 
+                                type='email' 
+                                ref={emailRef} 
+                                required 
+                                placeholder='Email'
+                                className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-3xl !shadow-lg !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                            />
                         </Form.Group>
-                        <Form.Group id="password" className="form-group mb-3 mx-5 shadow">
-                            <Form.Control type='password' 
-                            ref={passwordRef} 
-                            required 
-                            placeholder='Password'/>
+                        <Form.Group className="!mb-4">
+                            <Form.Control 
+                                type='password' 
+                                ref={passwordRef} 
+                                required 
+                                placeholder='Password'
+                                className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-3xl !shadow-lg !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                            />
                         </Form.Group>
-                        <Form.Group id="password-confirm" className="form-group mb-3 mx-5 shadow">
-                            <Form.Control type='password' 
-                            ref={passwordConfirmRef} 
-                            required 
-                            placeholder='Confirm Password'/>
+                        <Form.Group className="!mb-6">
+                            <Form.Control 
+                                type='password' 
+                                ref={passwordConfirmRef} 
+                                required 
+                                placeholder='Confirm Password'
+                                className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-3xl !shadow-lg !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                            />
                         </Form.Group>
-                        <div className='flex justify-center items-center w-full'>
-                        <Button id='signup-button' disabled={loading} className='w-[300px] mt-3 shadow-lg' type='submit'>
-                            {loading ? 'Creating Account...' : 'Sign Up'}
-                        </Button>
+                        <div className="!flex !justify-center !items-center !w-full">
+                            <Button 
+                                disabled={loading} 
+                                className="!w-full !max-w-sm !bg-[#3B389f] !border-0 !rounded-full !py-3.5 !text-base !font-semibold !text-white !transition-all !duration-300 !hover:bg-[#5e5caa] !hover:-translate-y-0.5 !hover:shadow-lg !disabled:opacity-70 !disabled:transform-none !disabled:cursor-not-allowed !shadow-lg" 
+                                type='submit'
+                            >
+                                {loading ? 'Creating Account...' : 'Sign Up'}
+                            </Button>
                         </div>
                     </Form>
-                    <hr></hr>
-                    <div className='w-100 text-center mt-2'>
-                        Already have an account? <Link to="/login" id='text-link'>Log In</Link>
+                    <hr className="!my-6 !border-gray-300"></hr>
+                    <div className="!text-center !text-gray-600">
+                        Already have an account? <Link to="/login" className="!text-[#3B389f] !hover:text-[#8f8f9e] !transition-colors !duration-200">Log In</Link>
                     </div>
                 </Card.Body>
             </Card>
-            
-        </>
+        </div>
     );
 }

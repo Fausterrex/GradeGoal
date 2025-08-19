@@ -8,15 +8,15 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from './maindashboard'
 import PrivateRoute from "./PrivateRoute";
 import Header from "./Header";
-import "./App.css";
+import backgroundImage from "../drawables/background.png";
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="app-container">
+        <div className="min-h-screen flex flex-col bg-green-100">
           <Header />
-          <main className="main-content">
+          <main className="page flex flex items-center justify-center bg-white">
             <Routes>
               <Route path="/" element={<Login/>}/>
               <Route path="/maindashboard" element={<PrivateRoute component={Dashboard} />} />
