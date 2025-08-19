@@ -103,7 +103,7 @@ function Login() {
                     {error && <Alert variant='danger' className="!w-full !mb-6">{error}</Alert>}
                     {success && <Alert variant='success' className="!w-full !mb-6">{success}</Alert>}
                     
-                    <Form onSubmit={handleSubmit} className="!w-full !flex !flex-col !items-center !mb-6">
+                    <Form onSubmit={handleSubmit} className="!w-full !flex !flex-col !items-center !mb-6 ">
                         <Form.Group className="!mb-4 !w-full !max-w-sm">
                             <div className="!relative !flex !items-center">
                                 <Form.Control 
@@ -111,19 +111,19 @@ function Login() {
                                     ref={emailRef} 
                                     required 
                                     placeholder='Email'
-                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-lg !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-full !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
                                 />
                             </div>
                         </Form.Group>
                         
-                        <Form.Group className="!mb-4 !w-full !max-w-sm">
-                            <div className="!relative !flex !items-center">
+                        <Form.Group className="!mb-4 !w-full !max-w-sm ">
+                            <div className="!relative !flex !items-center ">
                                 <Form.Control 
                                     type={showPassword ? 'text' : 'password'}
                                     ref={passwordRef} 
                                     required 
                                     placeholder='Password'
-                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-lg !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-full !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
                                 />
                                 <button 
                                     type="button" 

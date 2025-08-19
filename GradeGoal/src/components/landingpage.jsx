@@ -68,27 +68,25 @@ export default function GPASection() {
               <div className="bg-white w-full rounded-xl flex flex-col items-center p-4 bg-[url('./drawables/star-background.png')] bg-cover bg-cover ">
                 {index === 0 ? (
                   <>
-                    {/* Progress Bar */}
+                    {/* Horizontal Progress Bar */}
                     <p className="text-2xl font-bold text-indigo-700 my-5">
                       {card.value}
                     </p>
                     <div className="w-3/4 bg-gray-200 rounded-full h-5">
                       <div
-                        className=" bg-[#92C3C4] h-5 rounded-full transition-all duration-500"
+                        className=" bg-indigo-700 h-5 rounded-full transition-all duration-500"
                         style={{ width: `${(card.value / 4) * 100}%` }}
                       ></div>
                     </div>
                   </>
-                  
                 ) : index === 1 ? (
                   <div className="w-32 h-32">
-                    {/* Cirle Progress Bar */}
                     <CircularProgressbar
                       value={card.value * 25}
-                      text={`${card.value} ` }
+                      text={`${card.value}`}
                       styles={buildStyles({
                         textColor: "#4338ca",
-                        pathColor: "#BFA4D0",
+                        pathColor: "#4338ca",
                         trailColor: "#e5e7eb",
                       })}
                     />
@@ -105,22 +103,23 @@ export default function GPASection() {
         })}
       </div>
   
-    <div className="flex flex-col justify-center items-center">
-      <h1 className="text-7xl font-extrabold text-indigo-900  mt-20">
+        {/* title description*/}
+      <h1 className="text-5xl font-extrabold text-indigo-900 mt-20">
         GRADE GOAL
       </h1>
-      <p className="my-8 max-w-lg text-center text-xl text-gray-600">
+      <p className="my-4 max-w-lg text-center text-gray-600">
         GradeGoal is a web-based Decision Support System that empowers students
         to achieve their academic goals through strategic planning, progress
         tracking, and intelligent guidance.
       </p>
 
+
       <Link to="/signup">
-        <button className="mt-6 px-6 py-3 bg-indigo-700 text-white rounded-full shadow-2xl hover:bg-indigo-800 ">
+        <button className="mt-6 px-6 py-3 bg-indigo-700 text-white rounded-full shadow-lg hover:bg-indigo-800 ">
           Create an Account
         </button>
       </Link>
-     </div>
+     
     </div>
   );
 }
