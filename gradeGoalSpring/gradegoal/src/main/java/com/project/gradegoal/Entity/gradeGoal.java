@@ -18,6 +18,9 @@ public class gradeGoal {
     @Column(length = 255)
     private String displayName;
 
+    // No-argument constructor (REQUIRED by JPA/Spring Boot)
+    public gradeGoal() {}
+
     public gradeGoal(String uid, String email, String displayName) {
         this.uid = uid;
         this.email = email;

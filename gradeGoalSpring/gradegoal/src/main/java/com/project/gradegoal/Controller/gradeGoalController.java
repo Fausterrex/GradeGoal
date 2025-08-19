@@ -38,4 +38,14 @@ public class gradeGoalController {
             return ResponseEntity.badRequest().body("Google sign-in failed: " + e.getMessage());
         }
     }
+
+    @PostMapping("/gradeGoal/facebook-signin")
+    public ResponseEntity<?> facebookSignIn(@RequestBody gradeGoal userData) {
+        try {
+            gradeGoal user = gradeGoalService.findOrCreateUser(userData);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Facebook sign-in failed: " + e.getMessage());
+        }
+    }
 }

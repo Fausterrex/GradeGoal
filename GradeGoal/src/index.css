@@ -3,5 +3,5 @@
 .page{
   background: url('./drawables/background.png') no-repeat center center;
   background-size: cover;
-  min-height: 92.8vh;
+  max-height: 100vh;
 }

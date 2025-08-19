@@ -30,7 +30,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`),
   UNIQUE KEY `UKefqukogbk7i0poucwoy2qie74` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -39,7 +39,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (6,'','pinpinramirez@gmail.com','Ws0PTdg0ZHNFr0mriMcSRqvq0OE3');
+INSERT INTO `users` VALUES (8,'','loraf46170@baxidy.com','ZHG6fc2QQ5MuZHDAZ3gavJwVM3F3'),(9,'andres ramirez','andycuenca1017@gmail.com','O2W25Mz69HY7pqQje1EjdAFgE6n1'),(10,'Prince Ramirez','princeramirez87@yahoo.com','MVJF4wG8ckMoEaDWf70sbhum5nS2'),(11,'pinpin ramirez','asf@gmail.com','otLn1ZjslaT73PYVg04cUROZRBn1'),(12,'bern payot','chillathome00@gmail.com','SclWaGA5MbSZU7nbj2SCvrcZX4o2'),(13,'test test','pinpinramirez@gmail.com','U9LgDWVWAcXdShkloPuptTC9jf92');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -52,4 +52,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-15  0:43:12
+-- Dump completed on 2025-08-19 18:50:32

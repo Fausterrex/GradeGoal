@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://localhost:8080');
 
 export async function registerUser(userPayload) {
   const response = await fetch(`${API_BASE_URL}/api/gradeGoal`, {
@@ -44,4 +45,18 @@ export async function googleSignIn(userData) {
   return response.json().catch(() => ({}));
 }
 
+export async function facebookSignIn(userData) {
+  const response = await fetch(`${API_BASE_URL}/api/gradeGoal/facebook-signin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Facebook sign-in failed with status ${response.status}`);
+  }
+  return response.json().catch(() => ({}));
+}
 

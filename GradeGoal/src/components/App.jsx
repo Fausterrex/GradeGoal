@@ -2,27 +2,57 @@ import React from "react";
 import Signup from "./signup";
 import Login from "./login";
 import ForgotPassword from "./forgotpassword";
-import { Container } from "react-bootstrap";
+import Landingpage from "./landingpage";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from './maindashboard'
 import PrivateRoute from "./PrivateRoute";
 import Header from "./Header";
-import backgroundImage from "../drawables/background.png";
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-green-100">
-          <Header />
-          <main className="page flex flex items-center justify-center bg-white">
+          <main className="page flex items-center justify-center bg-white">
             <Routes>
-              <Route path="/" element={<Login/>}/>
-              <Route path="/maindashboard" element={<PrivateRoute component={Dashboard} />} />
-              <Route path="/signup" element={<Signup/>}/>
-              <Route path="/login" element={<Login/>}/>
-              <Route path="/forgot-password" element={<ForgotPassword/>}/>
+              <Route path="/" element={
+                <div className="flex flex-col h-screen w-full">
+                <Header />
+                <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                  <Landingpage/>
+                </div>
+              </div>
+            }/>
+              <Route path="/maindashboard" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={Dashboard}/>
+                </div>
+              }/>
+              <Route path="/signup" element={
+                <div className="flex flex-col h-screen w-full">
+                <Header />
+                <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                  <Signup/>
+                </div>
+              </div>
+            }/>
+              <Route path="/login" element={
+                <div className="flex flex-col h-screen w-full">
+                  <Header />
+                  <div className="flex-1 overflow-hidden">
+                    <Login/>
+                  </div>
+                </div>
+              }/>
+              <Route path="/forgot-password" element={
+                <div className="flex flex-col h-screen w-full">
+                <Header />
+                <div className="flex-1 overflow-hidden">
+                  <ForgotPassword/>
+                </div>
+              </div>
+            }/>
             </Routes>
           </main>
         </div>

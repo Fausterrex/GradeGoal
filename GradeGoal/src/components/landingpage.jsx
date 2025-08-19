@@ -1,7 +1,11 @@
 import React from 'react'
 
-export default function landingpage() {
+function landingpage() {
   return (
-    <div>landingpage</div>
+    <div className='h-full flex justify-center items-center'>
+      LANDING PAGE
+    </div>
   )
 }
+
+export default landingpage

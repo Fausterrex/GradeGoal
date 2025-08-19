@@ -1,16 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { Form, Button, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
-import { loginUser, registerUser, googleSignIn } from '../utils/api';
-import googleLogo from '../drawables/google.png';
+import { auth, googleProvider, facebookProvider } from '../firebase';
+import { loginUser, registerUser, googleSignIn, facebookSignIn } from '../utils/api';
 
 function Login() {
     const emailRef = useRef();
     const passwordRef = useRef();
-    const { login, loginWithUid, refreshCurrentUser } = useAuth();
+    const { updateCurrentUserWithData } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -40,8 +38,14 @@ function Login() {
             const password = passwordRef.current.value;
             const cred = await signInWithEmailAndPassword(auth, email, password);
             const firebaseUser = cred.user;
+            const userDataFromDB = await loginUser(firebaseUser.uid);
+            const userData = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: userDataFromDB?.displayName || firebaseUser.email
+            };
 
-            await loginUser(firebaseUser.uid);
+            updateCurrentUserWithData(userData);
             setSuccess('Logged in successfully!');
             setTimeout(() => {
                 navigate('/maindashboard');
@@ -78,8 +82,7 @@ function Login() {
             };
 
             await googleSignIn(userData);
-            await loginWithUid(firebaseUser.uid);
-            await refreshCurrentUser();
+            updateCurrentUserWithData(userData);
             
             setSuccess('Logged in with Google successfully!');
             setTimeout(() => {
@@ -93,104 +96,139 @@ function Login() {
         }
     };
 
+    const handleFacebookLogin = async () => {
+        try {
+            setError('');
+            setSuccess('');
+            setLoading(true);
+
+            const result = await signInWithPopup(auth, facebookProvider);
+            const firebaseUser = result.user;
+    
+            const userData = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || firebaseUser.email
+            };
+
+            await facebookSignIn(userData);
+            updateCurrentUserWithData(userData);
+
+            setSuccess('Logged in with Facebook successfully!');
+            setTimeout(() => {
+                navigate('/maindashboard');
+            }, 1500);
+        } catch (error) {
+            console.error('Facebook login failed:', error);
+            setError('Failed to log in with Facebook: ' + error.message);
+        }
+        finally {
+            setLoading(false);
+        }
+    }
+
     return (
-        <div className="!h-[92.8vh] !flex !justify-center !items-center ">
-            <Card className="!w-[50vh] !max-w-5xl !border-0 !rounded-2xl !shadow-2xl !bg-white">
-                <Card.Header className="!bg-[#3B389f] !border-0 !rounded-t-2xl !p-6 !text-center">
-                    <h2 className="!text-white !text-2xl !font-bold !m-0">Log In</h2>
-                </Card.Header>
-                <Card.Body className="!p-8 !flex !flex-col !items-center">
-                    {error && <Alert variant='danger' className="!w-full !mb-6">{error}</Alert>}
-                    {success && <Alert variant='success' className="!w-full !mb-6">{success}</Alert>}
+        <div className="h-full flex justify-center items-center min-h-screen">
+            <div className="w-[50vh] max-w-5xl border-0 rounded-2xl shadow-2xl bg-white">
+                <div className="bg-[#3B389f] border-0 rounded-t-2xl p-6 text-center">
+                    <h2 className="text-white text-2xl font-bold m-0">Log In</h2>
+                </div>
+                <div className="p-8 flex flex-col items-center">
+                    {error && (
+                        <div className="w-full mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className="w-full mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                            {success}
+                        </div>
+                    )}
                     
-                    <Form onSubmit={handleSubmit} className="!w-full !flex !flex-col !items-center !mb-6">
-                        <Form.Group className="!mb-4 !w-full !max-w-sm">
-                            <div className="!relative !flex !items-center">
-                                <Form.Control 
+                    <form onSubmit={handleSubmit} className="w-full flex flex-col items-center mb-6">
+                        <div className="mb-4 w-full max-w-sm">
+                            <div className="relative flex items-center">
+                                <input 
                                     type='email' 
                                     ref={emailRef} 
                                     required 
                                     placeholder='Email'
-                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-lg !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-base transition-all duration-200 focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
                                 />
                             </div>
-                        </Form.Group>
+                        </div>
                         
-                        <Form.Group className="!mb-4 !w-full !max-w-sm">
-                            <div className="!relative !flex !items-center">
-                                <Form.Control 
+                        <div className="mb-4 w-full max-w-sm">
+                            <div className="relative flex items-center">
+                                <input 
                                     type={showPassword ? 'text' : 'password'}
                                     ref={passwordRef} 
                                     required 
                                     placeholder='Password'
-                                    className="!w-full !pl-10 !pr-10 !py-3 !border !border-gray-300 !rounded-lg !text-base !transition-all !duration-200 !focus:border-[#3B389f] !focus:ring-2 !focus:ring-[#3B389f]/10 !focus:outline-none"
+                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-base transition-all duration-200 focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
                                 />
                                 <button 
                                     type="button" 
-                                    className="!absolute !right-3 !text-gray-500 !text-lg !cursor-pointer !z-10"
+                                    className="absolute right-3 text-gray-500 text-lg cursor-pointer z-10"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
                                     {showPassword ? '👁️' : '👁️‍🗨️'}
                                 </button>
                             </div>
-                        </Form.Group>
+                        </div>
                         
-                        <div className="!text-center !mb-6 !w-full">
-                            <Link to="/forgot-password" className="!text-gray-500 !text-sm !font-medium !transition-colors !duration-200 !hover:text-[#2d2a7a] !hover:underline">
+                        <div className="text-center mb-6 w-full">
+                            <Link to="/forgot-password" className="text-gray-500 text-sm font-medium transition-colors duration-200 hover:text-[#2d2a7a] hover:underline">
                                 Forgot password?
                             </Link>
                         </div>
                         
-                        <Button 
+                        <button 
                             disabled={loading} 
-                            className="!w-full !max-w-sm !bg-[#3B389f] !border-0 !rounded-full !py-3.5 !text-base !font-semibold !text-white !transition-all !duration-300 !mb-6 !hover:bg-[#2d2a7a] !hover:-translate-y-0.5 !hover:shadow-lg !disabled:opacity-70 !disabled:transform-none !flex !justify-center !items-center"
+                            className="w-full max-w-sm bg-[#3B389f] border-0 rounded-full py-3.5 text-base font-semibold text-white transition-all duration-300 mb-6 hover:bg-[#2d2a7a] hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-70 disabled:transform-none flex justify-center items-center"
                             type='submit'
                         >
                             {loading ? 'Logging In...' : 'Log In'}
-                        </Button>
+                        </button>
                         
-                        <div className="!flex !items-center !justify-center !mt-3">
+                        <div className="relative text-center mb-3 w-full">
+                            <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300"></div>
+                            <span className="bg-white px-4 text-gray-500 text-sm relative z-10">or</span>
+                        </div>
+
+                        <div className="flex items-center justify-center mt-3">
                             <button 
                                 type="button"
-                                className="!bg-white !text-gray-700 !w-12 !h-12 !rounded-full !shadow-md !border !border-gray-300 !hover:bg-gray-100 !flex !items-center !justify-center !transition-all !duration-200" 
+                                className="bg-white text-gray-700 w-12 h-12 rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center transition-all duration-200 cursor-pointer" 
                                 onClick={handleGoogleLogin}
                                 disabled={loading}
                             >
                                 <img 
                                     src="https://www.svgrepo.com/show/355037/google.svg" 
                                     alt="Google" 
-                                    className="!w-6 !h-6"
+                                    className="w-6 h-6"
                                 />
                             </button>
 
                             <button 
-                                className="!bg-white !text-gray-700 !w-12 !h-12 !rounded-full !shadow-md !border !border-gray-300 !hover:bg-gray-100 !flex !items-center !justify-center !mx-3 !transition-all !duration-200"
-                                onClick={() => setError('Facebook login not implemented yet')}
+                                className="bg-white text-gray-700 w-12 h-12 rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center mx-3 transition-all duration-200 cursor-pointer"
+                                onClick={handleFacebookLogin}
+                                disabled={loading}
                             >
                                 <img 
                                 src="https://www.svgrepo.com/show/452196/facebook-1.svg" 
                                 alt="Facebook" 
-                                className="!w-5 !h-5"
+                                className="w-5 h-5"
                                 />
                             </button>
                         </div>
-                    </Form>
+                    </form>
                     
-                    <div className="!relative !text-center !mb-6 !w-full">
-                        <div className="!absolute !top-1/2 !left-0 !right-0 !h-px !bg-gray-300"></div>
-                        <span className="!bg-white !px-4 !text-gray-500 !text-sm !relative !z-10">or</span>
+                    <div className="text-center text-gray-500 text-sm">
+                        <p>Don't have an account? <Link to="/signup" className="text-[#3B389f] underline font-semibold transition-colors duration-200 hover:text-[#2d2a7a]">Sign Up</Link></p>
                     </div>
-                    
-                    <Button className="!w-full !max-w-sm !border !border-gray-300 !rounded-full !py-3.5 !text-base !font-medium !text-gray-700 !bg-white !transition-all !duration-300 !mb-6 !hover:bg-gray-50 !hover:border-gray-400 !hover:-translate-y-0.5 !flex !justify-center !items-center !shadow">
-                        <img src={googleLogo} alt="Google" className="!w-5 !h-5 !mr-2" />
-                        Continue with Google
-                    </Button>
-                    
-                    <div className="!text-center !text-gray-500 !text-sm">
-                        <p>Don't have an account? <Link to="/signup" className="!text-[#3B389f] !underline !font-semibold !transition-colors !duration-200 !hover:text-[#2d2a7a]">Sign Up</Link></p>
-                    </div>
-                </Card.Body>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }

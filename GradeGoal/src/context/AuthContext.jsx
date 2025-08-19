@@ -29,6 +29,22 @@ export function AuthProvider({ children }) {
         return Promise.resolve();
     }
 
+    function updateCurrentUserWithData(userData) {
+        console.log('updateCurrentUserWithData called with:', userData);
+        console.log('Current currentUser:', currentUser);
+        
+        if (currentUser && userData) {
+            const updatedUser = {
+                ...currentUser,
+                ...userData
+            };
+            console.log('Updated user object:', updatedUser);
+            setCurrentUser(updatedUser);
+            return updatedUser;
+        }
+        return currentUser;
+    }
+
     function refreshCurrentUser() {
         return auth.currentUser ? Promise.resolve(auth.currentUser) : Promise.reject('No user');
     }
@@ -54,6 +70,7 @@ export function AuthProvider({ children }) {
         signup,
         login,
         loginWithUid,
+        updateCurrentUserWithData,
         refreshCurrentUser,
         logout,
         resetPassword
