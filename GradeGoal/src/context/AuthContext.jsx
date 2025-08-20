@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth } from '../backend/firebase';
 
 const AuthContext = React.createContext();
 

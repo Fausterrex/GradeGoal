@@ -2,8 +2,8 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider, facebookProvider } from '../firebase';
-import { loginUser, googleSignIn, facebookSignIn } from '../utils/api';
+import { auth, googleProvider, facebookProvider } from '../backend/firebase';
+import { loginUser, googleSignIn, facebookSignIn } from '../backend/api';
 
 function Login() {
     const emailRef = useRef();
