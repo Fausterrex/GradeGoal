@@ -3,5 +3,12 @@
 .page{
   background: url('./drawables/landingpage-background.png') no-repeat center center;
   background-size: cover;
-  max-height: 100vh;
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+.page > * {
+  height: auto !important;
 }

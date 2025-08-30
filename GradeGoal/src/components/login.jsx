@@ -72,7 +72,7 @@ function Login() {
             updateCurrentUserWithData(userData);
             setSuccess('Logged in successfully!');
             setTimeout(() => {
-                navigate('/maindashboard');
+                navigate('/dashboard');
             }, 1500);
         } catch (error) {
             if (error.code === 'auth/invalid-credential') {
@@ -114,7 +114,7 @@ function Login() {
             
             setSuccess('Logged in with Google successfully!');
             setTimeout(() => {
-                navigate('/maindashboard');
+                navigate('/dashboard');
             }, 1500);
         } catch (error) {
             console.error('Google login failed:', error);
@@ -144,7 +144,7 @@ function Login() {
 
             setSuccess('Logged in with Facebook successfully!');
             setTimeout(() => {
-                navigate('/maindashboard');
+                navigate('/dashboard');
             }, 1500);
         } catch (error) {
             console.error('Facebook login failed:', error);

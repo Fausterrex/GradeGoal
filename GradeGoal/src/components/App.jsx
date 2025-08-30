@@ -5,7 +5,7 @@ import ForgotPassword from "./forgotpassword";
 import Landingpage from "./landingpage";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Dashboard from './maindashboard'
+import MainDashboard from './MainDashboard'
 import PrivateRoute from "./PrivateRoute";
 import Header from "./Header";
 
@@ -24,9 +24,9 @@ function App() {
                   </div>
                 </div>
               }/>
-              <Route path="/maindashboard" element={
+              <Route path="/dashboard" element={
                 <div className="flex flex-col h-screen w-full">
-                  <PrivateRoute component={Dashboard}/>
+                  <PrivateRoute component={MainDashboard}/>
                 </div>
               }/>
               <Route path="/signup" element={
