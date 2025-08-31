@@ -13,7 +13,7 @@ import {
   deleteGrade as deleteGradeApi 
 } from '../backend/api';
 
-function GradeEntry({ course, onGradeUpdate }) {
+function GradeEntry({ course, onGradeUpdate, onBack }) {
   const { currentUser } = useAuth();
   const [grades, setGrades] = useState({});
   const [showAddGrade, setShowAddGrade] = useState(false);
@@ -69,13 +69,13 @@ function GradeEntry({ course, onGradeUpdate }) {
         
         // Only assign to default category if this is truly an orphaned existing grade
         if (!categoryId && firstCategoryId) {
-          console.log('Assigning orphaned grade to default category:', grade);
+  
           categoryId = firstCategoryId;
         }
         
         // Safely handle cases where categoryId might be null or undefined
         if (!categoryId) {
-          console.warn('Grade missing categoryId and no default category available:', grade);
+  
           return; // Skip this grade if categoryId is missing and no default category
         }
         
@@ -455,19 +455,32 @@ function GradeEntry({ course, onGradeUpdate }) {
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">{course.name}</h2>
-          <p className="text-gray-600">
-            Overall Grade: 
-            <span className={`ml-2 font-semibold ${getGradeColor(courseGrade)}`}>
-              {course.gradingScale === 'percentage' ? `${courseGrade.toFixed(1)}%` :
-               course.gradingScale === 'gpa' ? convertPercentageToScale(courseGrade, 'gpa', course.maxPoints, course.gpaScale) :
-               convertPercentageToScale(courseGrade, 'points', course.maxPoints)}
-            </span>
-          </p>
-          <p className="text-sm text-gray-600 mt-1">
-            Term System: {course.termSystem || '3-term'} | GPA Scale: {course.gpaScale || '4.0'}
-          </p>
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-[#3B389f] hover:text-[#2d2a7a] transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Courses
+            </button>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">{course.name}</h2>
+            <p className="text-gray-600">
+              Overall Grade: 
+              <span className={`ml-2 font-semibold ${getGradeColor(courseGrade)}`}>
+                {course.gradingScale === 'percentage' ? `${courseGrade.toFixed(1)}%` :
+                 course.gradingScale === 'gpa' ? convertPercentageToScale(courseGrade, 'gpa', course.maxPoints, course.gpaScale) :
+                 convertPercentageToScale(courseGrade, 'points', course.maxPoints)}
+              </span>
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              Term System: {course.termSystem || '3-term'} | GPA Scale: {course.gpaScale || '4.0'}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setShowAddGrade(true)}

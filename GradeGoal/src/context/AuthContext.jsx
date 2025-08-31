@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
                 ...firebaseUser,
                 ...userData
             };
-            console.log('Updated user object:', updatedUser);
+    
             setCurrentUser(updatedUser);
             return updatedUser;
         } else if (currentUser && userData) {
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
                 ...currentUser,
                 ...userData
             };
-            console.log('Updated user object (fallback):', updatedUser);
+    
             setCurrentUser(updatedUser);
             return updatedUser;
         }
@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            console.log('Auth state changed:', user);
+      
             setCurrentUser(user);
             setLoading(false);
         });
@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
         resetPassword
     };
 
-    console.log('AuthContext currentUser:', currentUser);
+    
 
     return (
         <AuthContext.Provider value={value}>

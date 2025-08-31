@@ -101,7 +101,7 @@ export default function Signup() {
     }
 
     return (
-        <div className="h-[92.5vh] flex justify-center items-center">
+        <div className="h-[calc(100vh-150px)] flex justify-center items-center px-4">
             <div className="w-full max-w-2xl border-0 rounded-2xl shadow-2xl bg-white">
                 <div className="bg-[#3B389f] text-white p-6 rounded-t-2xl border-0 shadow-lg">
                     <h2 className="text-center mb-0 font-semibold text-2xl">Sign Up</h2>

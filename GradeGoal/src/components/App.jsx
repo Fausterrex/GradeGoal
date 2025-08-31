@@ -26,7 +26,32 @@ function App() {
               }/>
               <Route path="/dashboard" element={
                 <div className="flex flex-col h-screen w-full">
-                  <PrivateRoute component={MainDashboard}/>
+                  <PrivateRoute component={MainDashboard} initialTab="overview"/>
+                </div>
+              }/>
+              <Route path="/dashboard/courses" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={MainDashboard} initialTab="courses"/>
+                </div>
+              }/>
+              <Route path="/dashboard/goals" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={MainDashboard} initialTab="goals"/>
+                </div>
+              }/>
+              <Route path="/dashboard/reports" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={MainDashboard} initialTab="reports"/>
+                </div>
+              }/>
+              <Route path="/dashboard/calendar" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={MainDashboard} initialTab="calendar"/>
+                </div>
+              }/>
+              <Route path="/dashboard/course/:courseId" element={
+                <div className="flex flex-col h-screen w-full">
+                  <PrivateRoute component={MainDashboard} initialTab="grades"/>
                 </div>
               }/>
               <Route path="/signup" element={

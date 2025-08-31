@@ -107,7 +107,6 @@ export default function LandingPage() {
             }
 
             return (
-
               <div
                 key={index}
                 className={`${cardSize} p-0 m-0 rounded-4xl shadow-lg hover:shadow-xl border border-gray-300 transition-transform transform hover:-translate-y-2 flex flex-col justify-center items-center ${rotation} ${translate} ${lift} ${zIndex} ${card.bg}`}

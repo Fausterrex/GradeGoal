@@ -155,8 +155,8 @@ function Login() {
     }
 
     return (
-        <div className="h-full flex justify-center items-center">
-            <div className="w-[50vh] max-w-5xl border-0 rounded-2xl shadow-2xl bg-white">
+        <div className="h-[calc(100vh-150px)] flex justify-center items-center px-4">
+            <div className="w-full max-w-md border-0 rounded-2xl shadow-2xl bg-white">
                 <div className="bg-[#3B389f] border-0 rounded-t-2xl p-6 text-center">
                     <h2 className="text-white text-2xl font-bold m-0">Log In</h2>
                 </div>
@@ -180,7 +180,7 @@ function Login() {
                                     ref={emailRef} 
                                     required 
                                     placeholder='Email'
-                                    className={`w-full pl-10 pr-10 py-3 border rounded-lg text-base transition-all duration-200 focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none ${
+                                    className={`w-full pl-10 pr-10 py-3 border rounded-full text-base transition-all duration-200 focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none ${
                                         emailError 
                                             ? 'border-red-500 focus:border-red-500' 
                                             : 'border-gray-300 focus:border-[#3B389f]'
@@ -203,7 +203,7 @@ function Login() {
                                     ref={passwordRef} 
                                     required 
                                     placeholder='Password'
-                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-base transition-all duration-200 focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
+                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-full text-base transition-all duration-200 focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
                                 />
                                 <button 
                                     type="button" 
