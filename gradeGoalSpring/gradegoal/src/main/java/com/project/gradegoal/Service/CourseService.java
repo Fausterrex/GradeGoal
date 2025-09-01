@@ -73,4 +73,40 @@ public class CourseService {
     public List<Category> getCategoriesByCourseId(Long courseId) {
         return categoryRepository.findByCourseId(courseId);
     }
+
+    @Transactional
+    public Course archiveCourse(Long id) {
+        Optional<Course> courseOpt = courseRepository.findById(id);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setIsArchived(true);
+            course.setArchivedAt(new java.util.Date().toString());
+            course.setUpdatedAt(new java.util.Date().toString());
+            return courseRepository.save(course);
+        }
+        throw new RuntimeException("Course not found");
+    }
+
+    @Transactional
+    public Course unarchiveCourse(Long id) {
+        Optional<Course> courseOpt = courseRepository.findById(id);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setIsArchived(false);
+            course.setArchivedAt(null);
+            course.setUpdatedAt(new java.util.Date().toString());
+            return courseRepository.save(course);
+        }
+        throw new RuntimeException("Course not found");
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> getActiveCoursesByUid(String uid) {
+        return courseRepository.findByUidAndIsArchivedFalseOrderByCreatedAtDesc(uid);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> getArchivedCoursesByUid(String uid) {
+        return courseRepository.findByUidAndIsArchivedTrueOrderByArchivedAtDesc(uid);
+    }
 }

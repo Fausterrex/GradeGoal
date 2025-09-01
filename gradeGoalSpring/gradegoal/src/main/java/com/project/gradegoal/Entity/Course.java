@@ -17,6 +17,9 @@ public class Course {
     @Column(nullable = false)
     private String name;
 
+    @Column
+    private String courseCode; // Course code (e.g., CO101, MATH101)
+
     @Column(nullable = false)
     private String gradingScale; // percentage, gpa, points
 
@@ -35,6 +38,12 @@ public class Course {
     @Column
     private Integer colorIndex; // 0-9 for course color selection
 
+    @Column
+    private Boolean isArchived = false; // Whether the course is archived
+
+    @Column
+    private String archivedAt; // When the course was archived
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("course")
     private List<Category> categories;
@@ -48,9 +57,10 @@ public class Course {
     // No-argument constructor (REQUIRED by JPA/Spring Boot)
     public Course() {}
 
-    public Course(String uid, String name, String gradingScale, Double maxPoints, String gpaScale, String termSystem, String targetGrade, Integer colorIndex) {
+    public Course(String uid, String name, String courseCode, String gradingScale, Double maxPoints, String gpaScale, String termSystem, String targetGrade, Integer colorIndex) {
         this.uid = uid;
         this.name = name;
+        this.courseCode = courseCode;
         this.gradingScale = gradingScale;
         this.maxPoints = maxPoints;
         this.gpaScale = gpaScale;
@@ -71,6 +81,9 @@ public class Course {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     
+    public String getCourseCode() { return courseCode; }
+    public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
+    
     public String getGradingScale() { return gradingScale; }
     public void setGradingScale(String gradingScale) { this.gradingScale = gradingScale; }
     
@@ -88,6 +101,12 @@ public class Course {
     
     public Integer getColorIndex() { return colorIndex; }
     public void setColorIndex(Integer colorIndex) { this.colorIndex = colorIndex; }
+    
+    public Boolean getIsArchived() { return isArchived; }
+    public void setIsArchived(Boolean isArchived) { this.isArchived = isArchived; }
+    
+    public String getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(String archivedAt) { this.archivedAt = archivedAt; }
     
     public List<Category> getCategories() { return categories; }
     public void setCategories(List<Category> categories) { this.categories = categories; }

@@ -119,6 +119,62 @@ export async function deleteCourse(id) {
   return response.ok;
 }
 
+export async function archiveCourse(id) {
+  const response = await fetch(`${API_BASE_URL}/api/courses/${id}/archive`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Failed to archive course with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function unarchiveCourse(id) {
+  const response = await fetch(`${API_BASE_URL}/api/courses/${id}/unarchive`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Failed to unarchive course with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getActiveCoursesByUid(uid) {
+  const response = await fetch(`${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/active`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Failed to fetch active courses with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getArchivedCoursesByUid(uid) {
+  const response = await fetch(`${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/archived`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Failed to fetch archived courses with status ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function addCategoryToCourse(courseId, categoryData) {
   const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/categories`, {
     method: 'POST',

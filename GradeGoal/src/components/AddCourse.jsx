@@ -18,7 +18,7 @@ function AddCourse({
   const { currentUser } = useAuth();
   const [newCourse, setNewCourse] = useState({
     name: '',
-    code: '',
+    courseCode: '',
     creditHours: 3,
     semester: '',
     targetGrade: '',
@@ -36,7 +36,7 @@ function AddCourse({
     if (editingCourse) {
       setNewCourse({
         name: editingCourse.name || '',
-        code: editingCourse.code || '',
+        courseCode: editingCourse.courseCode || '',
         creditHours: editingCourse.creditHours || 3,
         semester: editingCourse.semester || '',
         targetGrade: editingCourse.targetGrade || '',
@@ -52,7 +52,7 @@ function AddCourse({
       // Reset form for new course
       setNewCourse({
         name: '',
-        code: '',
+        courseCode: '',
         creditHours: 3,
         semester: '',
         targetGrade: '',
@@ -139,6 +139,7 @@ function AddCourse({
       const courseData = {
         uid: currentUser.uid,
         name: newCourse.name,
+        courseCode: newCourse.courseCode,
         gradingScale: newCourse.gradingScale,
         maxPoints: newCourse.maxPoints,
         gpaScale: newCourse.gpaScale,
@@ -259,8 +260,8 @@ function AddCourse({
               </label>
               <input
                 type="text"
-                value={newCourse.code}
-                onChange={(e) => setNewCourse({...newCourse, code: e.target.value})}
+                value={newCourse.courseCode}
+                onChange={(e) => setNewCourse({...newCourse, courseCode: e.target.value})}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
                 placeholder="e.g., CTSYSINL"
                 required

@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { GRADING_SCALES } from '../utils/gradeCalculations';
 import GradeService from '../services/gradeService';
 import { 
-  deleteCourse as deleteCourseApi
+  deleteCourse as deleteCourseApi,
+  archiveCourse as archiveCourseApi
 } from '../backend/api';
 import { getCourseColorScheme } from '../utils/courseColors';
 import AddCourse from './AddCourse';
@@ -21,8 +22,8 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, grades = {},
   // Handle course creation/update from AddCourse component
   const handleCourseCreated = (updatedCourses) => {
     updateParentCourses(updatedCourses);
-    setShowAddCourse(false);
-    setEditingCourse(null);
+      setShowAddCourse(false);
+      setEditingCourse(null);
   };
 
   const editCourse = (course) => {
@@ -41,6 +42,25 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, grades = {},
       } catch (error) {
         console.error('Failed to delete course:', error);
         alert('Failed to delete course. Please try again.');
+      }
+    }
+  };
+
+  const archiveCourse = async (courseId) => {
+    if (window.confirm('Archive this course? It will be hidden from the main view but all data will be preserved. You can restore it later from the archive.')) {
+      try {
+        // Call the archive API
+        await archiveCourseApi(courseId);
+        
+        // Remove the archived course from the main view
+        const updatedCourses = courses.filter(course => course.id !== courseId);
+        updateParentCourses(updatedCourses);
+        
+        // Show success message
+        alert('Course archived successfully! You can restore it later from the archive.');
+      } catch (error) {
+        console.error('Failed to archive course:', error);
+        alert('Failed to archive course. Please try again.');
       }
     }
   };
@@ -173,77 +193,107 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, grades = {},
           }
 
           return (
-            <div key={course.id} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group max-w-s" onClick={() => onCourseSelect && onCourseSelect(course)}>
+            <div key={course.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative" onClick={() => onCourseSelect && onCourseSelect(course)}>
+              {/* Gradient Background Overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br from-${colorScheme.primary}/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+              
               {/* Course Card Content */}
-              <div className="p-3">
-                {/* Course Header */}
-                <div className="flex justify-between items-start mb-2">
-                  <div className={`w-13 h-13 ${color} rounded-lg flex items-center justify-center shadow-sm`}>
-                    <span className="text-white font-bold text-m">{initials}</span>
+              <div className="p-6 relative z-10">
+                {/* Top Row - Header and Info */}
+                <div className="flex items-start justify-between mb-4">
+                  {/* Left Side - Icon and Course Info */}
+                  <div className="flex items-start gap-4 flex-1">
+                    {/* Icon */}
+                    <div className={`w-18 h-18 ${color} rounded-xl flex items-center justify-center shadow-lg overflow-hidden group-hover:shadow-xl transition-all duration-300 flex-shrink-0`}>
+                      <img 
+                        src="/src/drawables/logo.png" 
+                        alt="Course Logo" 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
+                    
+                    {/* Course Info */}
+                    <div className="flex-1 min-w-0">
+                      <h1 className="text-xl font-black text-gray-900 mb-1 tracking-tight">{course.courseCode || course.name.substring(0, 6).toUpperCase()}</h1>
+                      <h3 className="text-base font-semibold text-gray-700 leading-tight line-clamp-1">{course.name}</h3>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  
+                  {/* Right Side - Grade Badge */}
+                  <div className="text-right flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
                       hasGrades 
                         ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
-                        : 'bg-yellow-500 text-white'
+                        : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
                     }`}>
                       {hasGrades ? (typeof courseGrade === 'number' ? courseGrade.toFixed(1) : courseGrade) : 'Ongoing'}
                     </span>
                   </div>
                 </div>
 
-                {/* Course Info */}
-                <div className="mb-2">
-                  <p className="text-m font-medium text-gray-500 mb-1">{course.code || course.name.substring(0, 6).toUpperCase()}</p>
-                  <h3 className="text-m font-bold text-gray-800 mb-1 leading-tight line-clamp-2">{course.name}</h3>
-                </div>
 
-                {/* Progress Bar */}
-                <div className="mb-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`text-m ${colorScheme.accent} font-medium`}>Progress:</span>
-                    <span className="text-m font-bold text-[#3E325F]">
-                      {isOngoing && progress === 0 ? 'Ongoing' : `${Math.round(progress)}%`}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-300 ${
-                        isOngoing && progress === 0 
-                          ? 'bg-yellow-500' 
-                          : `bg-gradient-to-r ${colorScheme.progressGradient}`
-                      }`}
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-2 mt-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      editCourse(course);
-                    }}
-                    className="w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors group-hover:bg-blue-200"
-                    title="Edit Course"
-                  >
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteCourse(course.id);
-                    }}
-                    className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors group-hover:bg-red-200"
-                    title="Delete Course"
-                  >
-                    <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                {/* Bottom Row - Progress and Actions */}
+                <div className="flex items-center justify-between">
+                  {/* Progress Section */}
+                  <div className="flex-1 mr-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`text-xs font-bold ${colorScheme.accent}`}>Progress</span>
+                      <span className="text-xs font-bold text-gray-700">
+                        {isOngoing && progress === 0 ? 'Ongoing' : `${Math.round(progress)}%`}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 shadow-inner">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-700 shadow-sm ${
+                          isOngoing && progress === 0 
+                            ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
+                            : `bg-gradient-to-r ${colorScheme.progressGradient}`
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        editCourse(course);
+                      }}
+                      className="w-8 h-8 rounded-full border-2 border-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 flex items-center justify-center transition-all duration-200 group-hover:scale-110 shadow-md hover:shadow-lg"
+                      title="Edit Course"
+                    >
+                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        archiveCourse(course.id);
+                      }}
+                      className="w-8 h-8 rounded-full border-2 border-orange-500 bg-white hover:bg-orange-50 hover:border-orange-600 flex items-center justify-center transition-all duration-200 group-hover:scale-110 shadow-md hover:shadow-lg"
+                      title="Archive Course"
+                    >
+                      <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteCourse(course.id);
+                      }}
+                      className="w-8 h-8 rounded-full border-2 border-red-500 bg-white hover:bg-red-50 hover:border-red-600 flex items-center justify-center transition-all duration-200 group-hover:scale-110 shadow-md hover:shadow-lg"
+                      title="Delete Course"
+                    >
+                      <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

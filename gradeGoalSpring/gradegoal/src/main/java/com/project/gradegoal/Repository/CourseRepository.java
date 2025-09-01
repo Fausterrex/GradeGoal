@@ -9,4 +9,6 @@ import java.util.List;
 public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByUid(String uid);
     List<Course> findByUidOrderByCreatedAtDesc(String uid);
+    List<Course> findByUidAndIsArchivedFalseOrderByCreatedAtDesc(String uid);
+    List<Course> findByUidAndIsArchivedTrueOrderByArchivedAtDesc(String uid);
 }
