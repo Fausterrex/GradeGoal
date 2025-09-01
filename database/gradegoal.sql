@@ -33,7 +33,7 @@ CREATE TABLE `categories` (
   KEY `idx_course_id` (`course_id`),
   KEY `idx_category_name` (`name`),
   CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42,7 +42,6 @@ CREATE TABLE `categories` (
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
-INSERT INTO `categories` VALUES (1,'Assignments',30,1,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(2,'Quizzes',20,1,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(3,'Midterm Exam',25,1,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(4,'Final Exam',25,1,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(5,'Assignments',25,2,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(6,'Quizzes',15,2,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(7,'Projects',30,2,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(8,'Final Exam',30,2,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(9,'First Term',30,3,'Sun Aug 31 16:52:24 GMT+08:00 2025','Sun Aug 31 16:52:24 GMT+08:00 2025'),(10,'Midterm',30,3,'Sun Aug 31 16:52:24 GMT+08:00 2025','Sun Aug 31 16:52:24 GMT+08:00 2025'),(11,'Final Term',40,3,'Sun Aug 31 16:52:24 GMT+08:00 2025','Sun Aug 31 16:52:24 GMT+08:00 2025');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -63,11 +62,13 @@ CREATE TABLE `courses` (
   `term_system` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `updated_at` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `color_index` int DEFAULT '0',
+  `target_grade` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_uid` (`uid`),
   KEY `idx_course_name` (`name`),
   CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`uid`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -76,7 +77,6 @@ CREATE TABLE `courses` (
 
 LOCK TABLES `courses` WRITE;
 /*!40000 ALTER TABLE `courses` DISABLE KEYS */;
-INSERT INTO `courses` VALUES (1,'test_user_123','SYSTEM INTEGRATION','percentage',100,'4.0','4-term','2025-08-31 16:49:46','2025-08-31 16:49:46'),(2,'test_user_123','DATABASE SYSTEM','percentage',100,'4.0','4-term','2025-08-31 16:49:46','2025-08-31 16:49:46'),(3,'2wv7qM7mcsMmRAbWPp7eRgrPTE42','Database','percentage',100,'4.0','3-term','Sun Aug 31 16:52:23 GMT+08:00 2025','Sun Aug 31 16:52:23 GMT+08:00 2025');
 /*!40000 ALTER TABLE `courses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -112,7 +112,6 @@ CREATE TABLE `goals` (
 
 LOCK TABLES `goals` WRITE;
 /*!40000 ALTER TABLE `goals` DISABLE KEYS */;
-INSERT INTO `goals` VALUES (1,'test_user_123','SYSTEM INTEGRATION','Achieve A Grade','Maintain at least 90% in System Integration',90,'2024-05-01','active','2025-08-31 16:49:46','2025-08-31 16:49:46'),(2,'test_user_123','DATABASE SYSTEM','Maintain B+ Average','Keep grade above 87% in Database System',87,'2024-05-01','active','2025-08-31 16:49:46','2025-08-31 16:49:46');
 /*!40000 ALTER TABLE `goals` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -140,7 +139,7 @@ CREATE TABLE `grades` (
   KEY `idx_assessment_type` (`assessment_type`),
   KEY `idx_score` (`score`),
   CONSTRAINT `grades_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -149,7 +148,6 @@ CREATE TABLE `grades` (
 
 LOCK TABLES `grades` WRITE;
 /*!40000 ALTER TABLE `grades` DISABLE KEYS */;
-INSERT INTO `grades` VALUES (1,'Assignment 1',100,85,'2024-01-15','assignment',0,0,1,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(2,'Quiz 1',50,42,'2024-01-20','quiz',0,0,2,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(3,'Assignment 1',100,92,'2024-01-10','assignment',0,0,5,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(4,'Assignment 2',100,88,'2024-01-25','assignment',0,0,5,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(5,'Quiz 1',50,45,'2024-01-15','quiz',0,0,6,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(6,'Project 1',100,95,'2024-02-01','project',0,0,7,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(7,'Final Exam',100,89,'2024-02-15','exam',0,0,8,'2025-08-31 16:49:46','2025-08-31 16:49:46'),(8,'2',12,12,'2025-08-31','assignment',0,0,9,'Sun Aug 31 16:55:07 GMT+08:00 2025','Sun Aug 31 16:55:09 GMT+08:00 2025');
 /*!40000 ALTER TABLE `grades` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -192,4 +190,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-31 16:57:27
+-- Dump completed on 2025-09-01 23:03:09

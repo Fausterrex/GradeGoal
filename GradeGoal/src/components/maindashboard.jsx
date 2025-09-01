@@ -9,6 +9,7 @@ import Dashboard from './Dashboard';
 import { getGradeColor, convertPercentageToScale, convertPercentageToGPA } from '../utils/gradeCalculations';
 import GradeService from '../services/gradeService';
 import { getGradesByCourseId, getCoursesByUid } from '../backend/api';
+import { getCourseColorScheme } from '../utils/courseColors';
 
 // Add CSS for slide-in and slide-out animations
 const slideInAnimation = `
@@ -61,25 +62,37 @@ function MainDashboard({ initialTab = 'overview' }) {
   const [isCourseManagerExpanded, setIsCourseManagerExpanded] = useState(false);
   const [isClosingOverlay, setIsClosingOverlay] = useState(false);
   const [isOpeningOverlay, setIsOpeningOverlay] = useState(false);
+  const [previousTab, setPreviousTab] = useState('overview');
 
   const displayName = currentUser?.displayName || currentUser?.email || 'Unknown User';
 
   // Load courses and grades from database
   useEffect(() => {
     if (currentUser) {
-      loadCourses();
+      loadCoursesAndGrades();
     }
   }, [currentUser]);
 
-  // Load courses from database
-  const loadCourses = async () => {
+  // Load courses and grades efficiently
+  const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
     
     try {
+      setIsLoading(true);
+      
+      // Load courses first
       const coursesData = await getCoursesByUid(currentUser.uid);
       setCourses(coursesData);
+      
+      // Only load grades if we have courses and are on overview tab
+      if (coursesData.length > 0 && activeTab === 'overview') {
+        await loadAllGrades(coursesData);
+      } else {
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('Failed to load courses:', error);
+      setIsLoading(false);
     }
   };
 
@@ -93,17 +106,18 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [isOpeningOverlay]);
 
-  // Load all grades for all courses
-  const loadAllGrades = async () => {
-    if (!currentUser || courses.length === 0) {
+  // Load all grades for all courses efficiently
+  const loadAllGrades = async (coursesData = courses) => {
+    if (!currentUser || coursesData.length === 0) {
+      setIsLoading(false);
       return;
     }
     
     try {
       const allGrades = {};
       
-      // Load grades for each course
-      for (const course of courses) {
+      // Use Promise.all to load grades in parallel instead of sequentially
+      const gradePromises = coursesData.map(async (course) => {
         try {
           const courseGrades = await getGradesByCourseId(course.id);
           
@@ -122,14 +136,13 @@ function MainDashboard({ initialTab = 'overview' }) {
         } catch (courseError) {
           console.error(`Error loading grades for course ${course.name}:`, courseError);
         }
-      }
+      });
+      
+      // Wait for all grade loading to complete
+      await Promise.all(gradePromises);
       
       setGrades(allGrades);
-      
-      // Only set loading to false after a small delay to ensure state is updated
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 100);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading all grades:', error);
       setIsLoading(false);
@@ -144,17 +157,12 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [selectedCourse, currentUser]);
 
-  // Load all grades when courses change
+  // Load grades only when needed (overview tab and no grades loaded yet)
   useEffect(() => {
-    if (courses.length > 0) {
-      // Add a small delay to ensure courses are fully loaded
-      const timer = setTimeout(() => {
-        loadAllGrades();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+    if (activeTab === 'overview' && courses.length > 0 && Object.keys(grades).length === 0) {
+      loadAllGrades();
     }
-  }, [courses]);
+  }, [activeTab, courses]);
 
   // Sync activeTab with URL when component mounts or initialTab changes
   useEffect(() => {
@@ -202,38 +210,75 @@ function MainDashboard({ initialTab = 'overview' }) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [courses]);
 
+  // Handle overlay state when course is selected
+  useEffect(() => {
+    if (selectedCourse) {
+      setIsCourseManagerExpanded(true);
+      setIsOpeningOverlay(true);
+    }
+  }, [selectedCourse]);
+
   const handleCourseUpdate = (updatedCourses) => {
     setCourses(updatedCourses);
     if (selectedCourse && !updatedCourses.find(c => c.id === selectedCourse.id)) {
       setSelectedCourse(null);
     }
-    // Trigger grade loading when courses are updated
-    if (updatedCourses.length > 0) {
-      loadAllGrades();
+    // Only reload grades if we're on overview tab and grades are currently loaded
+    if (activeTab === 'overview' && Object.keys(grades).length > 0) {
+      loadAllGrades(updatedCourses);
     }
   };
 
-  const handleGradeUpdate = (updatedGrades) => {
-    // Merge new grades with existing ones instead of replacing
-    setGrades(prevGrades => {
-      const mergedGrades = { ...prevGrades };
+  const handleGradeUpdate = (updatedData) => {
+    // Check if this is a course update or grade update
+    if (updatedData && typeof updatedData === 'object' && updatedData.id && updatedData.name) {
+      // This is a course update
+      setCourses(prevCourses => 
+        prevCourses.map(course => 
+          course.id === updatedData.id ? updatedData : course
+        )
+      );
       
-      // Merge the new grades
-      Object.keys(updatedGrades).forEach(categoryId => {
-        if (updatedGrades[categoryId] && updatedGrades[categoryId].length > 0) {
-          mergedGrades[categoryId] = updatedGrades[categoryId];
-        }
+      // Also update the selected course if it's the one being edited
+      if (selectedCourse && selectedCourse.id === updatedData.id) {
+        setSelectedCourse(updatedData);
+      }
+    } else {
+      // This is a grade update
+      setGrades(prevGrades => {
+        const mergedGrades = { ...prevGrades };
+        
+        // Merge the new grades
+        Object.keys(updatedData).forEach(categoryId => {
+          if (updatedData[categoryId] && updatedData[categoryId].length > 0) {
+            mergedGrades[categoryId] = updatedData[categoryId];
+          }
+        });
+        
+        return mergedGrades;
       });
-      
-      return mergedGrades;
-    });
+    }
   };
 
   const handleCourseNavigation = (course) => {
+    // Store the current tab before navigating to course
+    setPreviousTab(activeTab);
     setSelectedCourse(course);
     // Keep the courses tab active when viewing grades
     setActiveTab('courses');
     // Navigate to courses tab
+    navigate('/dashboard/courses');
+    // Trigger overlay animation immediately without triggering handleTabChange
+    setIsOpeningOverlay(true);
+    setIsCourseManagerExpanded(true);
+  };
+
+  const handleBackFromCourse = () => {
+    setSelectedCourse(null);
+    
+    // Always stay on the courses tab when going back from a course
+    // This provides a more consistent experience
+    setActiveTab('courses');
     navigate('/dashboard/courses');
   };
 
@@ -245,8 +290,8 @@ function MainDashboard({ initialTab = 'overview' }) {
       setSelectedCourse(null);
     }
     
-    // Automatically expand course manager when courses tab is selected
-    if (tab === 'courses') {
+    // Automatically expand course manager when courses tab is selected (but not when a course is already selected)
+    if (tab === 'courses' && !selectedCourse) {
       // Trigger smooth expansion animation
       setIsOpeningOverlay(true);
       setIsCourseManagerExpanded(true);
@@ -335,18 +380,14 @@ function MainDashboard({ initialTab = 'overview' }) {
               </div>
             )}
 
-            {activeTab === 'courses' && (
+            {activeTab === 'courses' && !isCourseManagerExpanded && (
               <div className="w-full h-full p-6 bg-gray-100">
-                {selectedCourse ? (
-                  <GradeEntry 
-                    course={selectedCourse} 
-                    onGradeUpdate={handleGradeUpdate}
-                    onBack={() => setSelectedCourse(null)}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                  </div>
-                )}
+                <CourseManager 
+                  onCourseSelect={handleCourseNavigation}
+                  onCourseUpdate={handleCourseUpdate}
+                  courses={courses}
+                  grades={grades}
+                />
               </div>
             )}
 
@@ -489,11 +530,14 @@ function MainDashboard({ initialTab = 'overview' }) {
                     }
                   }
 
+                  const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
+                  
                   return (
+                    /*Cards on Right Course Manager Sidebar*/
                     <div
                       key={course.id}
-                      className={`bg-white text-black p-4 rounded-xl shadow-lg relative cursor-pointer hover:shadow-xl transition-shadow w-full ${
-                        selectedCourse && selectedCourse.id === course.id ? 'ring-2 ring-[#8168C5] ring-opacity-50' : ''
+                      className={`bg-white text-black p-4 mx-3 rounded-xl shadow-lg relative cursor-pointer hover:shadow-xl transition-all duration-300 ${
+                        selectedCourse && selectedCourse.id === course.id ? `ring-2 ${colorScheme.primary} ring-opacity-50` : ''
                       }`}
                       onClick={() => handleCourseNavigation(course)}
                     >
@@ -501,7 +545,7 @@ function MainDashboard({ initialTab = 'overview' }) {
                         <span className="text-xs font-semibold text-gray-600">{course.code || course.name.substring(0, 8).toUpperCase()}</span>
                         <span className={`text-xs font-bold px-3 py-1 rounded-full ${
                           hasGrades 
-                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
+                            ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
                             : 'bg-gray-300 text-gray-600'
                         }`}>
                           {hasGrades ? courseGrade.toFixed(1) : 'N/A'}
@@ -516,7 +560,7 @@ function MainDashboard({ initialTab = 'overview' }) {
                         </span>
                         <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
                           <div
-                            className="bg-gradient-to-r from-indigo-700 to-purple-600 h-2.5 rounded-full transition-all duration-300"
+                            className={`bg-gradient-to-r ${colorScheme.progressGradient} h-2.5 rounded-full transition-all duration-300`}
                             style={{ width: `${totalProgress}%` }}
                           ></div>
                         </div>
@@ -534,8 +578,8 @@ function MainDashboard({ initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* Course Manager Overlay - Uses existing CourseManager component without sidebar */}
-        {isCourseManagerExpanded && (
+        {/* Full Screen Overlay - Shows CourseManager or GradeEntry */}
+        {(isCourseManagerExpanded || selectedCourse) && (
           <div 
             className={`fixed inset-0 bg-gray-100 z-50 transition-all duration-500 ease-in-out ${
               isClosingOverlay ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
@@ -549,15 +593,18 @@ function MainDashboard({ initialTab = 'overview' }) {
             <div className="absolute top-6 left-6 z-60">
               <button
                 onClick={() => {
-                  // Trigger slide-out animation
-                  setIsClosingOverlay(true);
-                  
-                  // Wait for animation to complete, then close overlay
-                  setTimeout(() => {
-                    setIsCourseManagerExpanded(false);
-                    setIsClosingOverlay(false);
-                    handleTabChange('overview');
-                  }, 500);
+                  if (selectedCourse) {
+                    // If viewing a course, go back to course list
+                    setSelectedCourse(null);
+                  } else {
+                    // If viewing course manager, go back to overview
+                    setIsClosingOverlay(true);
+                    setTimeout(() => {
+                      setIsCourseManagerExpanded(false);
+                      setIsClosingOverlay(false);
+                      handleTabChange('overview');
+                    }, 500);
+                  }
                 }}
                 className="bg-white/90 backdrop-blur-sm text-[#3E325F] px-4 py-2 rounded-full hover:bg-white hover:shadow-xl transition-all duration-300 font-semibold shadow-lg border border-white/20"
               >
@@ -570,7 +617,7 @@ function MainDashboard({ initialTab = 'overview' }) {
               </button>
             </div>
 
-            {/* Full Screen CourseManager */}
+            {/* Full Screen Content */}
             <div className="w-full h-full overflow-y-auto bg-gray-50">
               {selectedCourse ? (
                 <GradeEntry 
@@ -583,6 +630,7 @@ function MainDashboard({ initialTab = 'overview' }) {
                   <div className="w-full h-full [&>*]:max-w-none [&>*]:mx-0 [&>*]:min-h-0">
                     <CourseManager 
                       onCourseSelect={handleCourseNavigation}
+                      onCourseUpdate={handleCourseUpdate}
                       courses={courses}
                       grades={grades}
                     />

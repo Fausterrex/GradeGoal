@@ -106,7 +106,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
     });
   };
 
-  const courseBreakdown = courses.length > 0 ? generateCourseBreakdown() : sampleCourseBreakdown;
+  const courseBreakdown = generateCourseBreakdown();
 
   return (
     <div className="flex flex-col p-6 bg-gray-100 w-full h-screen">

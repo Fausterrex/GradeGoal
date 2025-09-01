@@ -49,11 +49,6 @@ function App() {
                   <PrivateRoute component={MainDashboard} initialTab="calendar"/>
                 </div>
               }/>
-              <Route path="/dashboard/course/:courseId" element={
-                <div className="flex flex-col h-screen w-full">
-                  <PrivateRoute component={MainDashboard} initialTab="grades"/>
-                </div>
-              }/>
               <Route path="/signup" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />

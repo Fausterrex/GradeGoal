@@ -29,6 +29,12 @@ public class Course {
     @Column
     private String termSystem; // 3-term, 4-term, etc.
 
+    @Column
+    private String targetGrade; // Target grade for the course
+
+    @Column
+    private Integer colorIndex; // 0-9 for course color selection
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("course")
     private List<Category> categories;
@@ -42,13 +48,15 @@ public class Course {
     // No-argument constructor (REQUIRED by JPA/Spring Boot)
     public Course() {}
 
-    public Course(String uid, String name, String gradingScale, Double maxPoints, String gpaScale, String termSystem) {
+    public Course(String uid, String name, String gradingScale, Double maxPoints, String gpaScale, String termSystem, String targetGrade, Integer colorIndex) {
         this.uid = uid;
         this.name = name;
         this.gradingScale = gradingScale;
         this.maxPoints = maxPoints;
         this.gpaScale = gpaScale;
         this.termSystem = termSystem;
+        this.targetGrade = targetGrade;
+        this.colorIndex = colorIndex != null ? colorIndex : 0;
         this.createdAt = new java.util.Date().toString();
         this.updatedAt = new java.util.Date().toString();
     }
@@ -74,6 +82,12 @@ public class Course {
     
     public String getTermSystem() { return termSystem; }
     public void setTermSystem(String termSystem) { this.termSystem = termSystem; }
+    
+    public String getTargetGrade() { return targetGrade; }
+    public void setTargetGrade(String targetGrade) { this.targetGrade = targetGrade; }
+    
+    public Integer getColorIndex() { return colorIndex; }
+    public void setColorIndex(Integer colorIndex) { this.colorIndex = colorIndex; }
     
     public List<Category> getCategories() { return categories; }
     public void setCategories(List<Category> categories) { this.categories = categories; }

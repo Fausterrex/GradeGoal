@@ -10,8 +10,10 @@ import {
   getGradesByCourseId, 
   createGrade, 
   updateGrade, 
-  deleteGrade as deleteGradeApi 
+  deleteGrade as deleteGradeApi
 } from '../backend/api';
+import AddCourse from './AddCourse';
+import { getCourseColorScheme } from '../utils/courseColors';
 
 function GradeEntry({ course, onGradeUpdate, onBack }) {
   const { currentUser } = useAuth();
@@ -30,6 +32,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     extraCreditPoints: 0
   });
   const [editingGrade, setEditingGrade] = useState(null);
+  const [showEditCourse, setShowEditCourse] = useState(false);
 
   // Load grades from database
   useEffect(() => {
@@ -69,13 +72,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         
         // Only assign to default category if this is truly an orphaned existing grade
         if (!categoryId && firstCategoryId) {
-  
           categoryId = firstCategoryId;
         }
         
         // Safely handle cases where categoryId might be null or undefined
         if (!categoryId) {
-  
           return; // Skip this grade if categoryId is missing and no default category
         }
         
@@ -102,87 +103,66 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     }
   };
 
-  // Save grades to database
-  const saveGrades = async (updatedGrades) => {
-    setGrades(updatedGrades);
-    if (onGradeUpdate) onGradeUpdate(updatedGrades);
-  };
-
-  // Add or update a grade (first step - without score)
+  // Save new grade
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!newGrade.categoryId || !newGrade.name || newGrade.maxScore === '') {
-      alert('Please fill in all required fields');
-      return;
-    }
-
     try {
       const gradeData = {
         name: newGrade.name,
-        maxScore: newGrade.maxScore,
-        score: null, // No score yet
+        maxScore: parseFloat(newGrade.maxScore),
+        score: null, // Initially no score
         date: newGrade.date,
         assessmentType: newGrade.assessmentType,
         isExtraCredit: newGrade.isExtraCredit,
-        extraCreditPoints: newGrade.extraCreditPoints,
-        categoryId: newGrade.categoryId // Send categoryId directly instead of nested object
+        extraCreditPoints: parseFloat(newGrade.extraCreditPoints) || 0,
+        categoryId: newGrade.categoryId
       };
 
-      if (editingGrade) {
-        // Update existing grade
-        await updateGrade(editingGrade.id, gradeData);
-      } else {
-        // Create new grade
-        const createdGrade = await createGrade(gradeData);
-        
-        // Add the new grade to local state instead of reloading
-        const newGradeWithId = {
-          id: createdGrade.id,
-          categoryId: newGrade.categoryId,
-          name: newGrade.name,
-          maxScore: newGrade.maxScore,
-          score: null,
-          date: newGrade.date,
-          assessmentType: newGrade.assessmentType,
-          isExtraCredit: newGrade.isExtraCredit,
-          extraCreditPoints: newGrade.extraCreditPoints,
-          createdAt: createdGrade.createdAt,
-          updatedAt: createdGrade.updatedAt
-        };
-        
-        setGrades(prevGrades => {
-          const updatedGrades = { ...prevGrades };
-          if (!updatedGrades[newGrade.categoryId]) {
-            updatedGrades[newGrade.categoryId] = [];
-          }
-          
-          // Check if grade with this ID already exists to prevent duplicates
-          const existingGradeIndex = updatedGrades[newGrade.categoryId].findIndex(g => g.id === createdGrade.id);
-          if (existingGradeIndex === -1) {
-            updatedGrades[newGrade.categoryId].push(newGradeWithId);
-          }
-          
-          return updatedGrades;
-        });
-        
-        // Call onGradeUpdate after state update to avoid setState violation
-        if (onGradeUpdate) {
-          // Get the updated grades structure for the callback
-          const updatedGrades = { ...grades };
-          if (!updatedGrades[newGrade.categoryId]) {
-            updatedGrades[newGrade.categoryId] = [];
-          }
-          
-          // Check if grade with this ID already exists to prevent duplicates
-          const existingGradeIndex = updatedGrades[newGrade.categoryId].findIndex(g => g.id === createdGrade.id);
-          if (existingGradeIndex === -1) {
-            updatedGrades[newGrade.categoryId].push(newGradeWithId);
-          }
-          
-          // Call the callback with the updated structure
-          onGradeUpdate(updatedGrades);
+      const savedGrade = await createGrade(gradeData);
+      
+      // Update local state
+      setGrades(prevGrades => {
+        const updatedGrades = { ...prevGrades };
+        if (!updatedGrades[newGrade.categoryId]) {
+          updatedGrades[newGrade.categoryId] = [];
         }
+        updatedGrades[newGrade.categoryId].push({
+          id: savedGrade.id,
+          categoryId: newGrade.categoryId,
+          name: savedGrade.name,
+          maxScore: savedGrade.maxScore,
+          score: savedGrade.score,
+          date: savedGrade.date,
+          assessmentType: savedGrade.assessmentType,
+          isExtraCredit: savedGrade.isExtraCredit,
+          extraCreditPoints: savedGrade.extraCreditPoints,
+          createdAt: savedGrade.createdAt,
+          updatedAt: savedGrade.updatedAt
+        });
+        return updatedGrades;
+      });
+      
+      // Call onGradeUpdate if provided
+      if (onGradeUpdate) {
+        const updatedGrades = { ...grades };
+        if (!updatedGrades[newGrade.categoryId]) {
+          updatedGrades[newGrade.categoryId] = [];
+        }
+        updatedGrades[newGrade.categoryId].push({
+          id: savedGrade.id,
+          categoryId: newGrade.categoryId,
+          name: savedGrade.name,
+          maxScore: savedGrade.maxScore,
+          score: savedGrade.score,
+          date: savedGrade.date,
+          assessmentType: savedGrade.assessmentType,
+          isExtraCredit: savedGrade.isExtraCredit,
+          extraCreditPoints: savedGrade.extraCreditPoints,
+          createdAt: savedGrade.createdAt,
+          updatedAt: savedGrade.updatedAt
+        });
+        onGradeUpdate(updatedGrades);
       }
       
       // Reset form
@@ -416,21 +396,115 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
 
   // Calculate category average
   const getCategoryAverage = (categoryId) => {
+    // Check if course has categories before calculating
+    if (!course.categories || course.categories.length === 0) {
+      return null;
+    }
+    
     const categoryGrades = grades[categoryId] || [];
     if (categoryGrades.length === 0) return null;
     
-    const result = GradeService.calculateCourseGrade(course, grades);
-    if (result.success) {
-      const category = result.categoryAverages.find(cat => cat.categoryId === categoryId);
-      return category ? category.average : null;
+    try {
+      const result = GradeService.calculateCourseGrade(course, grades);
+      if (result.success) {
+        const category = result.categoryAverages.find(cat => cat.categoryId === categoryId);
+        return category ? category.average : null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error calculating category average:', error);
+      return null;
     }
-    return null;
   };
 
   // Calculate course overall grade
   const getCourseGrade = () => {
-    const result = GradeService.calculateCourseImpact(course, grades);
-    return result.success ? result.courseGrade : 0;
+    // Check if course has categories before calculating grade
+    if (!course.categories || course.categories.length === 0) {
+      return 0;
+    }
+    
+    try {
+      const result = GradeService.calculateCourseImpact(course, grades);
+      return result.success ? result.courseGrade : 0;
+    } catch (error) {
+      console.error('Error calculating course grade:', error);
+      return 0;
+    }
+  };
+
+  // Calculate total assessments count
+  const getTotalAssessments = () => {
+    return Object.values(grades).reduce((total, categoryGrades) => {
+      return total + categoryGrades.length;
+    }, 0);
+  };
+
+  // Calculate progress percentage
+  const getProgressPercentage = () => {
+    if (!course.categories || course.categories.length === 0) return 0;
+    
+    // Calculate progress based on categories with actual scores
+    const completedCategories = course.categories.filter(category => {
+      const categoryGrades = grades[category.id] || [];
+      return categoryGrades.some(grade => 
+        grade.score !== undefined && 
+        grade.score !== null && 
+        grade.score !== '' && 
+        !isNaN(parseFloat(grade.score))
+      );
+    }).length;
+    
+    return Math.round((completedCategories / course.categories.length) * 100);
+  };
+
+  // Convert target grade to GPA format
+  const getTargetGradeDisplay = () => {
+    if (!course.targetGrade) return 'Not Set';
+    
+    const targetGrade = course.targetGrade.toString().trim();
+    
+    // If it's already in GPA format (e.g., "3.5", "4.0"), return as is
+    if (/^\d+\.\d+$/.test(targetGrade) && parseFloat(targetGrade) <= 5.0) {
+      return targetGrade;
+    }
+    
+    // If it's a percentage (e.g., "90%", "85"), convert to GPA
+    if (targetGrade.includes('%') || parseFloat(targetGrade) > 5.0) {
+      const percentage = parseFloat(targetGrade.replace('%', ''));
+      if (!isNaN(percentage)) {
+        // Convert percentage to GPA (90% = 3.6, 85% = 3.4, etc.)
+        if (percentage >= 97) return '4.0';
+        if (percentage >= 93) return '3.7';
+        if (percentage >= 90) return '3.3';
+        if (percentage >= 87) return '3.0';
+        if (percentage >= 83) return '2.7';
+        if (percentage >= 80) return '2.3';
+        if (percentage >= 77) return '2.0';
+        if (percentage >= 73) return '1.7';
+        if (percentage >= 70) return '1.3';
+        if (percentage >= 67) return '1.0';
+        if (percentage >= 65) return '0.7';
+        return '0.0';
+      }
+    }
+    
+    // If we can't convert it, return the original value
+    return targetGrade;
+  };
+
+  // Edit course functions
+  const handleEditCourse = () => {
+    setShowEditCourse(true);
+  };
+
+  const handleCourseUpdated = (updatedCourses) => {
+    // Find the updated course
+    const updatedCourse = updatedCourses.find(c => c.id === course.id);
+    if (updatedCourse && onGradeUpdate) {
+      onGradeUpdate(updatedCourse);
+    }
+    setShowEditCourse(false);
   };
 
   // Cancel edit/add
@@ -451,182 +525,239 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
   if (!course) return <div>No course selected</div>;
 
   const courseGrade = getCourseGrade();
+  const totalAssessments = getTotalAssessments();
+  const progressPercentage = getProgressPercentage();
+  const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-[#3B389f] hover:text-[#2d2a7a] transition-colors"
+    <div className={`w-full h-full ${colorScheme.light}`}>
+      {/* Header Section */}
+      <div className={`bg-gradient-to-r ${colorScheme.gradient} text-white shadow-lg`}>
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex justify-between items-start">
+            {/* Left Side - Course Info */}
+            <div className="flex items-start gap-4">
+              <div className="flex items-center gap-4">
+                {/* Course Icon */}
+                <div className={`w-16 h-16 ${colorScheme.secondary} rounded-full flex items-center justify-center shadow-lg`}>
+                  <span className="text-2xl font-bold text-white">
+                    {course.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-white/80 mb-1">{course.code || course.name.substring(0, 8).toUpperCase()}</p>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white">{course.name}</h1>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                      <span className="text-sm text-white font-medium">Active Course</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Edit Button */}
+            <button 
+              onClick={handleEditCourse}
+              className={`flex items-center gap-2 ${colorScheme.secondary} text-white px-4 py-2 rounded-lg hover:bg-white hover:text-gray-800 transition-all duration-300 shadow-lg`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              Back to Courses
+              Edit
             </button>
-          )}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">{course.name}</h2>
-            <p className="text-gray-600">
-              Overall Grade: 
-              <span className={`ml-2 font-semibold ${getGradeColor(courseGrade)}`}>
+          </div>
+
+          {/* Performance Indicators Bar */}
+          <div className="flex items-center gap-8 mt-8 pb-4">
+            <div className="text-center bg-white/20 backdrop-blur-sm rounded-lg p-4 flex-1">
+              <p className="text-3xl font-bold text-white">
                 {course.gradingScale === 'percentage' ? `${courseGrade.toFixed(1)}%` :
                  course.gradingScale === 'gpa' ? convertPercentageToScale(courseGrade, 'gpa', course.maxPoints, course.gpaScale) :
                  convertPercentageToScale(courseGrade, 'points', course.maxPoints)}
-              </span>
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              Term System: {course.termSystem || '3-term'} | GPA Scale: {course.gpaScale || '4.0'}
-            </p>
+              </p>
+              <p className="text-xs text-white/80 uppercase tracking-wide">Current Grade</p>
+            </div>
+            
+            <div className="text-center bg-white/20 backdrop-blur-sm rounded-lg p-4 flex-1">
+              <p className="text-3xl font-bold text-white">
+                {getTargetGradeDisplay()}
+              </p>
+              <p className="text-xs text-white/80 uppercase tracking-wide">Target Grade</p>
+            </div>
+            
+            <div className="text-center bg-white/20 backdrop-blur-sm rounded-lg p-4 flex-1">
+              <p className="text-3xl font-bold text-white">{progressPercentage}%</p>
+              <p className="text-xs text-white/80 uppercase tracking-wide">Progress</p>
+            </div>
+            
+            <div className="text-center bg-white/20 backdrop-blur-sm rounded-lg p-4 flex-1">
+              <p className="text-3xl font-bold text-white">{totalAssessments}</p>
+              <p className="text-xs text-white/80 uppercase tracking-wide">Assessment</p>
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddGrade(true)}
-          className="bg-[#3B389f] text-white px-4 py-2 rounded-lg hover:bg-[#2d2a7a] transition-colors"
-        >
-          Add Assessment
-        </button>
       </div>
 
-      {/* Categories and Grades */}
-      <div className="grid gap-6">
-        {course.categories.map(category => {
-          const categoryGrades = grades[category.id] || [];
-          const categoryAverage = getCategoryAverage(category.id);
-          
-          return (
-            <div key={category.id} className="bg-white p-6 rounded-lg shadow border">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{category.name}</h3>
-                  <p className="text-sm text-gray-600">Weight: {category.weight}%</p>
-                  {categoryAverage !== null && (
-                    <p className="text-sm text-gray-600">
-                      Average: 
-                                           <span className={`ml-2 font-semibold ${getGradeColor(categoryAverage)}`}>
-                       {course.gradingScale === 'percentage' ? `${categoryAverage.toFixed(1)}%` :
-                        course.gradingScale === 'gpa' ? convertPercentageToScale(categoryAverage, 'gpa', course.maxPoints, course.gpaScale) :
-                        convertPercentageToScale(categoryAverage, 'points', course.maxPoints)}
-                     </span>
-                    </p>
-                  )}
+      {/* Main Content - Assessment Categories Grid */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {course.categories && course.categories.length > 0 ? course.categories.map(category => {
+            const categoryGrades = grades[category.id] || [];
+            const categoryAverage = getCategoryAverage(category.id);
+            
+            return (
+              <div key={category.id} className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300">
+                {/* Category Header */}
+                <div className={`bg-gradient-to-r ${colorScheme.gradient} px-6 py-4 flex justify-between items-center`}>
+                  <h3 className="text-lg font-semibold text-white">{category.name}</h3>
+                  <button
+                    onClick={() => {
+                      setNewGrade(prev => ({ ...prev, categoryId: category.id }));
+                      setShowAddGrade(true);
+                    }}
+                    className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white hover:text-gray-800 transition-all duration-300 font-medium"
+                  >
+                    + Add Assessment
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    setNewGrade(prev => ({ ...prev, categoryId: category.id }));
-                    setShowAddGrade(true);
-                  }}
-                  className="text-[#3B389f] hover:text-[#2d2a7a] text-sm"
-                >
-                  + Add Assessment
-                </button>
-              </div>
 
-              {/* Grades List */}
-              {categoryGrades.length > 0 ? (
-                <div className="space-y-2">
-                  {categoryGrades.map(grade => {
-                    const hasScore = grade.score !== null && grade.score !== undefined;
-                    const percentage = hasScore ? (grade.score / grade.maxScore) * 100 : null;
-                    
-                    return (
-                      <div 
-                        key={grade.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                          hasScore ? 'bg-gray-50' : 'bg-blue-50 border-2 border-dashed border-blue-300 cursor-pointer'
-                        }`}
-                        onClick={() => !hasScore && handleAssessmentClick(grade)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-gray-800">{grade.name}</span>
-                            {grade.assessmentType && (
-                              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                                {grade.assessmentType}
-                              </span>
-                            )}
-                            {grade.isExtraCredit && (
-                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                                Extra Credit
-                              </span>
-                            )}
-                            {!hasScore && (
-                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                                Pending
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            {hasScore ? (
-                              <span className={`font-semibold ${getGradeColor(percentage)}`}>
-                                {grade.score}/{grade.maxScore} ({percentage.toFixed(1)}%)
-                                {grade.isExtraCredit && grade.extraCreditPoints > 0 && (
-                                  <span className="ml-2 text-green-600 font-medium">
-                                    +{grade.extraCreditPoints} EC
-                                  </span>
-                                )}
-                                {grade.isExtraCredit && grade.extraCreditPoints > 0 && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    Adjusted: {grade.score + grade.extraCreditPoints}/{grade.maxScore} ({(percentage + (grade.extraCreditPoints / grade.maxScore) * 100).toFixed(1)}%)
-                                  </div>
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-blue-600 font-medium">
-                                Max Score: {grade.maxScore} • Click to add your score
-                                {grade.isExtraCredit && grade.extraCreditPoints > 0 && (
-                                  <span className="ml-2 text-green-600 font-medium">
-                                    +{grade.extraCreditPoints} EC
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                            <span className="ml-2">• {grade.date}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          {hasScore && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditScore(grade);
-                              }}
-                              className="text-green-600 hover:text-green-800 text-sm"
-                            >
-                              Edit Score
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              editGrade(grade, category.id);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
+                {/* Category Content */}
+                <div className="p-6">
+                  {/* Category Summary */}
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm text-gray-600">Weight: {category.weight}%</span>
+                    {categoryAverage !== null && (
+                      <span className="text-sm text-gray-600">
+                        Average: 
+                        <span className={`ml-2 font-semibold ${getGradeColor(categoryAverage)}`}>
+                          {course.gradingScale === 'percentage' ? `${categoryAverage.toFixed(1)}%` :
+                           course.gradingScale === 'gpa' ? convertPercentageToScale(categoryAverage, 'gpa', course.maxPoints, course.gpaScale) :
+                           convertPercentageToScale(categoryAverage, 'points', course.maxPoints)}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Assessment List */}
+                  <div className="space-y-3">
+                    {categoryGrades.length > 0 ? (
+                      categoryGrades.map(grade => {
+                        const hasScore = grade.score !== null && grade.score !== undefined;
+                        const percentage = hasScore ? (grade.score / grade.maxScore) * 100 : null;
+                        
+                        return (
+                          <div 
+                            key={grade.id} 
+                            className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${
+                              hasScore ? `${colorScheme.light} border-${colorScheme.primary.split('-')[1]}-200` : 'bg-gray-50 border-dashed border-gray-300 cursor-pointer hover:bg-gray-100'
+                            }`}
+                            onClick={() => !hasScore && handleAssessmentClick(grade)}
                           >
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteGrade(grade.id, category.id);
-                            }}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900">{grade.name}</h4>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {grade.assessmentType && (
+                                    <span className={`${colorScheme.secondary} ${colorScheme.accent} text-xs px-3 py-1 rounded-full font-medium`}>
+                                      {grade.assessmentType}
+                                    </span>
+                                  )}
+                                  {grade.isExtraCredit && (
+                                    <span className="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-medium">
+                                      Extra Credit
+                                    </span>
+                                  )}
+                                  {!hasScore && (
+                                    <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
+                                      Pending
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-sm text-gray-600 mt-2">
+                                  {hasScore ? (
+                                    <span className={`font-semibold ${getGradeColor(percentage)}`}>
+                                      {grade.score}/{grade.maxScore} ({percentage.toFixed(1)}%)
+                                      {grade.isExtraCredit && grade.extraCreditPoints > 0 && (
+                                        <span className="ml-2 text-green-600 font-medium">
+                                          +{grade.extraCreditPoints} EC
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span className="text-blue-600 font-medium">
+                                      Max Score: {grade.maxScore} • Click to add score
+                                      {grade.isExtraCredit && grade.extraCreditPoints > 0 && (
+                                        <span className="ml-2 text-green-600 font-medium">
+                                          +{grade.extraCreditPoints} EC
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  <span className="ml-2">• {grade.date}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex gap-2 ml-4">
+                                {hasScore && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditScore(grade);
+                                    }}
+                                    className={`${colorScheme.accent} hover:opacity-80 text-sm font-medium px-3 py-1 rounded-lg transition-all duration-200`}
+                                  >
+                                    Edit Score
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    editGrade(grade, category.id);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded-lg transition-all duration-200"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteGrade(grade.id, category.id);
+                                  }}
+                                  className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded-lg transition-all duration-200"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      // Empty state - show input fields like in the image
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((index) => (
+                          <div key={index} className={`h-12 ${colorScheme.light} rounded-xl border-2 border-dashed ${colorScheme.primary} opacity-30`}></div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No assessments added yet</p>
-              )}
+              </div>
+            );
+          }) : (
+            <div className="col-span-2 text-center py-12">
+              <div className="text-gray-500">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Found</h3>
+                <p className="text-gray-500">This course doesn't have any assessment categories yet.</p>
+              </div>
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       {/* Add/Edit Assessment Modal */}
@@ -646,11 +777,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                   <select
                     value={newGrade.categoryId}
                     onChange={(e) => setNewGrade({...newGrade, categoryId: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                     required
                   >
                     <option value="">Select Category</option>
-                    {course.categories.map(cat => (
+                    {course.categories && course.categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
@@ -663,7 +794,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                   <select
                     value={newGrade.assessmentType}
                     onChange={(e) => setNewGrade({...newGrade, assessmentType: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                     required
                   >
                     <option value="">Select Type</option>
@@ -684,7 +815,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                     type="text"
                     value={newGrade.name}
                     onChange={(e) => setNewGrade({...newGrade, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                     required
                   />
                 </div>
@@ -697,7 +828,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                     type="number"
                     value={newGrade.maxScore}
                     onChange={(e) => setNewGrade({...newGrade, maxScore: parseFloat(e.target.value) || ''})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                     step="0.01"
                     min="0.01"
                     required
@@ -715,7 +846,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                     type="date"
                     value={newGrade.date}
                     onChange={(e) => setNewGrade({...newGrade, date: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -723,21 +854,21 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                   </p>
                 </div>
 
-                                 <div className="flex items-center">
-                   <input
-                     type="checkbox"
-                     id="isExtraCredit"
-                     checked={newGrade.isExtraCredit}
-                     onChange={(e) => setNewGrade({...newGrade, isExtraCredit: e.target.checked})}
-                     className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                   />
-                   <label htmlFor="isExtraCredit" className="text-sm text-gray-700">
-                     Extra Credit
-                   </label>
-                 </div>
-                 <p className="text-xs text-gray-500 -mt-2 mb-2">
-                   Check this if this assessment provides extra credit points
-                 </p>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isExtraCredit"
+                    checked={newGrade.isExtraCredit}
+                    onChange={(e) => setNewGrade({...newGrade, isExtraCredit: e.target.checked})}
+                    className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isExtraCredit" className="text-sm text-gray-700">
+                    Extra Credit
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 -mt-2 mb-2">
+                  Check this if this assessment provides extra credit points
+                </p>
 
                 {newGrade.isExtraCredit && (
                   <div>
@@ -748,7 +879,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                       type="number"
                       value={newGrade.extraCreditPoints}
                       onChange={(e) => setNewGrade({...newGrade, extraCreditPoints: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                       step="0.01"
                       min="0"
                     />
@@ -769,7 +900,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#3B389f] text-white rounded-md hover:bg-[#2d2a7a]"
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 >
                   {editingGrade ? 'Update Assessment' : 'Add Assessment'}
                 </button>
@@ -797,61 +928,14 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                 <input
                   type="number"
                   name="score"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   step="0.01"
                   min="0"
                   max={selectedGrade.maxScore}
                   required
-                  autoFocus
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter the score you received (max: {selectedGrade.maxScore})
-                </p>
               </div>
-
-              <div className="mb-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="scoreExtraCredit"
-                    checked={selectedGrade.isExtraCredit}
-                    onChange={(e) => setSelectedGrade({
-                      ...selectedGrade, 
-                      isExtraCredit: e.target.checked
-                    })}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="scoreExtraCredit" className="text-sm text-gray-700">
-                    Extra Credit
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 -mt-1 mb-2">
-                  Check this if this assessment provides extra credit points
-                </p>
-              </div>
-
-              {selectedGrade.isExtraCredit && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Extra Credit Points
-                  </label>
-                  <input
-                    type="number"
-                    value={selectedGrade.extraCreditPoints || 0}
-                    onChange={(e) => setSelectedGrade({
-                      ...selectedGrade, 
-                      extraCreditPoints: parseFloat(e.target.value) || 0
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
-                    step="0.01"
-                    min="0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter the number of points to add to the total score
-                  </p>
-                </div>
-              )}
-
+              
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -865,7 +949,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#3B389f] text-white rounded-md hover:bg-[#2d2a7a]"
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 >
                   Save Score
                 </button>
@@ -882,74 +966,26 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
             <h3 className="text-xl font-bold mb-4">Edit Score</h3>
             <p className="text-gray-600 mb-4">
               <strong>{selectedGrade.name}</strong><br/>
-              Maximum Score: {selectedGrade.maxScore}<br/>
-              Current Score: {selectedGrade.score}
+              Maximum Score: {selectedGrade.maxScore}
             </p>
             
             <form onSubmit={handleEditScoreSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Score
+                  Score Obtained
                 </label>
                 <input
                   type="number"
                   name="editScore"
                   defaultValue={selectedGrade.score}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   step="0.01"
                   min="0"
                   max={selectedGrade.maxScore}
                   required
-                  autoFocus
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter the new score (max: {selectedGrade.maxScore})
-                </p>
               </div>
-
-              <div className="mb-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="editExtraCredit"
-                    checked={selectedGrade.isExtraCredit || false}
-                    onChange={(e) => setSelectedGrade({
-                      ...selectedGrade, 
-                      isExtraCredit: e.target.checked
-                    })}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="editExtraCredit" className="text-sm text-gray-700">
-                    Extra Credit
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 -mt-1 mb-2">
-                  Check this if this assessment provides extra credit points
-                </p>
-              </div>
-
-              {selectedGrade.isExtraCredit && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Extra Credit Points
-                  </label>
-                  <input
-                    type="number"
-                    value={selectedGrade.extraCreditPoints || 0}
-                    onChange={(e) => setSelectedGrade({
-                      ...selectedGrade, 
-                      extraCreditPoints: parseFloat(e.target.value) || 0
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B389f]"
-                    step="0.01"
-                    min="0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter the number of points to add to the total score
-                  </p>
-                </div>
-              )}
-
+              
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -972,6 +1008,15 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
           </div>
         </div>
       )}
+
+      {/* Edit Course Modal */}
+      <AddCourse
+        isOpen={showEditCourse}
+        onClose={() => setShowEditCourse(false)}
+        onCourseCreated={handleCourseUpdated}
+        editingCourse={course}
+        existingCourses={[]}
+      />
     </div>
   );
 }
