@@ -1,5 +1,19 @@
-// Color scheme generator based on course letter - shared utility
+/**
+ * Course Colors Utility
+ * 
+ * Provides consistent color schemes for courses throughout the application.
+ * Supports both custom color selection and automatic generation based on course names.
+ * Each color scheme includes primary, secondary, accent, gradient, and light variants.
+ */
+
+/**
+ * Get color scheme for a course based on name or custom color index
+ * @param {string} courseName - Name of the course for fallback color generation
+ * @param {number|null} customColorIndex - Custom color index (0-9) or null for auto-generation
+ * @returns {Object} Color scheme object with all color variants
+ */
 export const getCourseColorScheme = (courseName, customColorIndex = null) => {
+  // Predefined color schemes with all necessary variants
   const colors = [
     { 
       primary: 'bg-green-600', 
@@ -103,12 +117,12 @@ export const getCourseColorScheme = (courseName, customColorIndex = null) => {
     }
   ];
   
-  // If custom color index is provided, use it; otherwise generate from course name
+  // If custom color index is provided and valid, use it
   if (customColorIndex !== null && customColorIndex >= 0 && customColorIndex < colors.length) {
     return colors[customColorIndex];
   }
   
-  // Generate a consistent color based on course name (fallback)
+  // Generate a consistent color based on course name hash (fallback)
   const hash = courseName.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
@@ -117,7 +131,10 @@ export const getCourseColorScheme = (courseName, customColorIndex = null) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// Get all available colors for color picker
+/**
+ * Get all available colors for color picker component
+ * @returns {Array} Array of color objects with index, name, and primary/secondary variants
+ */
 export const getAllColors = () => {
   return [
     { index: 0, name: 'Green', primary: 'bg-green-600', secondary: 'bg-green-100' },

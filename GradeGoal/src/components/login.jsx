@@ -5,7 +5,15 @@ import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../backend/firebase';
 import { loginUser, googleSignIn, facebookSignIn } from '../backend/api';
 
+/**
+ * Login Component
+ * 
+ * Handles user authentication with email/password and social login options.
+ * Features email validation, password visibility toggle, and error handling.
+ * Integrates with Firebase Authentication and custom backend API.
+ */
 function Login() {
+    // Form references and state
     const emailRef = useRef();
     const passwordRef = useRef();
     const { updateCurrentUserWithData } = useAuth();
@@ -16,6 +24,11 @@ function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [emailError, setEmailError] = useState('');
 
+    /**
+     * Validate email format using regex pattern
+     * @param {string} email - Email address to validate
+     * @returns {boolean} True if email is valid, false otherwise
+     */
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) {
@@ -30,14 +43,27 @@ function Login() {
         return true;
     };
 
+    /**
+     * Handle email input changes and validate in real-time
+     * @param {Event} e - Input change event
+     */
     const handleEmailChange = (e) => {
         validateEmail(e.target.value);
     };
 
+    /**
+     * Handle email input blur and validate on focus loss
+     * @param {Event} e - Input blur event
+     */
     const handleEmailBlur = (e) => {
         validateEmail(e.target.value);
     };
 
+    /**
+     * Handle form submission for email/password login
+     * Validates inputs, authenticates with Firebase, and navigates to dashboard
+     * @param {Event} e - Form submission event
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
@@ -94,6 +120,10 @@ function Login() {
         setLoading(false);
     }
 
+    /**
+     * Handle Google sign-in using Firebase popup authentication
+     * Creates or updates user in backend and navigates to dashboard
+     */
     const handleGoogleLogin = async () => {
         try {
             setError('');
@@ -124,6 +154,10 @@ function Login() {
         }
     };
 
+    /**
+     * Handle Facebook sign-in using Firebase popup authentication
+     * Creates or updates user in backend and navigates to dashboard
+     */
     const handleFacebookLogin = async () => {
         try {
             setError('');
@@ -157,10 +191,14 @@ function Login() {
     return (
         <div className="h-[calc(100vh-150px)] flex justify-center items-center px-4">
             <div className="w-full max-w-md border-0 rounded-2xl shadow-2xl bg-white">
+                {/* Header */}
                 <div className="bg-[#3B389f] border-0 rounded-t-2xl p-6 text-center">
                     <h2 className="text-white text-2xl font-bold m-0">Log In</h2>
                 </div>
+                
+                {/* Form Container */}
                 <div className="p-8 flex flex-col items-center">
+                    {/* Error and Success Messages */}
                     {error && (
                         <div className="w-full mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                             {error}
@@ -172,7 +210,9 @@ function Login() {
                         </div>
                     )}
                     
+                    {/* Login Form */}
                     <form onSubmit={handleSubmit} className="w-full flex flex-col items-center mb-6">
+                        {/* Email Input */}
                         <div className="mb-7 w-full max-w-sm">
                             <div className="relative flex items-center">
                                 <input 
@@ -196,6 +236,7 @@ function Login() {
                             </div>
                         </div>
                         
+                        {/* Password Input */}
                         <div className="mb-4 w-full max-w-sm">
                             <div className="relative flex items-center">
                                 <input 
@@ -215,12 +256,14 @@ function Login() {
                             </div>
                         </div>
                         
+                        {/* Forgot Password Link */}
                         <div className="text-center mb-6 w-full">
                             <Link to="/forgot-password" className="text-gray-500 text-sm font-medium transition-colors duration-200 hover:text-[#2d2a7a] hover:underline">
                                 Forgot password?
                             </Link>
                         </div>
                         
+                        {/* Login Button */}
                         <button 
                             disabled={loading} 
                             className="w-full max-w-sm bg-[#3B389f] border-0 rounded-full py-3.5 text-base font-semibold text-white transition-all duration-300 mb-6 hover:bg-[#2d2a7a] hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-70 disabled:transform-none flex justify-center items-center"
@@ -229,12 +272,15 @@ function Login() {
                             {loading ? 'Logging In...' : 'Log In'}
                         </button>
                         
+                        {/* Divider */}
                         <div className="relative text-center mb-3 w-full">
                             <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300"></div>
                             <span className="bg-white px-4 text-gray-500 text-sm relative z-10">or</span>
                         </div>
 
+                        {/* Social Login Buttons */}
                         <div className="flex items-center justify-center mt-3">
+                            {/* Google Login Button */}
                             <button 
                                 type="button"
                                 className="bg-white text-gray-700 w-12 h-12 rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center transition-all duration-200 cursor-pointer" 
@@ -248,6 +294,7 @@ function Login() {
                                 />
                             </button>
 
+                            {/* Facebook Login Button */}
                             <button 
                                 className="bg-white text-gray-700 w-12 h-12 rounded-full shadow-md border border-gray-300 hover:bg-gray-100 flex items-center justify-center mx-3 transition-all duration-200 cursor-pointer"
                                 onClick={handleFacebookLogin}
@@ -262,6 +309,7 @@ function Login() {
                         </div>
                     </form>
                     
+                    {/* Sign Up Link */}
                     <div className="text-center text-gray-500 text-sm">
                         <p>Don't have an account? <Link to="/signup" className="text-[#3B389f] underline font-semibold transition-colors duration-200 hover:text-[#2d2a7a]">Sign Up</Link></p>
                     </div>

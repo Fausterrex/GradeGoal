@@ -1,13 +1,19 @@
-// Grade calculation utilities for GradeGoal app
+/**
+ * Grade Calculations Utility
+ * 
+ * Provides comprehensive grade calculation and conversion functions for the GradeGoal application.
+ * Supports multiple grading scales (percentage, GPA, points) with various GPA scale configurations.
+ * Handles extra credit calculations, weighted averages, and grade validation.
+ */
 
-// Grading scale conversions
+// Grading scale constants
 export const GRADING_SCALES = {
   PERCENTAGE: 'percentage',
   GPA: 'gpa',
   POINTS: 'points'
 };
 
-// GPA scale configurations
+// GPA scale configurations with support for inverted scales
 export const GPA_SCALES = {
   '4.0': { max: 4.0, min: 1.0, inverted: false },
   '5.0': { max: 5.0, min: 1.0, inverted: false },
@@ -15,7 +21,12 @@ export const GPA_SCALES = {
   'inverted-5.0': { max: 5.0, min: 1.0, inverted: true }
 };
 
-// Convert percentage to GPA based on scale
+/**
+ * Convert percentage to GPA based on specified scale
+ * @param {number} percentage - Percentage value (0-100)
+ * @param {string} gpaScale - GPA scale configuration key
+ * @returns {number} GPA value rounded to 2 decimal places
+ */
 export function convertPercentageToGPA(percentage, gpaScale = '4.0') {
   const scale = GPA_SCALES[gpaScale];
   if (!scale) return 0;
@@ -32,7 +43,12 @@ export function convertPercentageToGPA(percentage, gpaScale = '4.0') {
   return Math.round(gpa * 100) / 100; // Round to 2 decimal places
 }
 
-// Convert GPA to percentage based on scale
+/**
+ * Convert GPA to percentage based on specified scale
+ * @param {number} gpa - GPA value
+ * @param {string} gpaScale - GPA scale configuration key
+ * @returns {number} Percentage value rounded to 2 decimal places
+ */
 export function convertGPAToPercentage(gpa, gpaScale = '4.0') {
   const scale = GPA_SCALES[gpaScale];
   if (!scale) return 0;
@@ -49,8 +65,14 @@ export function convertGPAToPercentage(gpa, gpaScale = '4.0') {
   return Math.round(percentage * 100) / 100; // Round to 2 decimal places
 }
 
-// Convert grade to percentage for calculations
-// Now always calculates percentage from score/maxScore regardless of course grading scale
+/**
+ * Convert grade to percentage for calculations
+ * Always calculates percentage from score/maxScore regardless of course grading scale
+ * @param {Object} grade - Grade object with score, maxScore, and extra credit info
+ * @param {string} scale - Grading scale type
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @returns {number} Percentage value
+ */
 export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
   if (!grade || grade.score === null || grade.score === undefined || grade.score === '') {
     return 0;
@@ -75,7 +97,14 @@ export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
   return 0;
 }
 
-// Convert percentage to desired scale
+/**
+ * Convert percentage to desired scale
+ * @param {number} percentage - Percentage value (0-100)
+ * @param {string} scale - Target grading scale
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @param {string} gpaScale - GPA scale for GPA conversions
+ * @returns {number} Converted value in target scale
+ */
 export function convertPercentageToScale(percentage, scale, maxPoints = 100, gpaScale = '4.0') {
   if (scale === GRADING_SCALES.PERCENTAGE) {
     return Math.round(percentage);
@@ -87,7 +116,14 @@ export function convertPercentageToScale(percentage, scale, maxPoints = 100, gpa
   return percentage;
 }
 
-// Calculate category average
+/**
+ * Calculate category average from grades
+ * @param {Array} grades - Array of grade objects
+ * @param {string} scale - Grading scale type
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @param {string} handleMissing - How to handle missing grades ('exclude' or 'zero')
+ * @returns {number} Average percentage for the category
+ */
 export function calculateCategoryAverage(grades, scale, maxPoints = 100, handleMissing = 'exclude') {
   if (!grades || grades.length === 0) return 0;
   
@@ -118,7 +154,14 @@ export function calculateCategoryAverage(grades, scale, maxPoints = 100, handleM
   return totalPercentage / validGrades.length;
 }
 
-// Calculate weighted course grade
+/**
+ * Calculate weighted course grade from categories
+ * @param {Array} categories - Array of category objects with weights and grades
+ * @param {string} gradingScale - Course grading scale
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @param {string} handleMissing - How to handle missing grades
+ * @returns {number} Weighted course grade
+ */
 export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, handleMissing = 'exclude') {
   if (!categories || categories.length === 0) return 0;
   
@@ -144,7 +187,13 @@ export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, 
   return totalWeightedGrade / totalWeight;
 }
 
-// Calculate extra credit impact
+/**
+ * Calculate extra credit impact on overall grade
+ * @param {Array} grades - Array of grade objects
+ * @param {string} scale - Grading scale type
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @returns {number} Average extra credit percentage
+ */
 export function calculateExtraCredit(grades, scale, maxPoints = 100) {
   if (!grades || grades.length === 0) return 0;
   
@@ -159,7 +208,11 @@ export function calculateExtraCredit(grades, scale, maxPoints = 100) {
   return totalExtraCredit / extraCreditGrades.length;
 }
 
-// Get grade color based on percentage
+/**
+ * Get color class for grade display based on percentage
+ * @param {number} percentage - Grade percentage
+ * @returns {string} Tailwind CSS color class
+ */
 export function getGradeColor(percentage) {
   if (percentage >= 90) return 'text-green-600';
   if (percentage >= 80) return 'text-blue-600';
@@ -168,7 +221,13 @@ export function getGradeColor(percentage) {
   return 'text-red-600';
 }
 
-// Validate grade input
+/**
+ * Validate grade input based on scale and constraints
+ * @param {number} grade - Grade value to validate
+ * @param {string} scale - Grading scale type
+ * @param {number} maxPoints - Maximum points for points-based grading
+ * @returns {boolean} True if grade is valid for the scale
+ */
 export function validateGrade(grade, scale, maxPoints = 100) {
   if (scale === GRADING_SCALES.PERCENTAGE) {
     return grade >= 0 && grade <= 100;

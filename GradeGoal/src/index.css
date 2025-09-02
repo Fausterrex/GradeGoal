@@ -1,14 +1,45 @@
+/**
+ * GradeGoal Application - Global CSS Styles
+ * 
+ * This file contains global CSS styles and Tailwind CSS imports for the GradeGoal application.
+ * It defines the base layout, background styling, and global page structure.
+ * 
+ * Key Features:
+ * - Tailwind CSS framework integration
+ * - Custom background image for landing page
+ * - Responsive layout with proper overflow handling
+ * - Consistent height management across components
+ */
+
+/* Import Tailwind CSS framework */
 @import "tailwindcss";
 
+/**
+ * Main Page Container Styles
+ * 
+ * Defines the base styling for all page containers in the application.
+ * Includes background image, height management, and overflow handling.
+ */
 .page{
+  /* Custom background image for the landing page */
   background: url('./drawables/landingpage-background.png') no-repeat center center;
   background-size: cover;
+  
+  /* Ensure full viewport height coverage */
   min-height: 100vh !important;
   height: auto !important;
+  
+  /* Handle content overflow gracefully */
   overflow-y: auto !important;
   overflow-x: hidden;
 }
 
+/**
+ * Page Content Styles
+ * 
+ * Ensures all direct children of the page container have proper height management.
+ * This prevents layout issues and ensures consistent component sizing.
+ */
 .page > * {
   height: auto !important;
 }

@@ -3,8 +3,27 @@
 
 import { calculateCourseGrade, calculateCategoryAverage } from '../utils/gradeCalculations';
 
+/**
+ * GradeService Class
+ * 
+ * Core service for handling grade calculations, conversions, and analysis.
+ * Provides methods for calculating course grades, converting between grading scales,
+ * analyzing goal feasibility, and generating academic recommendations.
+ * 
+ * This service replaces Java backend calls and provides client-side grade calculations
+ * for better performance and offline capability.
+ */
 class GradeService {
-  // Calculate course impact on CGPA
+  /**
+   * Calculate course impact on CGPA
+   * 
+   * Determines how a specific course affects the overall Cumulative Grade Point Average.
+   * Converts course grades to a consistent percentage format for CGPA calculations.
+   * 
+   * @param {Object} course - Course object with grading scale and GPA scale
+   * @param {Object} currentGrades - Current grades for the course
+   * @returns {Object} Result object with success status, course grade, and message
+   */
   static calculateCourseImpact(course, currentGrades) {
     try {
       const courseGrade = this.calculateCourseGrade(course, currentGrades);
@@ -43,7 +62,16 @@ class GradeService {
     }
   }
 
-  // Calculate course grade using utility functions
+  /**
+   * Calculate course grade using utility functions
+   * 
+   * Computes the overall course grade based on weighted category averages.
+   * Uses the gradeCalculations utility for consistent calculations across the application.
+   * 
+   * @param {Object} course - Course object with categories and grading information
+   * @param {Object} currentGrades - Current grades organized by category ID
+   * @returns {Object} Result object with success status, course grade, category averages, and message
+   */
   static calculateCourseGrade(course, currentGrades) {
     try {
       const categoriesWithGrades = course.categories.map(cat => ({
@@ -85,7 +113,16 @@ class GradeService {
     }
   }
 
-  // Convert GPA to percentage based on scale
+  /**
+   * Convert GPA to percentage based on scale
+   * 
+   * Converts GPA values to percentage equivalents using the specified GPA scale.
+   * Supports both standard and inverted GPA scales for different educational systems.
+   * 
+   * @param {number} gpa - GPA value to convert
+   * @param {string} gpaScale - GPA scale configuration (4.0, 5.0, inverted-4.0, inverted-5.0)
+   * @returns {number} Percentage value (0-100) rounded to 2 decimal places
+   */
   static convertGPAToPercentage(gpa, gpaScale = '4.0') {
     const scale = this.getGPAScale(gpaScale);
     if (!scale) return 0;
@@ -102,7 +139,16 @@ class GradeService {
     return Math.round(percentage * 100) / 100; // Round to 2 decimal places
   }
 
-  // Convert percentage to GPA based on scale
+  /**
+   * Convert percentage to GPA based on scale
+   * 
+   * Converts percentage values to GPA equivalents using the specified GPA scale.
+   * Supports both standard and inverted GPA scales for different educational systems.
+   * 
+   * @param {number} percentage - Percentage value (0-100) to convert
+   * @param {string} gpaScale - GPA scale configuration (4.0, 5.0, inverted-4.0, inverted-5.0)
+   * @returns {number} GPA value rounded to 2 decimal places
+   */
   static convertPercentageToGPA(percentage, gpaScale = '4.0') {
     const scale = this.getGPAScale(gpaScale);
     if (!scale) return 0;
@@ -119,7 +165,15 @@ class GradeService {
     return Math.round(gpa * 100) / 100; // Round to 2 decimal places
   }
 
-  // Get GPA scale configuration
+  /**
+   * Get GPA scale configuration
+   * 
+   * Returns the configuration object for a specific GPA scale.
+   * Defines the range and whether the scale is inverted.
+   * 
+   * @param {string} gpaScale - GPA scale identifier
+   * @returns {Object|null} Scale configuration object or null if not found
+   */
   static getGPAScale(gpaScale) {
     const scales = {
       '4.0': { max: 4.0, min: 1.0, inverted: false },
@@ -130,7 +184,16 @@ class GradeService {
     return scales[gpaScale] || scales['4.0'];
   }
 
-  // Update CGPA across all courses
+  /**
+   * Update CGPA across all courses
+   * 
+   * Calculates the overall Cumulative Grade Point Average across all user courses.
+   * Converts all course grades to a consistent GPA scale and applies credit hour weighting.
+   * 
+   * @param {Array} courses - Array of course objects
+   * @param {Object} grades - Object containing grades for all courses
+   * @returns {Object} Result object with success status, overall GPA, and message
+   */
   static updateCGPA(courses, grades) {
     try {
       if (!courses || courses.length === 0) {
@@ -145,6 +208,11 @@ class GradeService {
       let totalCredits = 0;
 
       courses.forEach(course => {
+        // Skip archived courses - they shouldn't affect CGPA
+        if (course.isArchived === true) {
+          return;
+        }
+        
         // Get grades for this specific course
         const courseGrades = grades[course.id] || {};
         const result = this.calculateCourseImpact(course, courseGrades);
@@ -161,8 +229,8 @@ class GradeService {
             courseGPA = this.convertPercentageToGPA(percentage, course.gpaScale || '4.0');
           }
 
-          totalWeightedGrade += (courseGPA * (course.creditHours || 3));
-          totalCredits += (course.creditHours || 3);
+          totalWeightedGrade += (courseGPA * (course.units || 3));
+          totalCredits += (course.units || 3);
         }
       });
 
@@ -190,7 +258,16 @@ class GradeService {
     }
   }
 
-  // Validate grade input
+  /**
+   * Validate grade input
+   * 
+   * Performs comprehensive validation on grade input data.
+   * Checks required fields, data types, and logical constraints.
+   * 
+   * @param {Object} grade - Grade object to validate
+   * @param {Object} course - Course object for context
+   * @returns {Array} Array of validation error messages (empty if valid)
+   */
   static validateGradeInput(grade, course) {
     const errors = [];
     
@@ -240,7 +317,17 @@ class GradeService {
     return errors;
   }
 
-  // Analyze goal feasibility (simplified version)
+  /**
+   * Analyze goal feasibility (simplified version)
+   * 
+   * Determines how achievable a target grade is based on current performance.
+   * Provides feasibility levels and recommendations for improvement.
+   * 
+   * @param {Object} course - Course object with grading information
+   * @param {string|number} targetGrade - Target grade to analyze
+   * @param {Object} currentGrades - Current grades for the course
+   * @returns {Object} Result object with feasibility analysis and recommendations
+   */
   static analyzeGoalFeasibility(course, targetGrade, currentGrades) {
     try {
       const currentGrade = this.calculateCourseImpact(course, currentGrades);
@@ -303,7 +390,17 @@ class GradeService {
     }
   }
 
-  // Generate simple recommendations
+  /**
+   * Generate simple recommendations
+   * 
+   * Creates actionable recommendations based on performance gaps.
+   * Identifies low-performing categories and suggests improvement strategies.
+   * 
+   * @param {number} difference - Gap between current and target grades
+   * @param {Object} course - Course object with categories
+   * @param {Object} currentGrades - Current grades for the course
+   * @returns {Array} Array of recommendation strings
+   */
   static generateRecommendations(difference, course, currentGrades) {
     const recommendations = [];
     

@@ -8,8 +8,21 @@ import {
   deleteGoal 
 } from '../backend/api';
 
+/**
+ * GoalSetting Component
+ * 
+ * Allows users to set and manage academic goals for specific courses.
+ * Features goal analysis, feasibility assessment, and progress tracking.
+ * Integrates with GradeService for intelligent goal recommendations.
+ * 
+ * @param {Object} course - The course object to set goals for
+ * @param {Object} grades - Grades data for the course
+ * @param {Function} onGoalUpdate - Callback when goals are updated
+ */
 function GoalSetting({ course, grades, onGoalUpdate }) {
   const { currentUser } = useAuth();
+  
+  // State for managing goals and UI
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goals, setGoals] = useState([]);
   const [goal, setGoal] = useState({
@@ -20,14 +33,18 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
   });
   const [analysis, setAnalysis] = useState(null);
 
-  // Load goals from database
+  /**
+   * Load goals from database when component mounts or course changes
+   */
   useEffect(() => {
     if (course && currentUser) {
       loadGoals();
     }
   }, [course, currentUser]);
 
-  // Load goals from database
+  /**
+   * Load goals from database for the current user and course
+   */
   const loadGoals = async () => {
     try {
       const goalsData = await getGoalsByUidAndCourseId(currentUser.uid, course.id);
@@ -37,6 +54,10 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
     }
   };
 
+  /**
+   * Handle goal form submission and analyze goal feasibility
+   * @param {Event} e - Form submission event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -45,7 +66,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
       return;
     }
 
-    // Analyze goal feasibility
+    // Analyze goal feasibility using GradeService
     const feasibility = GradeService.analyzeGoalFeasibility(course, goal.targetGrade, grades);
     setAnalysis(feasibility);
     
@@ -83,6 +104,11 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
     }
   };
 
+  /**
+   * Get color class for feasibility level display
+   * @param {string} feasibility - The feasibility level
+   * @returns {string} Tailwind CSS color class
+   */
   const getFeasibilityColor = (feasibility) => {
     switch (feasibility) {
       case 'exceeded': return 'text-green-600';
@@ -93,6 +119,11 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
     }
   };
 
+  /**
+   * Get emoji icon for feasibility level display
+   * @param {string} feasibility - The feasibility level
+   * @returns {string} Emoji icon
+   */
   const getFeasibilityIcon = (feasibility) => {
     switch (feasibility) {
       case 'exceeded': return '🎉';
@@ -105,6 +136,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
+      {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Goal Setting for {course.name}</h2>
         <button
@@ -123,6 +155,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
             
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
+                {/* Target Grade Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Target Grade
@@ -141,6 +174,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   </p>
                 </div>
                 
+                {/* Study Hours Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Study Hours Available (per week)
@@ -156,6 +190,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   />
                 </div>
                 
+                {/* Notes Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Notes (Optional)
@@ -170,6 +205,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                 </div>
               </div>
 
+              {/* Form Actions */}
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   type="button"
@@ -193,10 +229,11 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
         </div>
       )}
 
-      {/* Goal Analysis Results */}
+      {/* Goal Analysis Results Modal */}
       {analysis && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Analysis Header */}
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-bold">Goal Analysis Results</h3>
               <button
@@ -209,6 +246,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
             
             {analysis.success ? (
               <div className="space-y-4">
+                {/* Feasibility Summary */}
                 <div className={`text-center p-4 rounded-lg border-2 ${
                   analysis.feasibility === 'exceeded' ? 'border-green-200 bg-green-50' :
                   analysis.feasibility === 'achievable' ? 'border-blue-200 bg-blue-50' :
@@ -222,6 +260,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   <p className="text-gray-700 mt-2">{analysis.message}</p>
                 </div>
                 
+                {/* Performance Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h5 className="font-semibold text-gray-800 mb-2">Current Performance</h5>
@@ -234,6 +273,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   </div>
                 </div>
                 
+                {/* Gap Analysis */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h5 className="font-semibold text-gray-800 mb-2">Gap Analysis</h5>
                   <p className="text-lg text-gray-700">
@@ -241,6 +281,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   </p>
                 </div>
                 
+                {/* Recommendations */}
                 {analysis.recommendations.length > 0 && (
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <h5 className="font-semibold text-blue-800 mb-2">Recommendations</h5>
@@ -255,6 +296,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                   </div>
                 )}
                 
+                {/* Analysis Actions */}
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setAnalysis(null)}
@@ -274,6 +316,7 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
                 </div>
               </div>
             ) : (
+              /* Analysis Failed State */
               <div className="text-center p-6">
                 <div className="text-red-500 text-4xl mb-4">❌</div>
                 <h4 className="text-lg font-semibold text-red-800 mb-2">Analysis Failed</h4>
@@ -290,15 +333,17 @@ function GoalSetting({ course, grades, onGoalUpdate }) {
         </div>
       )}
 
-      {/* Existing Goals */}
+      {/* Existing Goals Section */}
       <div className="mt-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Goals</h3>
         <div className="space-y-4">
           {goals.length === 0 ? (
+            /* Empty State */
             <div className="text-center py-8 text-gray-500">
               No goals set yet. Set your first goal to get started!
             </div>
           ) : (
+            /* Goals List */
             goals.map(goal => (
               <div key={goal.id} className="bg-white p-4 rounded-lg shadow border">
                 <div className="flex justify-between items-start">

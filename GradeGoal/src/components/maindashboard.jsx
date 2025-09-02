@@ -11,7 +11,10 @@ import GradeService from '../services/gradeService';
 import { getGradesByCourseId, getCoursesByUid } from '../backend/api';
 import { getCourseColorScheme } from '../utils/courseColors';
 
-// Add CSS for slide-in and slide-out animations
+/**
+ * CSS animations for slide-in and slide-out transitions
+ * Provides smooth overlay animations for course management
+ */
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -44,16 +47,27 @@ const slideInAnimation = `
   }
 `;
 
-// Inject the CSS
+// Inject the CSS animations into the document head
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = slideInAnimation;
   document.head.appendChild(style);
 }
 
+/**
+ * MainDashboard Component
+ * 
+ * The main application container that manages navigation between different views.
+ * Handles course management, grade entry, goal setting, and dashboard overview.
+ * Features smooth overlay transitions and state management for all sub-components.
+ * 
+ * @param {string} initialTab - The initial active tab to display
+ */
 function MainDashboard({ initialTab = 'overview' }) {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // State for managing courses and UI
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -63,17 +77,23 @@ function MainDashboard({ initialTab = 'overview' }) {
   const [isClosingOverlay, setIsClosingOverlay] = useState(false);
   const [isOpeningOverlay, setIsOpeningOverlay] = useState(false);
   const [previousTab, setPreviousTab] = useState('overview');
+  const [showArchivedCourses, setShowArchivedCourses] = useState(false);
 
   const displayName = currentUser?.displayName || currentUser?.email || 'Unknown User';
 
-  // Load courses and grades from database
+  /**
+   * Load courses and grades from database when component mounts
+   */
   useEffect(() => {
     if (currentUser) {
       loadCoursesAndGrades();
     }
   }, [currentUser]);
 
-  // Load courses and grades efficiently
+  /**
+   * Load courses and grades efficiently from the database
+   * Loads courses first, then grades only if needed for the overview tab
+   */
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
     
@@ -96,7 +116,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
-  // Reset opening overlay state after animation
+  /**
+   * Reset opening overlay state after animation completes
+   * Ensures smooth transition animations
+   */
   useEffect(() => {
     if (isOpeningOverlay) {
       const timer = setTimeout(() => {
@@ -106,7 +129,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [isOpeningOverlay]);
 
-  // Load all grades for all courses efficiently
+  /**
+   * Load all grades for all courses efficiently using parallel API calls
+   * @param {Array} coursesData - Array of courses to load grades for
+   */
   const loadAllGrades = async (coursesData = courses) => {
     if (!currentUser || coursesData.length === 0) {
       setIsLoading(false);
@@ -149,7 +175,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
-  // Load grades for selected course
+  /**
+   * Load grades for selected course when needed
+   * Note: GradeEntry component handles its own grade loading
+   */
   useEffect(() => {
     if (selectedCourse && currentUser) {
       // Don't clear grades - let GradeEntry component handle its own grade loading
@@ -157,14 +186,20 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [selectedCourse, currentUser]);
 
-  // Load grades only when needed (overview tab and no grades loaded yet)
+  /**
+   * Load grades only when needed (overview tab and no grades loaded yet)
+   * Optimizes performance by avoiding unnecessary API calls
+   */
   useEffect(() => {
     if (activeTab === 'overview' && courses.length > 0 && Object.keys(grades).length === 0) {
       loadAllGrades();
     }
   }, [activeTab, courses]);
 
-  // Sync activeTab with URL when component mounts or initialTab changes
+  /**
+   * Sync activeTab with URL when component mounts or initialTab changes
+   * Handles deep linking to specific courses and tabs
+   */
   useEffect(() => {
     setActiveTab(initialTab);
     
@@ -183,7 +218,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [initialTab, courses]);
 
-  // Handle browser back/forward navigation
+  /**
+   * Handle browser back/forward navigation
+   * Maintains application state consistency with browser history
+   */
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
@@ -210,7 +248,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [courses]);
 
-  // Handle overlay state when course is selected
+  /**
+   * Handle overlay state when course is selected
+   * Triggers smooth animation for course detail view
+   */
   useEffect(() => {
     if (selectedCourse) {
       setIsCourseManagerExpanded(true);
@@ -218,17 +259,26 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   }, [selectedCourse]);
 
+  /**
+   * Handle course updates from CourseManager component
+   * Updates local state and handles course deletion scenarios
+   * @param {Array} updatedCourses - Array of updated courses
+   */
   const handleCourseUpdate = (updatedCourses) => {
     setCourses(updatedCourses);
     if (selectedCourse && !updatedCourses.find(c => c.id === selectedCourse.id)) {
       setSelectedCourse(null);
     }
-    // Only reload grades if we're on overview tab and grades are currently loaded
-    if (activeTab === 'overview' && Object.keys(grades).length > 0) {
-      loadAllGrades(updatedCourses);
-    }
+    // Always reload grades when courses are updated to prevent NaN progress calculations
+    // This ensures that updated course data (like units) is properly synchronized with grades
+    loadAllGrades(updatedCourses);
   };
 
+  /**
+   * Handle grade updates from GradeEntry component
+   * Distinguishes between course updates and grade updates
+   * @param {Object|Object} updatedData - Updated course or grades data
+   */
   const handleGradeUpdate = (updatedData) => {
     // Check if this is a course update or grade update
     if (updatedData && typeof updatedData === 'object' && updatedData.id && updatedData.name) {
@@ -260,6 +310,11 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
+  /**
+   * Handle navigation to a specific course
+   * Stores current tab and navigates to course detail view
+   * @param {Object} course - The course to navigate to
+   */
   const handleCourseNavigation = (course) => {
     // Store the current tab before navigating to course
     setPreviousTab(activeTab);
@@ -273,6 +328,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     setIsCourseManagerExpanded(true);
   };
 
+  /**
+   * Handle navigation back from course detail view
+   * Returns to courses tab and clears selected course
+   */
   const handleBackFromCourse = () => {
     setSelectedCourse(null);
     
@@ -282,6 +341,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     navigate('/dashboard/courses');
   };
 
+  /**
+   * Handle tab changes and manage overlay states
+   * @param {string} tab - The tab to switch to
+   */
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     
@@ -316,6 +379,9 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
+  /**
+   * Handle user logout and redirect to login page
+   */
   const handleLogout = async () => {
     try {
       await logout();
@@ -325,7 +391,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
-  // Calculate overall GPA across all courses
+  /**
+   * Calculate overall GPA across all courses using GradeService
+   * @returns {number} The calculated overall GPA or 0 if calculation fails
+   */
   const calculateOverallGPA = () => {
     if (courses.length === 0) return 0;
     
@@ -485,6 +554,26 @@ function MainDashboard({ initialTab = 'overview' }) {
               <h2 className="text-3xl font-semibold leading-none mt-5">Course List</h2>
             </div>
             
+            {/* Archive Toggle and Course Count */}
+            <div className="flex items-center justify-center mb-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showArchivedCourses}
+                  onChange={(e) => setShowArchivedCourses(e.target.checked)}
+                  className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
+                />
+                <span className="text-sm text-gray-300 font-medium">Show Archived Courses</span>
+              </label>
+            </div>
+            
+            {/* Course Count */}
+            <div className="text-center mb-2">
+              <span className="text-xs text-gray-400">
+                {courses.filter(course => showArchivedCourses ? true : course.isArchived !== true).length} of {courses.length} courses
+              </span>
+            </div>
+            
             <div className="w-[80%] h-[1px] bg-gray-300 my-5 mx-auto"></div>
             
             {/* Course List */}
@@ -495,39 +584,101 @@ function MainDashboard({ initialTab = 'overview' }) {
                   <p className="text-sm">Add courses to see them here</p>
                 </div>
               ) : (
-                courses.map((course) => {
-                  // Calculate progress and grade for this course
+                courses
+                  .filter(course => showArchivedCourses ? true : course.isArchived !== true)
+                  .map((course) => {
+                  // Calculate progress and grade for this course - synced with CourseManager
                   let totalProgress = 0;
-                  let courseGrade = 0;
+                  let courseGrade = 'Ongoing';
                   let hasGrades = false;
+                  let isOngoing = true;
 
-                  if (course.categories && grades) {
+                  // Ensure we have valid course data and grades before calculating
+                  if (course.categories && course.categories.length > 0 && grades && typeof grades === 'object') {
+                    try {
+                      // Check if any categories have actual grades with scores
+                      const categoriesWithScores = course.categories.filter(category => {
+                        const categoryGrades = grades[category.id] || [];
+                        return categoryGrades.some(grade => 
+                          grade.score !== undefined && 
+                          grade.score !== null && 
+                          grade.score !== '' && 
+                          !isNaN(parseFloat(grade.score))
+                        );
+                      });
+
+                      // Calculate GPA if we have any scores (even partial)
+                      if (categoriesWithScores.length > 0) {
+                        const gradeResult = GradeService.calculateCourseGrade(course, grades);
+                        if (gradeResult.success) {
+                          hasGrades = true;
+                          courseGrade = gradeResult.courseGrade;
+                          isOngoing = false;
+                          
+                          if (course.gradingScale === 'percentage' || courseGrade > 100) {
+                            courseGrade = GradeService.convertPercentageToGPA(courseGrade, course.gpaScale || '4.0');
+                          }
+                        }
+                      }
+                      
+                      // Calculate progress based on categories with actual scores
+                      const completedCategories = course.categories.filter(category => {
+                        const categoryGrades = grades[category.id] || [];
+                        return categoryGrades.some(grade => 
+                          grade.score !== undefined && 
+                          grade.score !== null && 
+                          grade.score !== '' && 
+                          !isNaN(parseFloat(grade.score))
+                        );
+                      }).length;
+                      
+                      totalProgress = (completedCategories / course.categories.length) * 100;
+                      
+                      // Ensure progress is a valid number
+                      if (isNaN(totalProgress) || !isFinite(totalProgress)) {
+                        totalProgress = 0;
+                      }
+                    } catch (error) {
+                      // Silent fallback - use default values
+                      console.warn('Error calculating course progress:', error);
+                    }
+                  } else {
+                    // Fallback when grades or categories are not available
+                    if (course.categories && course.categories.length > 0) {
+                      totalProgress = 0;
+                      courseGrade = 'Ongoing';
+                      hasGrades = false;
+                      isOngoing = true;
+                    } else {
+                      totalProgress = 0;
+                      courseGrade = 'Ongoing';
+                      hasGrades = false;
+                      isOngoing = true;
+                    }
+                  }
+
+                  // Fallback: If we have progress > 0, we should have grades
+                  if (totalProgress > 0 && !hasGrades) {
+                    hasGrades = true;
+                    isOngoing = false;
                     try {
                       const gradeResult = GradeService.calculateCourseGrade(course, grades);
                       if (gradeResult.success) {
-                        hasGrades = true;
                         courseGrade = gradeResult.courseGrade;
-                        
                         if (course.gradingScale === 'percentage' || courseGrade > 100) {
                           courseGrade = GradeService.convertPercentageToGPA(courseGrade, course.gpaScale || '4.0');
                         }
                       }
-                      
-                      const completedCategories = course.categories.filter(category => {
-                        const categoryGrades = grades[category.id] || [];
-                        return categoryGrades.length > 0;
-                      }).length;
-                      totalProgress = (completedCategories / course.categories.length) * 100;
                     } catch (error) {
-                      // Fallback calculation
-                      if (course.categories && grades) {
-                        const completedCategories = course.categories.filter(category => {
-                          const categoryGrades = grades[category.id] || [];
-                          return categoryGrades.length > 0;
-                        }).length;
-                        totalProgress = (completedCategories / course.categories.length) * 100;
-                      }
+                      // Silent fallback - use default values
                     }
+                  }
+                  
+                  // Additional fallback: If we have categories but no grades yet, try to preserve progress
+                  if (totalProgress === 0 && course.categories && course.categories.length > 0 && (!grades || Object.keys(grades).length === 0)) {
+                    isOngoing = true;
+                    hasGrades = false;
+                    courseGrade = 'Ongoing';
                   }
 
                   const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
@@ -541,14 +692,18 @@ function MainDashboard({ initialTab = 'overview' }) {
                       }`}
                       onClick={() => handleCourseNavigation(course)}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-gray-600">{course.code || course.name.substring(0, 8).toUpperCase()}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-600">{course.courseCode || course.name.substring(0, 8).toUpperCase()}</span>
                         <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                          hasGrades 
+                          course.isArchived === true
+                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                            : hasGrades 
                             ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
-                            : 'bg-gray-300 text-gray-600'
+                            : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
                         }`}>
-                          {hasGrades ? courseGrade.toFixed(1) : 'N/A'}
+                          {course.isArchived === true 
+                            ? 'ARCHIVED' 
+                            : (hasGrades ? (typeof courseGrade === 'number' ? courseGrade.toFixed(1) : courseGrade) : 'Ongoing')}
                         </span>
                       </div>
 
@@ -560,12 +715,20 @@ function MainDashboard({ initialTab = 'overview' }) {
                         </span>
                         <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
                           <div
-                            className={`bg-gradient-to-r ${colorScheme.progressGradient} h-2.5 rounded-full transition-all duration-300`}
-                            style={{ width: `${totalProgress}%` }}
+                            className={`h-2.5 rounded-full transition-all duration-300 ${
+                              course.isArchived === true
+                                ? 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                : `bg-gradient-to-r ${colorScheme.progressGradient}`
+                            }`}
+                            style={{ width: `${course.isArchived === true ? 100 : (isNaN(totalProgress) || !isFinite(totalProgress) ? 0 : totalProgress)}%` }}
                           ></div>
                         </div>
                         <span className="text-sm font-medium text-gray-700">
-                          {Math.round(totalProgress)}%
+                          {course.isArchived === true 
+                            ? '100%' 
+                            : (isOngoing && totalProgress === 0 ? 'Ongoing' : 
+                               (isNaN(totalProgress) || !isFinite(totalProgress) ? 'Ongoing' : 
+                                (totalProgress === 0 && course.categories && course.categories.length > 0 && (!grades || Object.keys(grades).length === 0) ? 'Ongoing' : `${Math.round(totalProgress)}%`)))}
                         </span>
                       </div>
                     </div>
@@ -589,55 +752,37 @@ function MainDashboard({ initialTab = 'overview' }) {
               opacity: isOpeningOverlay ? 0 : 1
             }}
           >
-            {/* Back Button - Top Left Corner */}
-            <div className="absolute top-6 left-6 z-60">
-              <button
-                onClick={() => {
-                  if (selectedCourse) {
-                    // If viewing a course, go back to course list
-                    setSelectedCourse(null);
-                  } else {
-                    // If viewing course manager, go back to overview
-                    setIsClosingOverlay(true);
-                    setTimeout(() => {
-                      setIsCourseManagerExpanded(false);
-                      setIsClosingOverlay(false);
-                      handleTabChange('overview');
-                    }, 500);
-                  }
-                }}
-                className="bg-white/90 backdrop-blur-sm text-[#3E325F] px-4 py-2 rounded-full hover:bg-white hover:shadow-xl transition-all duration-300 font-semibold shadow-lg border border-white/20"
-              >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  <span className="text-sm">Back</span>
-                </div>
-              </button>
-            </div>
+
 
             {/* Full Screen Content */}
-            <div className="w-full h-full overflow-y-auto bg-gray-50">
-              {selectedCourse ? (
+            {selectedCourse ? (
+              <div className="w-full h-full [&>*]:max-w-none [&>*]:mx-0 [&>*]:min-h-0 [&>*]:w-full [&>*]:h-full">
                 <GradeEntry 
                   course={selectedCourse} 
                   onGradeUpdate={handleGradeUpdate}
                   onBack={() => setSelectedCourse(null)}
                 />
-              ) : (
-                <div className="w-full h-full">
-                  <div className="w-full h-full [&>*]:max-w-none [&>*]:mx-0 [&>*]:min-h-0">
-                    <CourseManager 
-                      onCourseSelect={handleCourseNavigation}
-                      onCourseUpdate={handleCourseUpdate}
-                      courses={courses}
-                      grades={grades}
-                    />
-                  </div>
+              </div>
+            ) : (
+              <div className="w-full h-full overflow-y-auto bg-gray-50">
+                <div className="w-full h-full [&>*]:max-w-none [&>*]:mx-0 [&>*]:min-h-0">
+                  <CourseManager 
+                    onCourseSelect={handleCourseNavigation}
+                    onCourseUpdate={handleCourseUpdate}
+                    onBack={() => {
+                      setIsClosingOverlay(true);
+                      setTimeout(() => {
+                        setIsCourseManagerExpanded(false);
+                        setIsClosingOverlay(false);
+                        handleTabChange('overview');
+                      }, 500);
+                    }}
+                    courses={courses}
+                    grades={grades}
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>

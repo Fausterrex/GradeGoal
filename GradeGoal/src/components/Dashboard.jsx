@@ -3,29 +3,166 @@ import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { Search, Bell, User } from "lucide-react";
 import GradeService from '../services/gradeService';
 
+/**
+ * Dashboard Component
+ * 
+ * Displays the main dashboard overview with grade trends, GPA status, and course breakdown.
+ * Features interactive charts, performance indicators, and course status tracking.
+ * 
+ * @param {Array} courses - Array of course objects to display
+ * @param {Object} grades - Object containing grades for all courses
+ * @param {number} overallGPA - The calculated overall GPA across all courses
+ * @param {Function} onSearch - Callback for search functionality
+ * @param {Function} onLogout - Callback for logout functionality
+ */
 const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
-  // Generate sample data for grade trends (you can replace this with real data)
+  // State for course display tabs
+  const [activeTab, setActiveTab] = React.useState('active');
+  /**
+   * Generate grade trends data based on actual course progress
+   * Creates progression data showing how grades improve as courses are completed
+   * @returns {Array} Array of progression data objects
+   */
   const generateGradeTrends = () => {
     if (courses.length === 0) return [];
     
-    const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-    return weeks.map((week, index) => {
-      // Simulate grade progression based on overall GPA
-      const baseGrade = overallGPA || 3.0;
-      const variation = (Math.random() - 0.5) * 0.5; // ±0.25 variation
-      return {
-        week,
-        grade: Math.max(1.0, Math.min(4.0, baseGrade + variation))
-      };
+    // Filter out archived courses for trends
+    const activeCourses = courses.filter(course => course.isArchived !== true);
+    if (activeCourses.length === 0) return [];
+    
+    // Calculate progression stages based on course completion
+    const progressionData = [];
+    
+    // Stage 1: Initial state (no courses completed)
+    progressionData.push({
+      stage: 'Initial',
+      grade: 0,
+      completedCourses: 0,
+      totalCourses: activeCourses.length
     });
+    
+    // Stage 2: Some courses completed
+    const coursesWithGrades = activeCourses.filter(course => {
+      if (!course.categories || !grades) return false;
+      const categoriesWithScores = course.categories.filter(category => {
+        const categoryGrades = grades[course.id] || [];
+        return categoryGrades.some(grade => 
+          grade.score !== undefined && 
+          grade.score !== null && 
+          grade.score !== '' && 
+          !isNaN(parseFloat(grade.score))
+        );
+      });
+      return categoriesWithScores.length > 0;
+    });
+    
+    if (coursesWithGrades.length > 0) {
+      // Calculate average grade for courses with grades
+      let totalGrade = 0;
+      let validGrades = 0;
+      
+      coursesWithGrades.forEach(course => {
+        try {
+          const gradeResult = GradeService.calculateCourseGrade(course, grades);
+          if (gradeResult.success) {
+            let courseGrade = gradeResult.courseGrade;
+            if (course.gradingScale === 'percentage' || courseGrade > 100) {
+              courseGrade = GradeService.convertPercentageToGPA(courseGrade, course.gpaScale || '4.0');
+            }
+            if (courseGrade >= 1.0 && courseGrade <= 4.0) {
+              totalGrade += courseGrade;
+              validGrades++;
+            }
+          }
+        } catch (error) {
+          // Skip invalid grades
+        }
+      });
+      
+      if (validGrades > 0) {
+        const averageGrade = totalGrade / validGrades;
+        progressionData.push({
+          stage: 'In Progress',
+          grade: parseFloat(averageGrade.toFixed(2)),
+          completedCourses: coursesWithGrades.length,
+          totalCourses: activeCourses.length
+        });
+      }
+    }
+    
+    // Stage 3: All courses completed (if applicable)
+    const fullyCompletedCourses = activeCourses.filter(course => {
+      if (!course.categories || !grades) return false;
+      const totalAssessments = course.categories.length;
+      const completedAssessments = course.categories.filter(category => {
+        const categoryGrades = grades[course.id] || [];
+        return categoryGrades.some(grade => 
+          grade.score !== undefined && 
+          grade.score !== null && 
+          grade.score !== '' && 
+          !isNaN(parseFloat(grade.score))
+        );
+      }).length;
+      return totalAssessments > 0 && completedAssessments === totalAssessments;
+    });
+    
+    if (fullyCompletedCourses.length > 0 && fullyCompletedCourses.length === activeCourses.length) {
+      // Calculate final average grade
+      let totalGrade = 0;
+      let validGrades = 0;
+      
+      fullyCompletedCourses.forEach(course => {
+        try {
+          const gradeResult = GradeService.calculateCourseGrade(course, grades);
+          if (gradeResult.success) {
+            let courseGrade = gradeResult.courseGrade;
+            if (course.gradingScale === 'percentage' || courseGrade > 100) {
+              courseGrade = GradeService.convertPercentageToGPA(courseGrade, course.gpaScale || '4.0');
+            }
+            if (courseGrade >= 1.0 && courseGrade <= 4.0) {
+              totalGrade += courseGrade;
+              validGrades++;
+            }
+          }
+        } catch (error) {
+          // Skip invalid grades
+        }
+      });
+      
+      if (validGrades > 0) {
+        const finalGrade = totalGrade / validGrades;
+        progressionData.push({
+          stage: 'Completed',
+          grade: parseFloat(finalGrade.toFixed(2)),
+          completedCourses: fullyCompletedCourses.length,
+          totalCourses: activeCourses.length
+        });
+      }
+    }
+    
+    // If we don't have enough data, add a current state
+    if (progressionData.length === 1) {
+      progressionData.push({
+        stage: 'Current',
+        grade: parseFloat(overallGPA.toFixed(2)),
+        completedCourses: coursesWithGrades.length,
+        totalCourses: activeCourses.length
+      });
+    }
+    
+    return progressionData;
   };
 
   const gradeTrendsData = generateGradeTrends();
 
-  // Calculate target GPA (you can make this configurable)
+  // Target GPA for comparison (can be made configurable)
   const targetGPA = 4.0;
 
-  // Generate course breakdown data using GradeService
+  /**
+   * Generate course breakdown data using GradeService
+   * Calculates current grades and status for each course
+   * @returns {Array} Array of course breakdown objects with grades and status
+   */
   const generateCourseBreakdown = () => {
     if (courses.length === 0) return [];
     
@@ -66,10 +203,14 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         // Silent fallback - use default values
       }
       
-      // Determine status based on whether course is ongoing or has grades
+      // Determine status based on whether course is ongoing, has grades, or is archived
       let status = 'ON TRACK'; // Default status
-      if (!isOngoing) {
-        // Check if the course has completed all assessments (100% progress)
+      
+      // Check if course is archived first
+      if (course.isArchived === true) {
+        status = 'ARCHIVED';
+      } else {
+        // Calculate progress percentage
         const totalAssessments = course.categories ? course.categories.length : 0;
         const completedAssessments = course.categories ? course.categories.filter(category => {
           const categoryGrades = grades[category.id] || [];
@@ -81,18 +222,19 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
           );
         }).length : 0;
         
-        const isFullyCompleted = totalAssessments > 0 && completedAssessments === totalAssessments;
+        const progressPercentage = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
         
-        if (isFullyCompleted) {
-          // Only show risk status if course is fully completed
-          if (currentGrade >= 3.5) status = 'EXCELLENT';
-          else if (currentGrade >= 2.5) status = 'ON TRACK';
-          else status = 'AT RISK';
-        } else if (completedAssessments > 0) {
-          // Course has some grades but is not fully completed - show ON TRACK
-          status = 'ON TRACK';
+        if (progressPercentage === 100) {
+          // Course is 100% complete - status based on grade performance
+          if (currentGrade >= 3.0) {
+            status = 'EXCELLENT';
+          } else if (currentGrade >= 2.5) {
+            status = 'ON TRACK';
+          } else {
+            status = 'AT RISK';
+          }
         } else {
-          // Course has no grades at all - show ON TRACK (default)
+          // Course is not 100% complete yet - always ON TRACK
           status = 'ON TRACK';
         }
       }
@@ -108,14 +250,33 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
 
   const courseBreakdown = generateCourseBreakdown();
 
+  /**
+   * Filter course breakdown based on active tab selection
+   * @returns {Array} Filtered array of courses based on selected tab
+   */
+  const getFilteredCourseBreakdown = () => {
+    switch (activeTab) {
+      case 'active':
+        return courseBreakdown.filter(course => course.status !== 'ARCHIVED');
+      case 'archived':
+        return courseBreakdown.filter(course => course.status === 'ARCHIVED');
+      case 'all':
+      default:
+        return courseBreakdown;
+    }
+  };
+
   return (
     <div className="flex flex-col p-6 bg-gray-100 w-full h-screen">
+      {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <div className="text-4xl font-semibold text-[#1E0E62]">
           Dashboard
         </div>
         
+        {/* Header Actions */}
         <div className="flex items-center space-x-4">
+          {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -160,7 +321,9 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         </div>
       </div>
 
+      {/* Main Content Grid */}
       <div className="grid grid-cols-4 gap-6 mb-8 flex-shrink-0">
+        {/* Grade Trends Chart */}
         <div className="col-span-3 h-90 bg-gradient-to-b from-[#8168C5] to-[#3E325F] p-6 rounded-[45px] shadow-md">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
             <span className="w-2 h-6 bg-green-400 rounded-full mr-2"></span>
@@ -176,11 +339,13 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
               </defs>
 
               <CartesianGrid stroke="rgba(255,255,255,0.1)" vertical={false} />
-              <XAxis dataKey="week" stroke="#ddd" />
-              <YAxis domain={[1, 4]} stroke="#ddd" />
+              <XAxis dataKey="stage" stroke="#ddd" />
+              <YAxis domain={[0, 4]} stroke="#ddd" />
               <Tooltip
                 contentStyle={{ backgroundColor: "#2D2A4A", border: "none" }}
                 labelStyle={{ color: "#fff" }}
+                formatter={(value, name) => [value, name === 'grade' ? 'GPA' : name]}
+                labelFormatter={(label) => `${label} (${gradeTrendsData.find(item => item.stage === label)?.completedCourses || 0}/${gradeTrendsData.find(item => item.stage === label)?.totalCourses || 0} courses)`}
               />
 
               <Area type="monotone" dataKey="grade" stroke="none" fill="url(#lineShadow)" />
@@ -195,9 +360,13 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
               />
             </LineChart>
           </ResponsiveContainer>
+          
+
         </div>
 
+        {/* GPA Status Cards */}
         <div className="col-span-1 grid grid-cols-1 gap-4">
+          {/* Current GPA Status */}
           <div className="bg-gradient-to-b from-[#6D4FC2] to-[#2E2150] rounded-2xl shadow-lg p-4 relative flex flex-col items-center justify-center">
             <div className="text-white font-semibold text-lg mb-2">CPA STATUS</div>
             <div className="text-green-400 text-3xl font-bold">{overallGPA.toFixed(2)}</div>
@@ -205,6 +374,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
             <div className="absolute bottom-0 left-0 w-full h-3 rounded-b-2xl bg-gradient-to-r from-pink-500 to-purple-500"></div>
           </div>
 
+          {/* Target GPA Status */}
           <div className="bg-gradient-to-b from-[#6D4FC2] to-[#2E2150] rounded-2xl shadow-lg p-4 relative flex flex-col items-center justify-center">
             <div className="text-white font-semibold text-lg mb-2">Target GPA</div>
             <div className="text-green-400 text-3xl font-bold">{targetGPA.toFixed(2)}</div>
@@ -214,11 +384,49 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         </div>
       </div>
 
+      {/* Course Report Breakdown Table */}
       <div className="w-full bg-gradient-to-b from-[#8168C5] to-[#3E325F] p-8 rounded-[45px] shadow-md overflow-x-auto flex-1 min-h-0">
-        <div className="text-xl font-semibold text-white mb-4 flex items-center">
-          <span className="w-2 h-6 bg-green-400 rounded-full mr-2"></span>
-          Course Report Breakdown
+        <div className="text-xl font-semibold text-white mb-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <span className="w-2 h-6 bg-green-400 rounded-full mr-2"></span>
+            Course Report Breakdown
+          </div>
+          
+          {/* Course Type Tabs */}
+          <div className="flex bg-white/10 rounded-xl p-1 backdrop-blur-sm">
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'active'
+                  ? 'bg-white text-[#3E325F] shadow-lg'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Active Courses ({courseBreakdown.filter(course => course.status !== 'ARCHIVED').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('archived')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'archived'
+                  ? 'bg-white text-[#3E325F] shadow-lg'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Archived Courses ({courseBreakdown.filter(course => course.status === 'ARCHIVED').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'all'
+                  ? 'bg-white text-[#3E325F] shadow-lg'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              All Courses ({courseBreakdown.length})
+            </button>
+          </div>
         </div>
+        
         <table className="min-w-full table-fixed">
           <thead>
             <tr>
@@ -229,7 +437,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
             </tr>
           </thead>
           <tbody>
-            {courseBreakdown.map((course, index) => (
+            {getFilteredCourseBreakdown().map((course, index) => (
               <tr key={index} className="border-t border-gray-200">
                 <td className="w-1/3 py-4 px-6 text-left text-white text-base">{course.course}</td>
                 <td className="w-1/6 py-4 px-6 text-center text-white text-base">{course.grade}</td>
@@ -241,6 +449,8 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
                         ? "bg-blue-500"
                         : course.status === "ON TRACK"
                         ? "bg-green-500"
+                        : course.status === "ARCHIVED"
+                        ? "bg-orange-500"
                         : course.status === "ONGOING"
                         ? "bg-yellow-500"
                         : "bg-red-500"

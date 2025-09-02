@@ -9,6 +9,13 @@ import MainDashboard from './MainDashboard'
 import PrivateRoute from "./PrivateRoute";
 import Header from "./Header";
 
+/**
+ * App Component
+ * 
+ * Main application component that sets up routing and authentication context.
+ * Defines all application routes and wraps components with necessary providers.
+ * Handles public routes (landing, login, signup) and protected dashboard routes.
+ */
 function App() {
   return (
     <Router>
@@ -16,6 +23,7 @@ function App() {
         <div className="min-h-screen flex flex-col bg-green-100">
           <main className="page flex items-center justify-center bg-white">
             <Routes>
+              {/* Landing Page Route */}
               <Route path="/" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
@@ -24,6 +32,8 @@ function App() {
                   </div>
                 </div>
               }/>
+              
+              {/* Dashboard Routes - All Protected */}
               <Route path="/dashboard" element={
                 <div className="flex flex-col h-screen w-full">
                   <PrivateRoute component={MainDashboard} initialTab="overview"/>
@@ -49,6 +59,8 @@ function App() {
                   <PrivateRoute component={MainDashboard} initialTab="calendar"/>
                 </div>
               }/>
+              
+              {/* Authentication Routes - Public */}
               <Route path="/signup" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />

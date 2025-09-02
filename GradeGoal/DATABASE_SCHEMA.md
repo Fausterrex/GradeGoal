@@ -23,10 +23,17 @@ Stores course information for each user.
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier |
 | uid | VARCHAR(128) | NOT NULL | User ID (foreign key to users.uid) |
 | name | VARCHAR(255) | NOT NULL | Course name |
+| course_code | VARCHAR(50) | NULL | Course code identifier (e.g., CS101) |
+| units | INT | DEFAULT 3 | Course units (used for GPA calculations: Grade × Units) |
+| credit_hours | INT | DEFAULT 3 | Credit hours (reserved for future AI features) |
 | grading_scale | VARCHAR(50) | NOT NULL | Grading scale (percentage, gpa, points) |
 | max_points | DOUBLE | NOT NULL | Maximum possible points |
 | gpa_scale | VARCHAR(10) | NULL | GPA scale (4.0, 5.0, etc.) |
 | term_system | VARCHAR(20) | NULL | Term system (3-term, 4-term) |
+| target_grade | VARCHAR(50) | NULL | Target grade for the course |
+| color_index | INT | DEFAULT 0 | Color index for UI display (0-9) |
+| is_archived | BOOLEAN | DEFAULT FALSE | Whether the course is archived |
+| archived_at | VARCHAR(50) | NULL | Timestamp when course was archived |
 | created_at | VARCHAR(50) | NOT NULL | Creation timestamp |
 | updated_at | VARCHAR(50) | NOT NULL | Last update timestamp |
 

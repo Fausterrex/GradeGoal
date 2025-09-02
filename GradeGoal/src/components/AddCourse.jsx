@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { GRADING_SCALES } from '../utils/gradeCalculations';
 import { 
@@ -8,6 +8,18 @@ import {
 } from '../backend/api';
 import { getAllColors } from '../utils/courseColors';
 
+/**
+ * AddCourse Component
+ * 
+ * A modal component for adding new courses or editing existing ones.
+ * Handles course creation, editing, category management, and form validation.
+ * 
+ * @param {boolean} isOpen - Controls whether the modal is visible
+ * @param {Function} onClose - Callback to close the modal
+ * @param {Function} onCourseCreated - Callback when a course is successfully created/updated
+ * @param {Object} editingCourse - Course object to edit (null for new course)
+ * @param {Array} existingCourses - Array of existing courses for validation
+ */
 function AddCourse({ 
   isOpen, 
   onClose, 
@@ -16,10 +28,13 @@ function AddCourse({
   existingCourses = [] 
 }) {
   const { currentUser } = useAuth();
+  
+  // State for managing the course form data
   const [newCourse, setNewCourse] = useState({
     name: '',
     courseCode: '',
-    creditHours: 3,
+    units: 3, // Course units (e.g., 3 units)
+    creditHours: 3, // Credit hours for GPA calculations
     semester: '',
     targetGrade: '',
     gradingScale: GRADING_SCALES.PERCENTAGE,
@@ -31,12 +46,17 @@ function AddCourse({
     categories: []
   });
 
-  // Initialize form with editing course data if provided
-  React.useEffect(() => {
+  /**
+   * Initialize form with editing course data if provided
+   * Resets form when switching between add/edit modes
+   */
+  useEffect(() => {
     if (editingCourse) {
+      // Populate form with existing course data for editing
       setNewCourse({
         name: editingCourse.name || '',
         courseCode: editingCourse.courseCode || '',
+        units: editingCourse.units || 3,
         creditHours: editingCourse.creditHours || 3,
         semester: editingCourse.semester || '',
         targetGrade: editingCourse.targetGrade || '',
@@ -49,10 +69,11 @@ function AddCourse({
         categories: editingCourse.categories || []
       });
     } else {
-      // Reset form for new course
+      // Reset form for new course creation
       setNewCourse({
         name: '',
         courseCode: '',
+        units: 3,
         creditHours: 3,
         semester: '',
         targetGrade: '',
@@ -67,6 +88,9 @@ function AddCourse({
     }
   }, [editingCourse, isOpen]);
 
+  /**
+   * Adds a new empty category to the course
+   */
   const addCategory = () => {
     const category = {
       id: Date.now(),
@@ -81,7 +105,11 @@ function AddCourse({
     });
   };
 
-  // Predefined category templates based on term system
+  /**
+   * Adds predefined category templates based on the selected term system
+   * 3-term: Assignments (30%), Quizzes (30%), Exam (40%)
+   * 2-term: Exam (40%), Laboratory Activity (60%)
+   */
   const addPredefinedCategories = () => {
     let predefinedCategories;
     
@@ -104,17 +132,31 @@ function AddCourse({
     });
   };
 
+  /**
+   * Updates a specific field in a category at the given index
+   * @param {number} index - Index of the category to update
+   * @param {string} field - Field name to update
+   * @param {any} value - New value for the field
+   */
   const updateCategory = (index, field, value) => {
     const updatedCategories = [...newCourse.categories];
     updatedCategories[index] = { ...updatedCategories[index], [field]: value };
     setNewCourse({ ...newCourse, categories: updatedCategories });
   };
 
+  /**
+   * Removes a category at the specified index
+   * @param {number} index - Index of the category to remove
+   */
   const removeCategory = (index) => {
     const updatedCategories = newCourse.categories.filter((_, i) => i !== index);
     setNewCourse({ ...newCourse, categories: updatedCategories });
   };
 
+  /**
+   * Validates the course form data
+   * @returns {string|null} Error message if validation fails, null if successful
+   */
   const validateCourse = () => {
     if (!newCourse.name.trim()) return 'Course name is required';
     if (newCourse.categories.length === 0) return 'At least one category is required';
@@ -127,6 +169,10 @@ function AddCourse({
     return null;
   };
 
+  /**
+   * Handles form submission for creating or updating a course
+   * @param {Event} e - Form submission event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     const error = validateCourse();
@@ -136,10 +182,13 @@ function AddCourse({
     }
 
     try {
+      // Prepare course data for API call
       const courseData = {
         uid: currentUser.uid,
         name: newCourse.name,
         courseCode: newCourse.courseCode,
+        units: newCourse.units,
+        creditHours: newCourse.creditHours,
         gradingScale: newCourse.gradingScale,
         maxPoints: newCourse.maxPoints,
         gpaScale: newCourse.gpaScale,
@@ -150,12 +199,18 @@ function AddCourse({
 
       let createdCourse;
       if (editingCourse) {
+        // Update existing course
         const updateData = {
           ...courseData,
           id: editingCourse.id
         };
         createdCourse = await updateCourse(editingCourse.id, updateData);
+        
+        // Debug: Log what the API returned
+        console.log('API Response for updated course:', createdCourse);
+        console.log('Existing course data:', editingCourse);
       } else {
+        // Create new course
         createdCourse = await createCourse(courseData);
         
         // Create predefined categories for the new course
@@ -188,10 +243,26 @@ function AddCourse({
       // Update parent component with new courses
       let updatedCourses;
       if (editingCourse) {
-        // Replace the edited course in the array
-        updatedCourses = existingCourses.map(course => 
-          course.id === editingCourse.id ? createdCourse : course
-        );
+        // Merge the updated course data with existing course data to preserve categories, grades, etc.
+        updatedCourses = existingCourses.map(course => {
+          if (course.id === editingCourse.id) {
+            // Merge updated data with existing data to preserve all necessary fields
+            return {
+              ...course,                    // Keep existing data (categories, grades, etc.)
+              ...createdCourse,            // Override with updated fields (units, creditHours, etc.)
+              categories: course.categories || [], // Ensure categories are preserved
+              updatedAt: new Date().toISOString(), // Update timestamp
+              // Preserve any other fields that might be needed for display
+              semester: course.semester || newCourse.semester,
+              handleMissing: course.handleMissing || newCourse.handleMissing
+            };
+          }
+          return course;
+        });
+        
+        // Debug: Log the merged course data
+        const mergedCourse = updatedCourses.find(c => c.id === editingCourse.id);
+        console.log('Final merged course data:', mergedCourse);
       } else {
         // Add the new course to the array
         updatedCourses = [...existingCourses, createdCourse];
@@ -205,11 +276,17 @@ function AddCourse({
       // Reset form and close modal
       setNewCourse({
         name: '',
+        courseCode: '',
+        units: 3,
+        creditHours: 3,
+        semester: '',
+        targetGrade: '',
         gradingScale: GRADING_SCALES.PERCENTAGE,
         maxPoints: 100,
         handleMissing: 'exclude',
         termSystem: '3-term',
         gpaScale: '4.0',
+        colorIndex: 0,
         categories: []
       });
       onClose();
@@ -219,26 +296,31 @@ function AddCourse({
     }
   };
 
+  /**
+   * Closes the modal and resets the form
+   */
   const cancelEdit = () => {
     onClose();
   };
 
+  // Don't render if modal is not open
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="border-b border-gray-100 p-6 pb-4">
-          <h3 className="text-2xl font-bold text-[#3E325F] text-center">
+        {/* Modal Header */}
+        <div className="bg-gradient-to-r from-[#8168C5] to-[#3E325F] p-6 pb-4 rounded-t-2xl">
+          <h3 className="text-2xl font-bold text-white text-center">
             {editingCourse ? 'Edit Course' : 'Add New Course'}
           </h3>
         </div>
         
+        {/* Course Form */}
         <form onSubmit={handleSubmit} className="p-6 pt-4">
           {/* Form Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Course Name */}
+            {/* Course Name Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Course Name
@@ -253,7 +335,7 @@ function AddCourse({
               />
             </div>
             
-            {/* Course Code */}
+            {/* Course Code Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Course Code
@@ -268,10 +350,27 @@ function AddCourse({
               />
             </div>
             
-            {/* Units */}
+            {/* Units Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Units
+              </label>
+              <input
+                type="number"
+                value={newCourse.units}
+                onChange={(e) => setNewCourse({...newCourse, units: parseInt(e.target.value) || 3})}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
+                min="1"
+                max="6"
+                placeholder="e.g., 3"
+              />
+              <p className="text-xs text-gray-500 mt-1">Course load or academic units</p>
+            </div>
+            
+            {/* Credit Hours Field */}
+            <div>
+              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
+                Credit Hours
               </label>
               <input
                 type="number"
@@ -280,10 +379,12 @@ function AddCourse({
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
                 min="1"
                 max="6"
+                placeholder="e.g., 3"
               />
+              <p className="text-xs text-gray-500 mt-1">Used for GPA calculations and academic credit</p>
             </div>
             
-            {/* Semester */}
+            {/* Semester Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Semester
@@ -297,7 +398,7 @@ function AddCourse({
               />
             </div>
             
-            {/* Target Grade */}
+            {/* Target Grade Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Target Grade
@@ -311,7 +412,23 @@ function AddCourse({
               />
             </div>
             
-            {/* Grading Scale */}
+            {/* Max Points Field */}
+            <div>
+              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
+                Max Points
+              </label>
+              <input
+                type="number"
+                value={newCourse.maxPoints}
+                onChange={(e) => setNewCourse({...newCourse, maxPoints: parseInt(e.target.value) || 100})}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
+                min="1"
+                placeholder="e.g., 100"
+              />
+              <p className="text-xs text-gray-500 mt-1">Maximum points for points-based grading</p>
+            </div>
+            
+            {/* Grading Scale Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Grading Scale
@@ -320,30 +437,30 @@ function AddCourse({
                 value={newCourse.gradingScale}
                 onChange={(e) => setNewCourse({...newCourse, gradingScale: e.target.value})}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
-                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
+                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3csvg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
               >
                 <option value={GRADING_SCALES.PERCENTAGE}>Percentage</option>
                 <option value={GRADING_SCALES.POINTS}>Points</option>
               </select>
             </div>
 
-                         {/* Category System */}
-             <div>
-               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
-                 Category System
-               </label>
-               <select
-                 value={newCourse.termSystem}
-                 onChange={(e) => setNewCourse({...newCourse, termSystem: e.target.value})}
-                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
-                 style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
-               >
-                 <option value="3-term">3 Categories (Assignments, Quizzes, Exam)</option>
-                 <option value="2-term">2 Categories (Exam, Laboratory Activity)</option>
-               </select>
-             </div>
+            {/* Category System Field */}
+            <div>
+              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
+                Category System
+              </label>
+              <select
+                value={newCourse.termSystem}
+                onChange={(e) => setNewCourse({...newCourse, termSystem: e.target.value})}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
+                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3csvg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
+              >
+                <option value="3-term">3 Categories (Assignments, Quizzes, Exam)</option>
+                <option value="2-term">2 Categories (Exam, Laboratory Activity)</option>
+              </select>
+            </div>
 
-            {/* GPA Scale */}
+            {/* GPA Scale Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 GPA Scale
@@ -352,7 +469,7 @@ function AddCourse({
                 value={newCourse.gpaScale}
                 onChange={(e) => setNewCourse({...newCourse, gpaScale: e.target.value})}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
-                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
+                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3csvg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
               >
                 <option value="4.0">Standard 4.0 (1.0 = F, 4.0 = A)</option>
                 <option value="5.0">Standard 5.0 (1.0 = F, 5.0 = A)</option>
@@ -360,8 +477,25 @@ function AddCourse({
                 <option value="inverted-5.0">Inverted 5.0 (5.0 = F, 1.0 = A)</option>
               </select>
             </div>
+            
+            {/* Handle Missing Grades Field */}
+            <div>
+              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
+                Handle Missing Grades
+              </label>
+              <select
+                value={newCourse.handleMissing}
+                onChange={(e) => setNewCourse({...newCourse, handleMissing: e.target.value})}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
+                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3csvg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
+              >
+                <option value="exclude">Exclude from calculation</option>
+                <option value="zero">Treat as zero</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">How to handle missing or incomplete grades</p>
+            </div>
 
-            {/* Course Color */}
+            {/* Course Color Field */}
             <div>
               <label className="block text-sm font-semibold text-[#3E325F] mb-2">
                 Course Color
@@ -391,36 +525,6 @@ function AddCourse({
                 Selected: {getAllColors()[newCourse.colorIndex]?.name || 'Green'}
               </p>
             </div>
-            
-            {/* Max Points */}
-            <div>
-              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
-                Max Points
-              </label>
-              <input
-                type="number"
-                value={newCourse.maxPoints}
-                onChange={(e) => setNewCourse({...newCourse, maxPoints: parseInt(e.target.value) || 100})}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
-                min="1"
-              />
-            </div>
-            
-            {/* Handle Missing Grades */}
-            <div>
-              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
-                Handle Missing Grades
-              </label>
-              <select
-                value={newCourse.handleMissing}
-                onChange={(e) => setNewCourse({...newCourse, handleMissing: e.target.value})}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
-                style={{backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px'}}
-              >
-                <option value="exclude">Exclude from calculation</option>
-                <option value="zero">Treat as zero</option>
-              </select>
-            </div>
           </div>
 
           {/* Categories Section */}
@@ -430,13 +534,16 @@ function AddCourse({
                 Categories
               </label>
               <div className="flex gap-3">
-                                 <button
-                   type="button"
-                   onClick={addPredefinedCategories}
-                   className="px-4 py-2 text-green-600 hover:text-green-700 text-sm font-medium border border-green-300 hover:border-green-400 rounded-lg hover:bg-green-50 transition-all duration-200"
-                 >
-                   Use {newCourse.termSystem === '3-term' ? '3-Category' : '2-Category'} Template
-                 </button>
+                {/* Use Template Button */}
+                <button
+                  type="button"
+                  onClick={addPredefinedCategories}
+                  className="px-4 py-2 text-green-600 hover:text-green-700 text-sm font-medium border border-green-300 hover:border-green-400 rounded-lg hover:bg-green-50 transition-all duration-200"
+                >
+                  Use {newCourse.termSystem === '3-term' ? '3-Category' : '2-Category'} Template
+                </button>
+                
+                {/* Add Category Button */}
                 <button
                   type="button"
                   onClick={addCategory}
@@ -450,8 +557,10 @@ function AddCourse({
               </div>
             </div>
             
+            {/* Category List */}
             {newCourse.categories.map((category, index) => (
               <div key={category.id} className="flex gap-3 mb-3">
+                {/* Category Name Input */}
                 <input
                   type="text"
                   placeholder="Category name"
@@ -460,6 +569,8 @@ function AddCourse({
                   className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200"
                   required
                 />
+                
+                {/* Category Weight Input */}
                 <input
                   type="number"
                   placeholder="Weight %"
@@ -471,6 +582,8 @@ function AddCourse({
                   step="0.1"
                   required
                 />
+                
+                {/* Remove Category Button */}
                 <button
                   type="button"
                   onClick={() => removeCategory(index)}
@@ -486,6 +599,7 @@ function AddCourse({
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            {/* Cancel Button */}
             <button
               type="button"
               onClick={cancelEdit}
@@ -493,6 +607,8 @@ function AddCourse({
             >
               Cancel
             </button>
+            
+            {/* Submit Button */}
             <button
               type="submit"
               className="px-8 py-3 bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 font-semibold shadow-md"

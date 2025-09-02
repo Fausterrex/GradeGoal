@@ -3,7 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../backend/api';
 
+/**
+ * Signup Component
+ * 
+ * Handles user registration with email, password, and personal information.
+ * Features form validation, Firebase authentication, and backend user creation.
+ * Redirects to login page after successful account creation.
+ */
 export default function Signup() {
+    // Form references and state
     const emailRef = useRef();
     const passwordRef = useRef();
     const passwordConfirmRef = useRef();
@@ -16,6 +24,11 @@ export default function Signup() {
     const [lastName, setLastName] = useState('');
     const [emailError, setEmailError] = useState(''); 
 
+    /**
+     * Validate email format using regex pattern
+     * @param {string} email - Email address to validate
+     * @returns {boolean} True if email is valid, false otherwise
+     */
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) {
@@ -30,19 +43,33 @@ export default function Signup() {
         return true;
     };
 
+    /**
+     * Handle email input changes and validate in real-time
+     * @param {Event} e - Input change event
+     */
     const handleEmailChange = (e) => {
         validateEmail(e.target.value);
     };
 
+    /**
+     * Handle email input blur and validate on focus loss
+     * @param {Event} e - Input blur event
+     */
     const handleEmailBlur = (e) => {
         validateEmail(e.target.value);
     };
 
+    /**
+     * Handle form submission for user registration
+     * Validates all inputs, creates Firebase account, and registers user in backend
+     * @param {Event} e - Form submission event
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
         setEmailError('');
         
+        // Validate required fields
         if (!firstName.trim()) {
             return setError('Please enter your first name.');
         }
@@ -68,21 +95,28 @@ export default function Signup() {
             setSuccess('');
             setLoading(true);
             
+            // Create Firebase account
             const cred = await signup(emailRef.current.value, passwordRef.current.value);
             const firebaseUser = cred.user;
             const displayName = `${firstName.trim()} ${lastName.trim()}`;
             
+            // Register user in backend
             await registerUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
                 displayName: displayName
             });
+            
             setSuccess('Account created successfully! Welcome to GradeGoal!');
+            
+            // Reset form
             setFirstName('');
             setLastName('');
             emailRef.current.value = '';
             passwordRef.current.value = '';
             passwordConfirmRef.current.value = '';
+            
+            // Redirect to login page
             setTimeout(() => {
                 navigate('/login');
             }, 1500);
@@ -103,10 +137,14 @@ export default function Signup() {
     return (
         <div className="h-[calc(100vh-150px)] flex justify-center items-center px-4">
             <div className="w-full max-w-2xl border-0 rounded-2xl shadow-2xl bg-white">
+                {/* Header */}
                 <div className="bg-[#3B389f] text-white p-6 rounded-t-2xl border-0 shadow-lg">
                     <h2 className="text-center mb-0 font-semibold text-2xl">Sign Up</h2>
                 </div>
+                
+                {/* Form Container */}
                 <div className="p-8">
+                    {/* Error and Success Messages */}
                     {error && (
                         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                             {error}
@@ -117,33 +155,38 @@ export default function Signup() {
                             {success}
                         </div>
                     )}
+                    
+                    {/* Registration Form */}
                     <form onSubmit={handleSubmit}>
+                        {/* Name Fields */}
                         <div className="flex gap-4 mb-4">
                             <div className="w-1/2">
                                 <div className="mb-3">
-                                <input 
-                                    type="text"
-                                    placeholder="First Name"
-                                    value={firstName}
-                                    onChange={(e) => setFirstName(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
-                                />
+                                    <input 
+                                        type="text"
+                                        placeholder="First Name"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        required
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
+                                    />
                                 </div>
                             </div>
                             <div className="w-1/2">
                                 <div className="mb-3">
-                                <input 
-                                    type="text"
-                                    placeholder="Last Name"
-                                    value={lastName}
-                                    onChange={(e) => setLastName(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
-                                />
+                                    <input 
+                                        type="text"
+                                        placeholder="Last Name"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        required
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
+                                    />
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* Email Input */}
                         <div className="mb-4">
                             <input 
                                 type='email' 
@@ -162,6 +205,8 @@ export default function Signup() {
                                 <p className="text-red-500 text-sm mt-1">{emailError}</p>
                             )}
                         </div>
+                        
+                        {/* Password Input */}
                         <div className="mb-4">
                             <input 
                                 type='password' 
@@ -171,6 +216,8 @@ export default function Signup() {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
                             />
                         </div>
+                        
+                        {/* Confirm Password Input */}
                         <div className="mb-6">
                             <input 
                                 type='password' 
@@ -180,6 +227,8 @@ export default function Signup() {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-3xl shadow-lg focus:border-[#3B389f] focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none"
                             />
                         </div>
+                        
+                        {/* Submit Button */}
                         <div className="flex justify-center items-center w-full">
                             <button 
                                 disabled={loading} 
@@ -190,7 +239,11 @@ export default function Signup() {
                             </button>
                         </div>
                     </form>
+                    
+                    {/* Divider */}
                     <hr className="my-6 border-gray-300"></hr>
+                    
+                    {/* Login Link */}
                     <div className="text-center text-gray-600">
                         Already have an account? <Link to="/login" className="text-[#3B389f] hover:text-[#8f8f9e] transition-colors duration-200">Log In</Link>
                     </div>

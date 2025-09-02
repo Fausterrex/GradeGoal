@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom"; // ✅ Import Link
+import { Link } from "react-router-dom";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import accountIcon from '../drawables/account.png';
@@ -10,7 +10,15 @@ import analyticsIcon from '../drawables/dashboard.png';
 import predictiveIcon from '../drawables/predict.png';
 import gradeIcon from '../drawables/track.png';
 
+/**
+ * LandingPage Component
+ * 
+ * The main landing page that introduces users to the GradeGoal application.
+ * Features interactive cards, feature showcase, and call-to-action elements.
+ * Displays key application capabilities and encourages user registration.
+ */
 export default function LandingPage() {
+  // Interactive cards data for the hero section
   const cards = [
     {
       title: "Target GPA",
@@ -35,6 +43,7 @@ export default function LandingPage() {
     },
   ];
 
+  // Feature cards data for the features section
   const features = [
     {
       title: "USER ACCOUNT MANAGEMENT",
@@ -82,10 +91,11 @@ export default function LandingPage() {
 
   return (
     <div>
-      {/* Cards Section */}
+      {/* Hero Cards Section */}
       <div className="page flex flex-col items-center w-full bg-gray-50 overflow-y-auto ">
         <div className="flex flex-col md:flex-row items-center gap-0 mt-25">
           {cards.map((card, index) => {
+            // Dynamic styling for each card based on position
             let rotation = "";
             let translate = "";
             let zIndex = "z-0";
@@ -111,17 +121,18 @@ export default function LandingPage() {
                 key={index}
                 className={`${cardSize} p-0 m-0 rounded-4xl shadow-lg hover:shadow-xl border border-gray-300 transition-transform transform hover:-translate-y-2 flex flex-col justify-center items-center ${rotation} ${translate} ${lift} ${zIndex} ${card.bg}`}
               >
-
+                {/* Card Header */}
                 <div className={`${card.cardHeaderBG} w-full text-center py-3 rounded-t-4xl `}>
                   <h3 className="text-gray-800 text-lg font--semibold">
                     {card.title}
                   </h3>
                 </div>
 
+                {/* Card Content */}
                 <div className="bg-white w-full rounded-xl flex flex-col items-center p-4 bg-[url('./drawables/star-background.png')] bg-cover ">
                   {index === 0 ? (
                     <>
-                      {/* Horizontal Progress Bar */}
+                      {/* Horizontal Progress Bar for Target GPA */}
                       <p className="text-5xl font-extrabold text-indigo-700 my-5">
                         {card.value}
                       </p>
@@ -133,6 +144,7 @@ export default function LandingPage() {
                       </div>
                     </>
                   ) : index === 1 ? (
+                    /* Circular Progress Bar for Current Progress */
                     <div className="w-32 h-32">
                       <CircularProgressbar
                         value={card.value * 25}
@@ -149,6 +161,7 @@ export default function LandingPage() {
                       />
                     </div>
                   ) : (
+                    /* Simple Text Display for Compute Card */
                     <div>
                       <p className="text-5xl font-bold text-indigo-700 my-7">
                         {card.value}
@@ -162,9 +175,8 @@ export default function LandingPage() {
           })}
         </div>
 
-        {/* title description section*/}
+        {/* Hero Title and Description Section */}
         <div className="flex flex-col items-center justify-center">
-
           <h1 className="text-[100px] font-bold text-[#1E0E62] mt-15">
             GRADE GOAL
           </h1>
@@ -174,6 +186,7 @@ export default function LandingPage() {
             tracking, and intelligent guidance.
           </p>
 
+          {/* Call-to-Action Button */}
           <Link to="/signup">
             <button className="mt-6 px-6 py-3 bg-indigo-700 text-white rounded-full shadow-lg hover:bg-indigo-800 ">
               Create an Account
@@ -182,9 +195,10 @@ export default function LandingPage() {
         </div>
       </div>
       
-      {/*Features Section*/}
+      {/* Features Section */}
       <section className="w-full bg-white">
         <div className="w-full mx-auto px-7">
+          {/* Features Header */}
           <section className="bg-white ">
             <div className="flex items-end justify-between">
               <div className="flex items-center">
@@ -206,7 +220,9 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* Features Grid */}
           <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 px-4 sm:px-8 lg:px-16 py-8 lg:py-10 inset-0 bg-gradient-to-br from-[#6E52BC] via-[#5A4A9C] to-[#4A3A8C] overflow-hidden gap-6">
+            {/* Main Features Grid */}
             <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6 lg:p-10 place-items-center">
               {features.map((f, idx) => (
                 <div
@@ -214,14 +230,18 @@ export default function LandingPage() {
                   className="w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-6 bg-[#D8CFE5] shadow-lg hover:scale-105 transition duration-300"
                 >
                   <div className="rounded-2xl shadow-md bg-white p-4 sm:p-6 text-center flex flex-col items-center justify-center h-[320px] sm:h-[360px]">
+                    {/* Feature Icon */}
                     <div className="mb-4 sm:mb-6">
                       <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${f.iconBg} rounded-2xl flex items-center justify-center shadow-lg mx-auto`}>
                         <img src={f.icon} alt="feature icon" className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                       </div>
                     </div>
+                    
+                    {/* Feature Title and Description */}
                     <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-black px-2 mb-2 sm:mb-3">{f.title}</h3>
                     <p className="text-gray-600 text-xs sm:text-sm leading-relaxed px-2 mb-4 sm:mb-6 flex-1">{f.desc}</p>
 
+                    {/* Feature Tags */}
                     <div className="flex flex-col items-center gap-2 mt-auto">
                       <div className="flex gap-2">
                         {f.buttons.slice(0, 2).map((b, i) => (
@@ -246,21 +266,25 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Goal Setting Card - Responsive */}
+            {/* Goal Setting Card - Responsive Sidebar */}
             <div className="md:col-span-2 lg:col-span-1 flex flex-col items-center justify-center">
               <div className="w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-6 bg-[#D8CFE5] shadow-lg hover:scale-105 transition duration-300">
                 <div className="rounded-2xl shadow-md bg-white p-4 sm:p-6 text-center flex flex-col items-center justify-center h-[320px] sm:h-[360px]">
+                  {/* Goal Setting Icon */}
                   <div className="mb-4 sm:mb-6">
                     <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#58CF41] to-[#439C31] rounded-2xl flex items-center justify-center shadow-lg mx-auto`}>
                       <img src={goalIcon} alt="feature icon" className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                     </div>
                   </div>
+                  
+                  {/* Goal Setting Content */}
                   <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-black px-2 mb-2 sm:mb-3">GOAL SETTING</h3>
                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed px-2 mb-4 sm:mb-6 flex-1">
                     Define target grades or GPA for each course. System continuously
                     evaluates progress to meet your academic goals.
                   </p>
 
+                  {/* Goal Setting Tags */}
                   <div className="flex flex-col items-center gap-2 mt-auto">
                     <div className="flex gap-2">
                       <span className="px-3 py-1.5 rounded-full bg-gradient-to-br from-[#6A3EAF] to-[#2C1A49] text-white text-xs sm:text-sm cursor-default shadow-sm">
@@ -283,6 +307,7 @@ export default function LandingPage() {
         </div>
       </section>
       
+      {/* Footer Section */}
       <footer className="bg-gradient-to-br from-[#6E52BC] via-[#5A4A9C] to-[#4A3A8C] text-white py-16 px-4 sm:px-6 lg:px-8 mt-20 w-full">
         <div className="max-w-4xl mx-auto text-center">
           
@@ -312,7 +337,5 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
-
-
   );
 }
