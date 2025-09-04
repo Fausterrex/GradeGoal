@@ -1,258 +1,353 @@
 package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.Course;
-import com.project.gradegoal.Entity.Category;
+import com.project.gradegoal.Entity.AssessmentCategory;
+import com.project.gradegoal.Entity.Grade;
+import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Repository.CourseRepository;
-import com.project.gradegoal.Repository.CategoryRepository;
+import com.project.gradegoal.Repository.AssessmentCategoryRepository;
+import com.project.gradegoal.Repository.GradeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Course Service
- * 
- * Business logic layer for course management operations in the GradeGoal application.
- * This service handles all course-related business operations including creation,
- * updates, deletion, archiving, and category management.
- * 
- * Key Features:
- * - Course lifecycle management (create, read, update, delete)
- * - Course archiving and restoration
- * - Category management within courses
- * - Transactional data integrity
- * - Timestamp management and audit trails
- * 
- * Business Rules:
- * - Course creation automatically sets creation and update timestamps
- * - Course updates preserve original creation timestamp
- * - Course archiving sets archive timestamp and marks as archived
- * - Category addition validates course existence before creation
- * - All operations maintain referential integrity
- * 
- * @author GradeGoal Development Team
- * @version 1.0.0
- * @since 2024
- */
 @Service
 public class CourseService {
 
-    /**
-     * Repository for course data access operations
-     * Handles all database interactions for course entities
-     */
-    private final CourseRepository courseRepository;
-    
-    /**
-     * Repository for category data access operations
-     * Handles all database interactions for category entities
-     */
-    private final CategoryRepository categoryRepository;
+    @Autowired
+    private CourseRepository courseRepository;
 
-    /**
-     * Constructor for dependency injection
-     * 
-     * Injects required repositories for data access operations.
-     * Uses constructor injection for better testability and immutability.
-     * 
-     * @param courseRepository Repository for course operations
-     * @param categoryRepository Repository for category operations
-     */
-    public CourseService(CourseRepository courseRepository, CategoryRepository categoryRepository) {
-        this.courseRepository = courseRepository;
-        this.categoryRepository = categoryRepository;
-    }
+    @Autowired
+    private AssessmentCategoryRepository assessmentCategoryRepository;
 
-    /**
-     * Create a new course
-     * 
-     * Creates a new course in the system with automatic timestamp management.
-     * Sets both creation and update timestamps to current time.
-     * 
-     * @param course Course object to create
-     * @return Created course with generated ID and timestamps
-     */
-    @Transactional
+    @Autowired
+    private GradeRepository gradeRepository;
+
+    @Autowired
+    private UserService userService;
+
     public Course createCourse(Course course) {
-        // Set timestamps before saving
-        course.setCreatedAt(new java.util.Date().toString());
-        course.setUpdatedAt(new java.util.Date().toString());
         return courseRepository.save(course);
     }
 
-    /**
-     * Get all courses for a specific user
-     * 
-     * Retrieves all courses belonging to the specified user.
-     * Courses are returned in descending order by creation date (newest first).
-     * 
-     * @param uid Firebase UID of the user
-     * @return List of courses ordered by creation date
-     */
-    @Transactional(readOnly = true)
-    public List<Course> getCoursesByUid(String uid) {
-        return courseRepository.findByUidOrderByCreatedAtDesc(uid);
-    }
-
-    /**
-     * Get a specific course by ID
-     * 
-     * Retrieves a single course using its unique identifier.
-     * Returns an Optional to handle cases where the course doesn't exist.
-     * 
-     * @param id Unique identifier of the course
-     * @return Optional containing the course if found, empty otherwise
-     */
-    @Transactional(readOnly = true)
-    public Optional<Course> getCourseById(Long id) {
-        return courseRepository.findById(id);
-    }
-
-    /**
-     * Update an existing course
-     * 
-     * Updates course information while preserving the original creation timestamp.
-     * Automatically updates the modification timestamp.
-     * 
-     * @param course Course object with updated information
-     * @return Updated course with preserved creation timestamp
-     */
     @Transactional
-    public Course updateCourse(Course course) {
-        // Get the existing course to preserve createdAt
-        Optional<Course> existingCourseOpt = courseRepository.findById(course.getId());
-        if (existingCourseOpt.isPresent()) {
-            Course existingCourse = existingCourseOpt.get();
-            // Preserve the original createdAt value
-            course.setCreatedAt(existingCourse.getCreatedAt());
+    public Course updateCourse(Long courseId, Course courseData) {
+        Optional<Course> existingCourseOpt = courseRepository.findById(courseId);
+        if (!existingCourseOpt.isPresent()) {
+            throw new RuntimeException("Course not found with ID: " + courseId);
         }
-        course.setUpdatedAt(new java.util.Date().toString());
+
+        Course existingCourse = existingCourseOpt.get();
+
+        if (hasExistingGrades(courseId) && gradingScaleChanged(existingCourse, courseData)) {
+            throw new RuntimeException("Cannot change grading scale when grades exist for this course");
+        }
+
+        existingCourse.setCourseName(courseData.getCourseName());
+        existingCourse.setCourseCode(courseData.getCourseCode());
+        existingCourse.setSemester(courseData.getSemester());
+        existingCourse.setAcademicYear(courseData.getAcademicYear());
+        existingCourse.setCreditHours(courseData.getCreditHours());
+        existingCourse.setTargetGrade(courseData.getTargetGrade());
+        existingCourse.setInstructorName(courseData.getInstructorName());
+        existingCourse.setColorIndex(courseData.getColorIndex());
+
+        if (!hasExistingGrades(courseId)) {
+            existingCourse.setCategorySystem(courseData.getCategorySystem());
+        }
+
+        existingCourse.setUpdatedAt(java.time.LocalDateTime.now());
+
+        Course savedCourse = courseRepository.save(existingCourse);
+        return savedCourse;
+    }
+
+    private boolean hasExistingGrades(Long courseId) {
+
+        List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
+
+        for (AssessmentCategory category : categories) {
+            List<Grade> grades = gradeRepository.findGradesByCategoryId(category.getCategoryId());
+            if (!grades.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean gradingScaleChanged(Course existingCourse, Course newCourseData) {
+        String existingSystem = existingCourse.getCategorySystem();
+        String newSystem = newCourseData.getCategorySystem();
+
+        if (existingSystem == null && newSystem == null) {
+            return false;
+        }
+        if (existingSystem == null || newSystem == null) {
+            return true;
+        }
+
+        return !existingSystem.equals(newSystem);
+    }
+
+    public Optional<Course> getCourseById(Long courseId) {
+        return courseRepository.findById(courseId);
+    }
+
+    public List<Course> getCoursesByUserId(Long userId) {
+        return courseRepository.findByUserId(userId);
+    }
+
+    public List<Course> getActiveCoursesByUserId(Long userId) {
+        return courseRepository.findByUserIdAndIsActiveTrue(userId);
+    }
+
+    public List<Course> getCoursesByUserIdAndSemester(Long userId, Course.Semester semester) {
+        return courseRepository.findByUserIdAndSemester(userId, semester);
+    }
+
+    public List<Course> getCoursesByUserIdAndAcademicYear(Long userId, String academicYear) {
+        return courseRepository.findByUserIdAndAcademicYear(userId, academicYear);
+    }
+
+    public Course updateCourse(Course course) {
         return courseRepository.save(course);
     }
 
-    /**
-     * Delete a course permanently
-     * 
-     * Removes a course and all associated data from the system.
-     * This operation cascades to related entities (categories, grades).
-     * 
-     * @param id Unique identifier of the course to delete
-     */
-    @Transactional
-    public void deleteCourse(Long id) {
-        courseRepository.deleteById(id);
+    public boolean deleteCourse(Long courseId) {
+        if (courseRepository.existsById(courseId)) {
+            courseRepository.deleteById(courseId);
+            return true;
+        }
+        return false;
     }
 
-    /**
-     * Add a category to an existing course
-     * 
-     * Creates a new category within the specified course.
-     * Validates that the course exists before creating the category.
-     * Sets up proper relationships and timestamps.
-     * 
-     * @param courseId Unique identifier of the course
-     * @param category Category object to add
-     * @return Created category with proper relationships
-     * @throws RuntimeException if the course is not found
-     */
-    @Transactional
-    public Category addCategoryToCourse(Long courseId, Category category) {
+    public Course completeCourse(Long courseId) {
         Optional<Course> courseOpt = courseRepository.findById(courseId);
         if (courseOpt.isPresent()) {
             Course course = courseOpt.get();
-            category.setCourse(course);
-            category.setCreatedAt(new java.util.Date().toString());
-            category.setUpdatedAt(new java.util.Date().toString());
-            return categoryRepository.save(category);
-        }
-        throw new RuntimeException("Course not found");
-    }
 
-    /**
-     * Get all categories for a specific course
-     * 
-     * Retrieves all categories associated with the specified course.
-     * Categories include their weights and associated grades.
-     * 
-     * @param courseId Unique identifier of the course
-     * @return List of categories for the course
-     */
-    @Transactional(readOnly = true)
-    public List<Category> getCategoriesByCourseId(Long courseId) {
-        return categoryRepository.findByCourseId(courseId);
-    }
+            BigDecimal finalGrade = calculateFinalCourseGrade(courseId);
+            BigDecimal finalGPA = convertGradeToGPA(finalGrade, course.getTargetGrade());
 
-    /**
-     * Archive a course
-     * 
-     * Archives a course without permanent deletion.
-     * Sets the archived flag and timestamp while preserving all data.
-     * 
-     * @param id Unique identifier of the course to archive
-     * @return Archived course with updated status
-     * @throws RuntimeException if the course is not found
-     */
-    @Transactional
-    public Course archiveCourse(Long id) {
-        Optional<Course> courseOpt = courseRepository.findById(id);
-        if (courseOpt.isPresent()) {
-            Course course = courseOpt.get();
-            course.setIsArchived(true);
-            course.setArchivedAt(new java.util.Date().toString());
-            course.setUpdatedAt(new java.util.Date().toString());
+            course.setCalculatedCourseGrade(finalGrade);
+            course.setCourseGpa(finalGPA);
+
             return courseRepository.save(course);
         }
-        throw new RuntimeException("Course not found");
+        return null;
     }
 
-    /**
-     * Restore an archived course
-     * 
-     * Unarchives a previously archived course, making it visible again.
-     * Clears the archived flag and timestamp while preserving all data.
-     * 
-     * @param id Unique identifier of the course to restore
-     * @return Restored course with updated status
-     * @throws RuntimeException if the course is not found
-     */
-    @Transactional
-    public Course unarchiveCourse(Long id) {
-        Optional<Course> courseOpt = courseRepository.findById(id);
+    public Course archiveCourse(Long courseId) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
         if (courseOpt.isPresent()) {
             Course course = courseOpt.get();
-            course.setIsArchived(false);
-            course.setArchivedAt(null);
-            course.setUpdatedAt(new java.util.Date().toString());
+            course.setIsActive(false);
             return courseRepository.save(course);
         }
-        throw new RuntimeException("Course not found");
+        return null;
     }
 
-    /**
-     * Get active courses for a specific user
-     * 
-     * Retrieves only non-archived courses for the specified user.
-     * Used for the main dashboard display and active course management.
-     * 
-     * @param uid Firebase UID of the user
-     * @return List of active courses ordered by creation date
-     */
-    @Transactional(readOnly = true)
+    public Course uncompleteCourse(Long courseId) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+
+            course.setCalculatedCourseGrade(BigDecimal.ZERO);
+            course.setCourseGpa(BigDecimal.ZERO);
+            return courseRepository.save(course);
+        }
+        return null;
+    }
+
+    private BigDecimal calculateFinalCourseGrade(Long courseId) {
+
+        List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
+
+        if (categories.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalWeightedGrade = BigDecimal.ZERO;
+        BigDecimal totalWeight = BigDecimal.ZERO;
+
+        for (AssessmentCategory category : categories) {
+
+            List<Grade> categoryGrades = gradeRepository.findGradesByCategoryId(category.getCategoryId());
+
+            if (!categoryGrades.isEmpty()) {
+
+                BigDecimal categoryAverage = calculateCategoryAverage(categoryGrades);
+                BigDecimal categoryWeight = category.getWeightPercentage();
+
+                totalWeightedGrade = totalWeightedGrade.add(categoryAverage.multiply(categoryWeight));
+                totalWeight = totalWeight.add(categoryWeight);
+            }
+        }
+
+        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
+            return totalWeightedGrade.divide(totalWeight, 2, BigDecimal.ROUND_HALF_UP);
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal calculateCategoryAverage(List<Grade> grades) {
+        if (grades.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalScore = BigDecimal.ZERO;
+        BigDecimal totalMaxScore = BigDecimal.ZERO;
+
+        for (Grade grade : grades) {
+            if (grade.getPointsEarned() != null && grade.getPointsPossible() != null) {
+
+                BigDecimal earned = grade.getPointsEarned();
+                if (grade.getIsExtraCredit() && grade.getExtraCreditPoints() != null) {
+                    earned = earned.add(grade.getExtraCreditPoints());
+                }
+
+                totalScore = totalScore.add(earned);
+                totalMaxScore = totalMaxScore.add(grade.getPointsPossible());
+            }
+        }
+
+        if (totalMaxScore.compareTo(BigDecimal.ZERO) > 0) {
+            return totalScore.divide(totalMaxScore, 4, BigDecimal.ROUND_HALF_UP)
+                           .multiply(BigDecimal.valueOf(100));
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal convertGradeToGPA(BigDecimal grade, BigDecimal targetGrade) {
+
+        if (grade.compareTo(targetGrade) >= 0) {
+            return new BigDecimal("4.00");
+        }
+
+        BigDecimal ratio = grade.divide(targetGrade, 4, BigDecimal.ROUND_HALF_UP);
+        return ratio.multiply(new BigDecimal("4.00")).setScale(2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    public Course restoreCourse(Long courseId) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setIsActive(true);
+            return courseRepository.save(course);
+        }
+        return null;
+    }
+
+    public boolean courseCodeExists(String courseCode, Long userId) {
+        return courseRepository.existsByCourseCodeAndUserId(courseCode, userId);
+    }
+
+    public Optional<Course> getCourseByCodeAndUserId(String courseCode, Long userId) {
+        return courseRepository.findByCourseCodeAndUserId(courseCode, userId);
+    }
+
+    public Course updateTargetGrade(Long courseId, BigDecimal targetGrade) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setTargetGrade(targetGrade);
+            return courseRepository.save(course);
+        }
+        return null;
+    }
+
+    public Course updateCalculatedGrade(Long courseId, BigDecimal calculatedGrade) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setCalculatedCourseGrade(calculatedGrade);
+            return courseRepository.save(course);
+        }
+        return null;
+    }
+
+    public Course updateCourseGpa(Long courseId, BigDecimal courseGpa) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+            course.setCourseGpa(courseGpa);
+            return courseRepository.save(course);
+        }
+        return null;
+    }
+
+    public long getCourseCountByUserId(Long userId) {
+        return courseRepository.countByUserId(userId);
+    }
+
+    public long getActiveCourseCountByUserId(Long userId) {
+        return courseRepository.countByUserIdAndIsActiveTrue(userId);
+    }
+
+    public List<Course> getCoursesWithCalculatedGrades(Long userId) {
+        return courseRepository.findCoursesWithCalculatedGrades(userId);
+    }
+
+    public AssessmentCategory addAssessmentCategory(Long courseId, String categoryName, BigDecimal weightPercentage) {
+        AssessmentCategory category = new AssessmentCategory(courseId, categoryName, weightPercentage);
+        return assessmentCategoryRepository.save(category);
+    }
+
+    public List<AssessmentCategory> getAssessmentCategories(Long courseId) {
+        return assessmentCategoryRepository.findByCourseIdOrderByOrderSequence(courseId);
+    }
+
+    public List<Course> getCoursesByUid(String uid) {
+
+        Optional<User> user = userService.findByEmail(uid);
+        if (user.isPresent()) {
+            return getCoursesByUserId(user.get().getUserId());
+        }
+        return new java.util.ArrayList<>();
+    }
+
     public List<Course> getActiveCoursesByUid(String uid) {
-        return courseRepository.findByUidAndIsArchivedFalseOrderByCreatedAtDesc(uid);
+
+        Optional<User> user = userService.findByEmail(uid);
+        if (user.isPresent()) {
+            return getActiveCoursesByUserId(user.get().getUserId());
+        }
+        return new java.util.ArrayList<>();
     }
 
-    /**
-     * Get archived courses for a specific user
-     * 
-     * Retrieves only archived courses for the specified user.
-     * Used for archived course management and restoration.
-     * 
-     * @param uid Firebase UID of the user
-     * @return List of archived courses ordered by archive date
-     */
-    @Transactional(readOnly = true)
     public List<Course> getArchivedCoursesByUid(String uid) {
-        return courseRepository.findByUidAndIsArchivedTrueOrderByArchivedAtDesc(uid);
+
+        Optional<User> user = userService.findByEmail(uid);
+        if (user.isPresent()) {
+            return getCoursesByUserId(user.get().getUserId()).stream()
+                .filter(course -> !course.getIsActive())
+                .collect(java.util.stream.Collectors.toList());
+        }
+        return new java.util.ArrayList<>();
+    }
+
+    public Course unarchiveCourse(Long courseId) {
+        return restoreCourse(courseId);
+    }
+
+    public List<AssessmentCategory> getCategoriesByCourseId(Long courseId) {
+        return getAssessmentCategories(courseId);
+    }
+
+    public AssessmentCategory addCategoryToCourse(Long courseId, AssessmentCategory category) {
+        category.setCourseId(courseId);
+        return assessmentCategoryRepository.save(category);
+    }
+
+    @Deprecated
+    public List<Course> getAllCourses() {
+
+        return courseRepository.findAll();
     }
 }

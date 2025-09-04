@@ -1,21 +1,14 @@
 import React from "react";
-import Signup from "./signup";
-import Login from "./login";
-import ForgotPassword from "./forgotpassword";
-import Landingpage from "./landingpage";
+import Signup from "./auth/signup";
+import Login from "./auth/login";
+import ForgotPassword from "./auth/forgotpassword";
+import Landingpage from "./auth/landingpage";
 import { AuthProvider } from "../context/AuthContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MainDashboard from './MainDashboard'
+import MainDashboard from './dashboard/MainDashboard'
 import PrivateRoute from "./PrivateRoute";
-import Header from "./Header";
+import Header from "./auth/Header";
 
-/**
- * App Component
- * 
- * Main application component that sets up routing and authentication context.
- * Defines all application routes and wraps components with necessary providers.
- * Handles public routes (landing, login, signup) and protected dashboard routes.
- */
 function App() {
   return (
     <Router>
@@ -23,7 +16,6 @@ function App() {
         <div className="min-h-screen flex flex-col bg-green-100">
           <main className="page flex items-center justify-center bg-white">
             <Routes>
-              {/* Landing Page Route */}
               <Route path="/" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
@@ -32,8 +24,7 @@ function App() {
                   </div>
                 </div>
               }/>
-              
-              {/* Dashboard Routes - All Protected */}
+
               <Route path="/dashboard" element={
                 <div className="flex flex-col h-screen w-full">
                   <PrivateRoute component={MainDashboard} initialTab="overview"/>
@@ -59,8 +50,7 @@ function App() {
                   <PrivateRoute component={MainDashboard} initialTab="calendar"/>
                 </div>
               }/>
-              
-              {/* Authentication Routes - Public */}
+
               <Route path="/signup" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
