@@ -6,12 +6,12 @@ import GradeEntry from '../course/GradeEntry';
 import GoalSetting from './GoalSetting';
 import Sidebar from './Sidebar';
 import Dashboard from './Dashboard';
-import { getGradeColor, convertPercentageToScale, convertPercentageToGPA } from '../../utils/gradeCalculations';
+import SideCourseList from './SideCourseList';
 import { calculateCourseProgress } from '../../utils/progressCalculations';
 import GradeService from '../../services/gradeService';
 import { getGradesByCourseId, getCoursesByUid, getAssessmentCategoriesByCourseId } from '../../backend/api';
+import { FaTachometerAlt, FaBook, FaBullseye, FaClipboardList, FaCalendarAlt } from 'react-icons/fa';
 import { getCourseColorScheme } from '../../utils/courseColors';
-
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -64,6 +64,8 @@ function MainDashboard({ initialTab = 'overview' }) {
   const [isOpeningOverlay, setIsOpeningOverlay] = useState(false);
   const [previousTab, setPreviousTab] = useState('overview');
   const [showArchivedCourses, setShowArchivedCourses] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMobileCourseListOpen, setIsMobileCourseListOpen] = useState(false);
 
   const displayName = currentUser?.displayName || currentUser?.email || 'Unknown User';
 
@@ -84,10 +86,29 @@ function MainDashboard({ initialTab = 'overview' }) {
       const coursesWithCategories = await Promise.all(
         coursesData.map(async (course) => {
           try {
-            const categories = await getAssessmentCategoriesByCourseId(course.id);
-            return { ...course, categories };
+            const categories = await getAssessmentCategoriesByCourseId(course.id || course.courseId);
+            
+            // Transform backend course data to frontend format
+            const transformedCourse = {
+              ...course,
+              id: course.id || course.courseId,
+              name: course.name || course.courseName,
+              courseCode: course.courseCode,
+              colorIndex: course.colorIndex !== undefined ? course.colorIndex : 0,
+              categories
+            };
+            
+            return transformedCourse;
           } catch (error) {
-            return { ...course, categories: [] };
+            const transformedCourse = {
+              ...course,
+              id: course.id || course.courseId,
+              name: course.name || course.courseName,
+              courseCode: course.courseCode,
+              colorIndex: course.colorIndex !== undefined ? course.colorIndex : 0,
+              categories: []
+            };
+            return transformedCourse;
           }
         })
       );
@@ -346,7 +367,6 @@ function MainDashboard({ initialTab = 'overview' }) {
   };
 
   const handleCourseNavigation = (course) => {
-
     setPreviousTab(activeTab);
     setSelectedCourse(course);
 
@@ -405,6 +425,10 @@ function MainDashboard({ initialTab = 'overview' }) {
     }
   };
 
+  const handleToggleArchived = (checked) => {
+    setShowArchivedCourses(checked);
+  };
+
   const calculateOverallGPA = () => {
     if (courses.length === 0) return 0;
 
@@ -433,24 +457,108 @@ function MainDashboard({ initialTab = 'overview' }) {
   const overallGPA = isLoading ? 0 : calculateOverallGPA();
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {}
-      <div className="flex h-screen bg-gray-100">
-        <div className="w-64 flex-shrink-0 bg-white shadow-lg relative z-20">
+    <div>
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden fixed top-4 left-4 z-30">
+        <button
+          onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          className="bg-[#8168C5] text-white p-2 rounded-lg shadow-lg"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile Course List Button */}
+      <div className="lg:hidden fixed top-4 right-4 z-30">
+        <button
+          onClick={() => setIsMobileCourseListOpen(!isMobileCourseListOpen)}
+          className="bg-[#8168C5] text-white p-2 rounded-lg shadow-lg"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Sidebar layout */}
+      <div className="flex min-h-screen bg-gray-100">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block flex-shrink-0 fixed left-0 top-0 h-screen z-20">
           <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
         </div>
 
-                {}
-        <div className="flex-1 flex flex-col bg-gray-100 min-h-0 overflow-hidden relative">
-        {isLoading ? (
-            <div className="text-center py-12 bg-gray-100 h-screen">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3B389f] mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your courses and grades...</p>
+        {/* Mobile Sidebar Overlay */}
+        {isMobileSidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-50">
+            <div className="fixed left-0 top-0 h-screen w-full bg-gradient-to-b from-[#8168C5] to-[#3E325F] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              {/* Close Button */}
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                  className="bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="w-full max-w-sm mx-auto">
+                {/* Mobile Centered Sidebar */}
+                <div className="w-full h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-center items-center px-8 py-6 z-10 rounded-2xl overflow-hidden">
+                  <div className="space-y-8 w-full">
+                    <div className="flex flex-col items-center justify-center text-2xl font-bold mb-8">
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3">
+                        <span className="text-[#8168C5] text-2xl font-bold">GG</span>
+                      </div>
+                      <h2 className="text-3xl">Grade Goal</h2>
+                    </div>
+
+                    <div className="flex flex-col items-center space-y-6 w-full">
+                      {[
+                        { icon: <FaTachometerAlt />, label: 'Dashboard', tab: 'overview' },
+                        { icon: <FaBook />, label: 'Courses', tab: 'courses' },
+                        { icon: <FaBullseye />, label: 'Goals', tab: 'goals' },
+                        { icon: <FaClipboardList />, label: 'Reports', tab: 'reports' },
+                        { icon: <FaCalendarAlt />, label: 'Calendar', tab: 'calendar' },
+                      ].map((item) => (
+                        <div
+                          key={item.tab}
+                          className={`flex items-center justify-center p-4 rounded-xl cursor-pointer w-full transition-all duration-300 ${
+                            activeTab === item.tab 
+                              ? 'bg-white/20 text-white shadow-lg scale-105' 
+                              : 'text-white/80 hover:text-white hover:bg-white/10'
+                          }`}
+                          onClick={() => {
+                            handleTabChange(item.tab);
+                            setIsMobileSidebarOpen(false);
+                          }}
+                        >
+                          <div className="text-2xl mr-3">{item.icon}</div>
+                          <span className="text-xl font-medium">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className={`flex-1 flex flex-col bg-gray-100 min-h-screen overflow-y-auto relative ${
+          // Desktop margins
+          'lg:ml-64' + (activeTab !== 'courses' ? (isCourseManagerExpanded ? ' lg:mr-[340px]' : ' lg:mr-80') : '')
+        }`}>
+        {isLoading ? (
+          <>
+          </>
         ) : (
           <>
             {activeTab === 'overview' && (
-              <div className="w-full h-full">
+              <div className="w-full">
                 <Dashboard
                   courses={courses}
                   grades={grades}
@@ -462,7 +570,7 @@ function MainDashboard({ initialTab = 'overview' }) {
             )}
 
             {activeTab === 'courses' && !isCourseManagerExpanded && (
-              <div className="w-full h-full p-6 bg-gray-100">
+              <div className="w-full p-6 bg-gray-100">
                 <CourseManager
                   key={`courses-${Object.keys(grades).length}-${courses.length}`}
                   onCourseSelect={handleCourseNavigation}
@@ -475,7 +583,7 @@ function MainDashboard({ initialTab = 'overview' }) {
             )}
 
             {activeTab === 'goals' && (
-              <div className="w-full h-full p-6 bg-gray-100">
+              <div className="w-full p-6 bg-gray-100">
                 {selectedCourse ? (
                   <GoalSetting
                     course={selectedCourse}
@@ -483,7 +591,7 @@ function MainDashboard({ initialTab = 'overview' }) {
                     onGoalUpdate={() => {}}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full flex items-center justify-center py-12">
                     <div className="text-center">
                       <h3 className="text-2xl font-semibold text-gray-800 mb-4">Goals</h3>
                       <p className="text-gray-600">Select a course from the Course List to set goals</p>
@@ -494,8 +602,8 @@ function MainDashboard({ initialTab = 'overview' }) {
             )}
 
             {activeTab === 'reports' && (
-              <div className="w-full h-full p-6 bg-gray-100">
-                <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full p-6 bg-gray-100">
+                <div className="w-full flex items-center justify-center py-12">
                   <div className="text-center">
                     <h3 className="text-2xl font-semibold text-gray-800 mb-4">Reports</h3>
                     <p className="text-gray-600">Detailed reports and analytics coming soon...</p>
@@ -505,8 +613,8 @@ function MainDashboard({ initialTab = 'overview' }) {
             )}
 
             {activeTab === 'calendar' && (
-              <div className="w-full h-full p-6 bg-gray-100">
-                <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full p-6 bg-gray-100">
+                <div className="w-full flex items-center justify-center py-12">
                   <div className="text-center">
                     <h3 className="text-2xl font-semibold text-gray-800 mb-4">Calendar</h3>
                     <p className="text-gray-600">Academic calendar and deadlines coming soon...</p>
@@ -518,188 +626,171 @@ function MainDashboard({ initialTab = 'overview' }) {
         )}
         </div>
 
-        {}
+        {/* Desktop Side Course List */}
         {activeTab !== 'courses' && (
           <div
-            className={`bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white shadow-lg border-l border-gray-200 flex flex-col relative transition-all duration-500 ease-in-out animate-slideIn ${
+            className={`hidden lg:block fixed right-0 top-0 h-screen z-10 transition-all duration-500 ease-in-out animate-slideIn ${
               isCourseManagerExpanded ? 'w-[340px]' : 'w-80'
             }`}
           >
-            {}
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              <button
-                onClick={() => {
-                  if (!isCourseManagerExpanded) {
+            {/* Side Course List Component */}
+            <SideCourseList
+              courses={courses}
+              selectedCourse={selectedCourse}
+              onCourseSelect={handleCourseNavigation}
+              showArchivedCourses={showArchivedCourses}
+              onToggleArchived={handleToggleArchived}
+              isExpanded={isCourseManagerExpanded}
+              onToggleExpanded={() => {
+                if (!isCourseManagerExpanded) {
+                  setIsOpeningOverlay(true);
+                  setIsCourseManagerExpanded(true);
+                } else {
+                  setIsClosingOverlay(true);
+                  setTimeout(() => {
+                    setIsCourseManagerExpanded(false);
+                    setIsClosingOverlay(false);
+                  }, 500);
+                }
+              }}
+            />
+          </div>
+        )}
 
-                    setIsOpeningOverlay(true);
-                    setIsCourseManagerExpanded(true);
-                  } else {
-
-                    setIsClosingOverlay(true);
-                    setTimeout(() => {
-                      setIsCourseManagerExpanded(false);
-                      setIsClosingOverlay(false);
-                    }, 500);
-                  }
-                }}
-                className="w-12 h-12 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
-              >
-                <svg
-                  className={`w-6 h-6 text-[#8168C5] group-hover:text-[#3E325F] transition-all duration-300 ${
-                    isCourseManagerExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        {/* Mobile Course List Overlay */}
+        {isMobileCourseListOpen && (
+          <div className="lg:hidden fixed inset-0 z-50">
+            <div className="fixed right-0 top-0 h-full w-full bg-gradient-to-b from-[#8168C5] to-[#3E325F] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              {/* Close Button */}
+              <div className="absolute top-4 left-4 z-10">
+                <button
+                  onClick={() => setIsMobileCourseListOpen(false)}
+                  className="bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d={isCourseManagerExpanded ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {}
-            <div className="flex flex-row items-center my-4 justify-center">
-              <span className="w-2 h-8 bg-[#D1F310] rounded-full mr-2 mt-5"></span>
-              <h2 className="text-3xl font-semibold leading-none mt-5">Course List</h2>
-            </div>
-
-            {}
-            <div className="flex items-center justify-center mb-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showArchivedCourses}
-                  onChange={(e) => setShowArchivedCourses(e.target.checked)}
-                  className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
-                />
-                <span className="text-sm text-gray-300 font-medium">Show Archived Courses</span>
-              </label>
-            </div>
-
-            {}
-            <div className="text-center mb-2">
-              <span className="text-xs text-gray-400">
-                {courses.filter(course => showArchivedCourses ? true : course.isActive !== false).length} of {courses.length} courses
-              </span>
-            </div>
-
-            <div className="w-[80%] h-[1px] bg-gray-300 my-5 mx-auto"></div>
-
-            {}
-            <div className="flex-1 overflow-y-auto space-y-4 px-2 w-full">
-              {courses.length === 0 ? (
-                <div className="text-center text-gray-300 py-8 w-full">
-                  <p>No courses added yet</p>
-                  <p className="text-sm">Add courses to see them here</p>
-                </div>
-              ) : (
-                courses
-                  .filter(course => showArchivedCourses ? true : course.isActive !== false)
-                  .map((course) => {
-
-                  let totalProgress = 0;
-                  let courseGrade = 'Ongoing';
-                  let hasGrades = false;
-                  let isOngoing = true;
-
-                  if (course.categories && course.categories.length > 0 && grades && typeof grades === 'object') {
-                    try {
-
-                      const categoriesWithScores = course.categories.filter(category => {
-                        const categoryGrades = grades[category.id] || [];
-                        return categoryGrades.some(grade =>
-                          grade.score !== undefined &&
-                          grade.score !== null &&
-                          grade.score !== '' &&
-                          !isNaN(parseFloat(grade.score))
-                        );
-                      });
-
-                      courseGrade = course.currentGrade || 'Ongoing';
-                      hasGrades = course.hasGrades || false;
-                      isOngoing = !hasGrades;
-
-                      totalProgress = course.progress || 0;
-
-                      if (isNaN(totalProgress) || !isFinite(totalProgress)) {
-                        totalProgress = 0;
-                      }
-                    } catch (error) {
-
-                    }
-                  } else {
-
-                    totalProgress = course.progress || 0;
-                    courseGrade = course.currentGrade || 'Ongoing';
-                    hasGrades = course.hasGrades || false;
-                    isOngoing = !hasGrades;
-                  }
-
-                  if (totalProgress === 0 && course.categories && course.categories.length > 0 && (!grades || Object.keys(grades).length === 0)) {
-                    isOngoing = true;
-                    hasGrades = false;
-                    courseGrade = 'Ongoing';
-                  }
-
-                  const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
-
-                  return (
-
-                    <div
-                      key={course.id}
-                      className={`bg-white text-black p-4 mx-3 rounded-xl shadow-lg relative cursor-pointer hover:shadow-xl transition-all duration-300 ${
-                        selectedCourse && selectedCourse.id === course.id ? `ring-2 ${colorScheme.primary} ring-opacity-50` : ''
-                      }`}
-                      onClick={() => handleCourseNavigation(course)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">{course.courseCode || course.name.substring(0, 8).toUpperCase()}</span>
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                          course.isActive === false
-                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-                            : hasGrades
-                            ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
-                            : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
-                        }`}>
-                          {course.isActive === false
-                            ? 'ARCHIVED'
-                            : (hasGrades ? (typeof courseGrade === 'number' ? courseGrade.toFixed(1) : courseGrade) : 'Ongoing')}
-                        </span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="w-full max-w-sm mx-auto">
+                {/* Mobile Centered Course List */}
+                <div className="w-full h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-start items-center px-6 py-8 z-10 rounded-2xl overflow-hidden">
+                  <div className="w-full space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col items-center justify-center mb-8">
+                      <div className="flex items-center mb-4">
+                        <span className="w-2 h-8 bg-[#D1F310] rounded-full mr-3"></span>
+                        <h2 className="text-3xl font-semibold">Course List</h2>
                       </div>
-
-                      <h3 className="text-lg font-medium mb-2">{course.name}</h3>
-
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">
-                          Progress:
-                        </span>
-                        <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
-                          <div
-                            className={`h-2.5 rounded-full transition-all duration-300 ${
-                              course.isActive === false
-                                ? 'bg-gradient-to-r from-orange-500 to-orange-600'
-                                : `bg-gradient-to-r ${colorScheme.progressGradient}`
-                            }`}
-                            style={{ width: `${isNaN(totalProgress) || !isFinite(totalProgress) ? 0 : totalProgress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {isOngoing && totalProgress === 0 ? 'Ongoing' :
-                           (isNaN(totalProgress) || !isFinite(totalProgress) ? 'Ongoing' :
-                            (totalProgress === 0 && course.categories && course.categories.length > 0 && (!grades || Object.keys(grades).length === 0) ? 'Ongoing' : `${Math.round(totalProgress)}%`))}
-                        </span>
+                      
+                      {/* Archived Toggle */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={showArchivedCourses}
+                          onChange={(e) => setShowArchivedCourses(e.target.checked)}
+                          className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
+                        />
+                        <span className="text-sm text-white/80 font-medium">Show Archived Courses</span>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
 
+                    {/* Course Count */}
+                    <div className="text-center mb-4">
+                      <span className="text-sm text-white/60">
+                        {courses.filter(course => showArchivedCourses ? true : course.isActive !== false).length} of {courses.length} courses
+                      </span>
+                    </div>
+
+                    {/* Courses List */}
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {courses.length === 0 ? (
+                        <div className="text-center text-white/60 py-8">
+                          <p>No courses added yet</p>
+                          <p className="text-sm">Add courses to see them here</p>
+                        </div>
+                      ) : (
+                        courses
+                          .filter(course => showArchivedCourses ? true : course.isActive !== false)
+                          .map((course) => {
+                            const isSelected = selectedCourse && selectedCourse.id === course.id;
+                            const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
+                            
+                            // Calculate course progress and grade
+                            let totalProgress = course.progress || 0;
+                            let courseGrade = course.currentGrade || 'Ongoing';
+                            let hasGrades = course.hasGrades || false;
+                            let isOngoing = !hasGrades;
+
+                            // Ensure progress is valid
+                            if (isNaN(totalProgress) || !isFinite(totalProgress)) {
+                              totalProgress = 0;
+                            }
+
+                            return (
+                              <div
+                                key={course.id}
+                                className={`relative overflow-hidden bg-gradient-to-br from-[#8168C5] via-[#6D4FC2] to-[#3E325F] text-white p-4 mx-3 rounded-2xl shadow-lg cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
+                                  isSelected ? `ring-2 ring-white ring-opacity-50` : ''
+                                }`}
+                                onClick={() => {
+                                  handleCourseNavigation(course);
+                                  setIsMobileCourseListOpen(false);
+                                }}
+                              >
+                                {/* Course Code and Grade Badge */}
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold text-white/80">
+                                    {course.courseCode || course.name.substring(0, 8).toUpperCase()}
+                                  </span>
+                                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                    course.isActive === false
+                                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                                      : hasGrades
+                                      ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
+                                      : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
+                                  }`}>
+                                    {course.isActive === false
+                                      ? 'ARCHIVED'
+                                      : (hasGrades 
+                                        ? (typeof courseGrade === 'number' ? courseGrade.toFixed(1) : courseGrade) 
+                                        : 'Ongoing'
+                                      )}
+                                  </span>
+                                </div>
+
+                                {/* Course Name */}
+                                <h3 className="text-lg font-medium mb-2 text-white">{course.name}</h3>
+
+                                {/* Progress Bar */}
+                                <div className="flex items-center">
+                                  <span className="text-sm text-white/80 mr-2">Progress:</span>
+                                  <div className="flex-1 bg-white/20 rounded-full h-2.5 mr-2">
+                                    <div
+                                      className={`h-2.5 rounded-full transition-all duration-300 ${
+                                        course.isActive === false
+                                          ? 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                          : `bg-gradient-to-r ${colorScheme.progressGradient}`
+                                      }`}
+                                      style={{ width: `${totalProgress}%` }}
+                                    ></div>
+                                  </div>
+                                   <span className="text-sm font-medium text-white">
+                                     {isOngoing && totalProgress === 0 
+                                       ? 'Ongoing' 
+                                       : `${Math.round(totalProgress)}%`
+                                     }
+                                   </span>
+                                 </div>
+                               </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

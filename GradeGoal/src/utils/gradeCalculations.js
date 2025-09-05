@@ -139,19 +139,6 @@ export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, 
   return totalWeightedGrade / totalWeight;
 }
 
-export function calculateExtraCredit(grades, scale, maxPoints = 100) {
-  if (!grades || grades.length === 0) return 0;
-
-  const extraCreditGrades = grades.filter(grade => grade.isExtraCredit);
-  if (extraCreditGrades.length === 0) return 0;
-
-  const totalExtraCredit = extraCreditGrades.reduce((sum, grade) => {
-    const percentage = convertGradeToPercentage(grade, scale, maxPoints);
-    return sum + percentage;
-  }, 0);
-
-  return totalExtraCredit / extraCreditGrades.length;
-}
 
 export function getGradeColor(percentage) {
   if (percentage >= 90) return 'text-green-600';
@@ -161,13 +148,3 @@ export function getGradeColor(percentage) {
   return 'text-red-600';
 }
 
-export function validateGrade(grade, scale, maxPoints = 100) {
-  if (scale === GRADING_SCALES.PERCENTAGE) {
-    return grade >= 0 && grade <= 100;
-  } else if (scale === GRADING_SCALES.GPA) {
-    return grade >= 0 && grade <= 4.0;
-  } else if (scale === GRADING_SCALES.POINTS) {
-    return grade >= 0 && grade <= maxPoints;
-  }
-  return false;
-}

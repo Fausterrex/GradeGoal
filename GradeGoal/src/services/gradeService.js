@@ -208,52 +208,6 @@ class GradeService {
     }
   }
 
-  static validateGradeInput(grade, course) {
-    const errors = [];
-
-    if (!grade.categoryId) {
-      errors.push('Category is required');
-    }
-
-    if (!grade.name || grade.name.trim() === '') {
-      errors.push('Assessment name is required');
-    }
-
-    if (!grade.maxScore || grade.maxScore === '') {
-      errors.push('Maximum score is required');
-    }
-
-    if (!grade.assessmentType) {
-      errors.push('Assessment type is required');
-    }
-
-    if (!grade.date) {
-      errors.push('Date is required');
-    }
-
-    if (grade.maxScore !== '') {
-      const maxScore = parseFloat(grade.maxScore);
-
-      if (isNaN(maxScore) || maxScore <= 0) {
-        errors.push('Maximum score must be a positive number');
-      }
-    }
-
-    if (grade.score !== null && grade.score !== undefined && grade.score !== '') {
-      const score = parseFloat(grade.score);
-      const maxScore = parseFloat(grade.maxScore);
-
-      if (isNaN(score) || score < 0) {
-        errors.push('Score must be a non-negative number');
-      }
-
-      if (score > maxScore) {
-        errors.push('Score cannot exceed maximum score');
-      }
-    }
-
-    return errors;
-  }
 
   static analyzeGoalFeasibility(course, targetGrade, currentGrades) {
     try {
@@ -313,47 +267,6 @@ class GradeService {
         message: 'Error analyzing goal feasibility'
       };
     }
-  }
-
-  static generateRecommendations(difference, course, currentGrades) {
-    const recommendations = [];
-
-    if (difference > 0) {
-
-      const categoryPerformance = course.categories.map(cat => {
-        const catGrades = currentGrades[cat.id] || [];
-        if (catGrades.length === 0) return { category: cat.name, average: 0, weight: cat.weight };
-
-        const totalPercentage = catGrades.reduce((sum, grade) => {
-          if (grade.score !== null && grade.score !== undefined) {
-            return sum + ((grade.score / grade.maxScore) * 100);
-          }
-          return sum;
-        }, 0);
-
-        const average = totalPercentage / catGrades.length;
-        return { category: cat.name, average, weight: cat.weight };
-      }).sort((a, b) => a.average - b.average);
-
-      const lowPerforming = categoryPerformance.slice(0, 2);
-      lowPerforming.forEach(cat => {
-        if (cat.average < 80) {
-          recommendations.push(`Focus on improving ${cat.category} performance (current: ${cat.average.toFixed(1)}%)`);
-        }
-      });
-
-      if (difference > 15) {
-        recommendations.push('Consider seeking additional help (tutoring, office hours)');
-        recommendations.push('Increase study time for this course');
-      }
-
-      if (difference > 10) {
-        recommendations.push('Review and practice previous material regularly');
-        recommendations.push('Form study groups with classmates');
-      }
-    }
-
-    return recommendations;
   }
 
   static calculateCourseProgress(categories, grades) {

@@ -1,20 +1,6 @@
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://localhost:8080');
 
-export async function registerUserNew(userData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Signup failed with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
 export async function registerUser(userPayload) {
   // Handle both new format and legacy format
@@ -52,20 +38,6 @@ export async function registerUser(userPayload) {
   return response.json().catch(() => ({}));
 }
 
-export async function loginUserNew(loginData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(loginData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Login failed with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
 export async function loginUser(email) {
   const response = await fetch(`${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}`, {
@@ -81,78 +53,10 @@ export async function loginUser(email) {
   return response.json().catch(() => ({}));
 }
 
-export async function getUserById(userId) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch user with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
-export async function getUserByEmail(email) {
-  const response = await fetch(`${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch user with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
-export async function updateUserProfile(userId, profileData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/profile`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(profileData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to update profile with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
-export async function updateUserPassword(userId, passwordData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/password`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(passwordData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to update password with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
-export async function updateNotificationPreferences(userId, notificationData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/notifications`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(notificationData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to update notifications with status ${response.status}`);
-  }
-  return response.json().catch(() => ({}));
-}
 
 export async function googleSignIn(userData) {
   const response = await fetch(`${API_BASE_URL}/api/users/google-signin`, {
@@ -485,19 +389,6 @@ export async function getGoalsByUid(uid) {
   return response.json();
 }
 
-export async function getGoalsByUidAndCourseId(uid, courseId) {
-  const response = await fetch(`${API_BASE_URL}/api/goals/user/${encodeURIComponent(uid)}/course/${encodeURIComponent(courseId)}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch goals with status ${response.status}`);
-  }
-  return response.json();
-}
 
 export async function updateGoal(id, goalData) {
   const response = await fetch(`${API_BASE_URL}/api/goals/${id}`, {
@@ -526,22 +417,6 @@ export async function deleteGoal(id) {
     throw new Error(text || `Failed to delete goal with status ${response.status}`);
   }
   return response.ok;
-}
-
-// New Schema API Functions
-
-export async function getActiveCoursesByUserId(userId) {
-  const response = await fetch(`${API_BASE_URL}/api/courses/user/${userId}/active`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch active courses with status ${response.status}`);
-  }
-  return response.json();
 }
 
 export async function getAssessmentCategoriesByCourseId(courseId) {
@@ -573,90 +448,90 @@ export async function createAssessmentCategory(courseId, categoryData) {
   return response.json();
 }
 
-export async function getAssessmentsByCategoryId(categoryId) {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}/assessments`, {
+// Get user profile by email
+export async function getUserProfile(email) {
+  const response = await fetch(`${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
     },
   });
+
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch assessments with status ${response.status}`);
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to fetch user profile');
   }
+
   return response.json();
 }
 
-export async function createAssessment(categoryId, assessmentData) {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}/assessments`, {
-    method: 'POST',
+// Update user profile
+export async function updateUserProfile(email, profileData) {
+  // First get the user by email to get the user ID
+  const user = await getUserProfile(email);
+  
+  const response = await fetch(`${API_BASE_URL}/api/users/${user.userId}/profile`, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(assessmentData),
+    body: JSON.stringify({
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      platformPreference: 'WEB' // Default platform preference
+    }),
   });
+
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to create assessment with status ${response.status}`);
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to update profile');
   }
+
   return response.json();
 }
 
-export async function getGradesByAssessmentId(assessmentId) {
-  const response = await fetch(`${API_BASE_URL}/api/assessments/${assessmentId}/grades`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch grades with status ${response.status}`);
-  }
-  return response.json();
-}
+// Update user password
+export async function updateUserPassword(email, passwordData) {
+  try {
+    // First get the user by email to get the user ID
+    const user = await getUserProfile(email);
+    console.log('User found:', user);
+    console.log('Password data:', passwordData);
+    
+    const response = await fetch(`${API_BASE_URL}/api/users/${user.userId}/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(passwordData),
+    });
 
-export async function createGradeNew(assessmentId, gradeData) {
-  const response = await fetch(`${API_BASE_URL}/api/assessments/${assessmentId}/grades`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(gradeData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to create grade with status ${response.status}`);
-  }
-  return response.json();
-}
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers.get('content-type'));
 
-export async function getAcademicGoalsByUserId(userId) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/goals`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch academic goals with status ${response.status}`);
-  }
-  return response.json();
-}
+    if (!response.ok) {
+      // Handle both JSON and text responses
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update password');
+      } else {
+        const errorText = await response.text();
+        console.log('Error text:', errorText);
+        throw new Error(errorText || 'Failed to update password');
+      }
+    }
 
-export async function createAcademicGoal(userId, goalData) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/goals`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(goalData),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to create academic goal with status ${response.status}`);
+    // Handle both JSON and text responses for success
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    } else {
+      const text = await response.text();
+      return { message: text };
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
   }
-  return response.json();
 }
-

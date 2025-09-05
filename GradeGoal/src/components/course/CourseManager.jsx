@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import GradeService from '../../services/gradeService';
-import { calculateCourseProgress } from '../../utils/progressCalculations';
 import {
   deleteCourse as deleteCourseApi,
   archiveCourse as archiveCourseApi,
   unarchiveCourse as unarchiveCourseApi
 } from '../../backend/api';
 import { getCourseColorScheme } from '../../utils/courseColors';
+import { convertPercentageToGPA } from '../../utils/gradeCalculations';
 import AddCourse from './AddCourse';
 
 function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () => {}, grades = {}, courses = [], onRefreshGrades }) {
@@ -178,39 +178,37 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
   };
 
   return (
-    <div className="w-full p-6 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 h-full bg-[url('./drawables/coursesBG.png')] bg-cover bg-center relative">
-      <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px] pointer-events-none"></div>
-       <div className="mb-8 relative z-10">
-         <div className="flex justify-between items-center mb-8">
-           <button
-             onClick={onBack}
-             className="flex items-center gap-3 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full hover:bg-white/20 transition-all duration-300 border border-white/20"
-             title="Back to Dashboard"
-           >
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-             </svg>
-             <span className="font-medium">Back to Dashboard</span>
-           </button>
+    <div className="w-full p-4 sm:p-6 bg-gradient-to-br from-[#8168C5] via-[#6D4FC2] to-[#3E325F] relative pb-20" style={{ minHeight: '100vh' }}>
+      <div className="mb-8 relative z-10">
+        <div className="flex justify-between items-center mb-8">
+          <button
+            onClick={onBack}
+            className="w-12 h-12 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
+            title="Back to Dashboard"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
 
-           <button
-             onClick={() => setShowAddCourse(true)}
-             className="flex items-center gap-3 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full hover:bg-white/20 transition-all duration-300 border border-white/20"
-           >
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-             </svg>
-             <span className="font-medium">Add Course</span>
-           </button>
-         </div>
+          <button
+            onClick={() => setShowAddCourse(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white px-3 py-2 rounded-xl hover:from-[#6D4FC2] hover:to-[#8168C5] transition-all duration-300 shadow-lg hover:shadow-xl font-semibold"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span className="text-sm font-bold">Add Course</span>
+          </button>
+        </div>
 
-         <div className="text-center mb-6">
-           <h2 className="text-5xl font-bold bg-gradient-to-r from-[#3E325F] to-[#8168C5] bg-clip-text text-transparent mb-3 drop-shadow-sm">Course List</h2>
-           <p className="text-[#8168C5] text-xl font-medium drop-shadow-sm">Manage your academic courses</p>
-         </div>
-       </div>
+        <div className="text-center mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-lg">Course List</h2>
+          <p className="text-white/90 text-lg sm:text-xl font-medium drop-shadow-sm">Manage your academic courses</p>
+        </div>
+      </div>
 
-       <div className="flex items-center gap-3 mb-6 bg-white/90 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-white/50 relative z-10">
+       <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg relative z-10">
          <button
            onClick={() => setShowCourses(!showCourses)}
            className="flex items-center gap-3 hover:bg-white/20 rounded-xl p-2 transition-all duration-300"
@@ -222,10 +220,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
            </svg>
          </div>
-           <h3 className="text-xl font-bold text-[#3E325F] uppercase tracking-wider">COURSES</h3>
+           <h3 className="text-lg sm:text-xl font-bold text-[#3E325F] uppercase tracking-wider">COURSES</h3>
          </button>
          <div className="ml-auto flex items-center gap-4">
-           <span className="bg-gradient-to-r from-[#8168C5] to-[#6B5B9A] text-white px-3 py-2 rounded-xl text-xl shadow-md ">{courses.filter(course => course.isActive !== false).length} Course{courses.filter(course => course.isActive !== false).length !== 1 ? 's' : ''}</span>
+           <span className="bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-lg font-bold">{courses.filter(course => course.isActive !== false).length} Course{courses.filter(course => course.isActive !== false).length !== 1 ? 's' : ''}</span>
 
          </div>
        </div>
@@ -246,12 +244,12 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
           // Progress and grade are now pre-calculated in MainDashboard
 
           return (
-            <div key={`${course.id}-${course.units}-${course.creditHours}`} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 cursor-pointer group relative" onClick={() => handleCourseSelection(course)}>
-              <div className={`absolute inset-0 bg-gradient-to-br from-${colorScheme.primary}/10 via-${colorScheme.primary}/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+            <div key={`${course.id}-${course.units}-${course.creditHours}`} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative" onClick={() => handleCourseSelection(course)}>
+              <div className={`absolute inset-0 bg-gradient-to-br from-${colorScheme.primary}/10 via-${colorScheme.primary}/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
 
-              <div className={`absolute inset-0 rounded-3xl border-2 border-${colorScheme.primary}/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+              <div className={`absolute inset-0 rounded-2xl border-2 border-${colorScheme.primary}/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
 
-              <div className="p-6 relative z-10">
+              <div className="p-4 sm:p-6 relative z-10">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4 flex-1">
                     <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-xl overflow-hidden group-hover:shadow-2xl transition-all duration-500 flex-shrink-0 group-hover:scale-110`}>
@@ -274,7 +272,11 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                         ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
                         : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
                     }`}>
-                      {hasGrades ? (typeof courseGrade === 'number' ? courseGrade.toFixed(1) : courseGrade) : 'Ongoing'}
+                      {hasGrades ? (
+                        typeof courseGrade === 'number' ? 
+                          (courseGrade > 4.0 ? convertPercentageToGPA(courseGrade, course.gpaScale || '4.0').toFixed(2) : courseGrade.toFixed(2)) : 
+                          courseGrade
+                      ) : 'Ongoing'}
                     </span>
                   </div>
                 </div>
@@ -301,17 +303,17 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                   </div>
                 </div>
 
-                  <div className="flex gap-3 flex-shrink-0">
+                  <div className="flex gap-2 sm:gap-3 flex-shrink-0">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingCourse(course);
                         setShowAddCourse(true);
                       }}
-                      className="w-10 h-10 rounded-2xl border-2 border-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl hover:shadow-blue-200/50"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                       title="Edit Course"
                     >
-                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
@@ -321,10 +323,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                         e.stopPropagation();
                         archiveCourse(course.id);
                       }}
-                      className="w-10 h-10 rounded-2xl border-2 border-orange-500 bg-white hover:bg-orange-50 hover:border-orange-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl hover:shadow-orange-200/50"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                       title="Archive Course"
                     >
-                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                       </svg>
                     </button>
@@ -334,10 +336,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                         e.stopPropagation();
                         deleteCourse(course.id);
                       }}
-                      className="w-10 h-10 rounded-2xl border-2 border-red-500 bg-white hover:bg-red-50 hover:border-red-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl hover:shadow-red-200/50"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                       title="Delete Course"
                     >
-                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     </button>
@@ -351,10 +353,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
       )}
 
         <div className="mb-8 relative z-10">
-          <div className="flex items-center gap-3 mb-6 bg-orange-50/90 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-orange-200/50">
+          <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg">
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-3 hover:bg-orange-100/50 rounded-xl p-2 transition-all duration-300"
+              className="flex items-center gap-3 hover:bg-white/10 rounded-xl p-2 transition-all duration-300"
             >
               <div className={`w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
                 showArchived ? 'rotate-0' : '-rotate-90'
@@ -363,10 +365,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-orange-700 uppercase tracking-wider">ARCHIVED COURSES</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-orange-700 uppercase tracking-wider">ARCHIVED COURSES</h3>
             </button>
-            <div className="ml-auto">
-              <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-2 rounded-xl text-xl shadow-md">{archivedCourses.length} Archived</span>
+            <div className="ml-auto flex items-center">
+              <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-md font-bold whitespace-nowrap">{archivedCourses.length} Archived</span>
             </div>
                 </div>
 
@@ -389,14 +391,14 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                   return (
                     <div
                       key={`archived-${course.id}`}
-                      className="bg-orange-50/95 backdrop-blur-sm rounded-3xl shadow-xl border border-orange-200/50 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 cursor-pointer group relative opacity-75"
+                      className="bg-orange-50 rounded-2xl shadow-lg border border-orange-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative opacity-75"
                       onClick={() => handleCourseSelection(course)}
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                      <div className={`absolute inset-0 bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
 
-                      <div className={`absolute inset-0 rounded-3xl border-2 border-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                      <div className={`absolute inset-0 rounded-2xl border-2 border-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
 
-                      <div className="p-6 relative z-10">
+                      <div className="p-4 sm:p-6 relative z-10">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start gap-4 flex-1">
                             <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-xl overflow-hidden group-hover:shadow-2xl transition-all duration-500 flex-shrink-0 group-hover:scale-110`}>
@@ -436,16 +438,16 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                 </div>
               </div>
 
-                          <div className="flex gap-3 flex-shrink-0">
+                          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
                     <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 restoreCourse(course.id);
                               }}
-                              className="w-10 h-10 rounded-2xl border-2 border-green-500 bg-white hover:bg-green-50 hover:border-green-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl hover:shadow-green-200/50"
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                               title="Restore Course"
                             >
-                              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                     </button>
@@ -455,10 +457,10 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                                 e.stopPropagation();
                                 deleteCourse(course.id);
                               }}
-                              className="w-10 h-10 rounded-2xl border-2 border-red-500 bg-white hover:bg-red-50 hover:border-red-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl hover:shadow-red-200/50"
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                               title="Delete Course"
                             >
-                              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
@@ -470,14 +472,14 @@ function CourseManager({ onCourseUpdate, onCourseSelect = () => {}, onBack = () 
                 })}
               </div>
             ) : (
-              <div className="text-center py-12 text-orange-500">
+              <div className="text-center py-12 text-orange-600">
                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-orange-700 mb-2">No Archived Courses</h3>
-                <p className="text-orange-500">Archive courses to see them here.</p>
+                <p className="text-orange-600">Archive courses to see them here.</p>
               </div>
             )
           )}

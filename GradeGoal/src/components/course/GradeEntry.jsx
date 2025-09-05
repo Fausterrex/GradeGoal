@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   convertGradeToPercentage,
   convertPercentageToScale,
+  convertPercentageToGPA,
   getGradeColor,
   calculateCategoryAverage
 } from '../../utils/gradeCalculations';
@@ -569,6 +570,14 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     }
 
     try {
+      // Check if there are any grades at all
+      const hasAnyGrades = Object.values(grades).some(categoryGrades => 
+        Array.isArray(categoryGrades) && categoryGrades.length > 0
+      );
+
+      if (!hasAnyGrades) {
+        return 0; // No grades at all, return 0
+      }
 
       const courseWithCategories = { ...course, categories };
       const result = GradeService.calculateCourseGrade(courseWithCategories, grades);
@@ -680,7 +689,12 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setEditingCourse(course);
+                // Ensure colorIndex is included when editing
+                const courseWithColorIndex = {
+                  ...course,
+                  colorIndex: course.colorIndex !== undefined ? course.colorIndex : 0
+                };
+                setEditingCourse(courseWithColorIndex);
                 setShowEditCourse(true);
               }}
               className={`flex items-center gap-3 ${course.isActive === false ? 'bg-gray-400 cursor-not-allowed' : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'} text-white px-6 py-3 rounded-full transition-all duration-300 border border-white/20 ${course.isActive === false ? 'hover:bg-gray-400' : ''}`}
@@ -721,11 +735,9 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
               <div className="text-center">
                 <p className="text-4xl font-bold text-white mb-2">
-                  {course.gradingScale === 'percentage' ? `${courseGrade.toFixed(1)}%` :
-                    course.gradingScale === 'gpa' ? convertPercentageToScale(courseGrade, 'gpa', course.maxPoints, course.gpaScale) :
-                      convertPercentageToScale(courseGrade, 'points', course.maxPoints)}
+                  {courseGrade === 0 ? '0.00' : convertPercentageToGPA(courseGrade, course.gpaScale || '4.0').toFixed(2)}
                 </p>
-                <p className="text-sm text-white/80 font-medium uppercase tracking-wider">Current Grade</p>
+                <p className="text-sm text-white/80 font-medium uppercase tracking-wider">Current GPA</p>
               </div>
             </div>
 
@@ -793,9 +805,9 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
               return (
                 <div key={category.id} className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300">
                   {}
-                  <div className={`bg-gradient-to-r ${colorScheme.gradient} px-6 py-5 flex justify-between items-center`}>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-bold text-white">{category.name}</h3>
+                  <div className={`bg-gradient-to-r ${colorScheme.gradient} px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{category.name}</h3>
                       <span className="text-white/80 text-sm font-medium">Weight: {category.weight}%</span>
                     </div>
                     <button
@@ -803,23 +815,21 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                         setNewGrade(prev => ({ ...prev, categoryId: category.id }));
                         setShowAddGrade(true);
                       }}
-                      className="bg-white/20 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl hover:bg-white hover:text-gray-800 transition-all duration-300 font-medium border border-white/30"
+                      className="bg-white/20 backdrop-blur-sm text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl hover:bg-white hover:text-gray-800 transition-all duration-300 font-medium border border-white/30 text-sm sm:text-base self-start sm:self-auto"
                     >
                       + Add Assessment
                     </button>
                   </div>
 
                   {}
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     {}
-                    <div className="flex justify-between items-center mb-6 p-4 bg-gray-50 rounded-xl">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-xl">
                       {categoryAverage !== null ? (
                         <div className="text-right">
                           <span className="text-sm text-gray-600">Average: </span>
                           <span className={`ml-2 text-lg font-bold ${getGradeColor(categoryAverage)}`}>
-                            {course.gradingScale === 'percentage' ? `${categoryAverage.toFixed(1)}%` :
-                              course.gradingScale === 'gpa' ? convertPercentageToScale(categoryAverage, 'gpa', course.maxPoints, course.gpaScale) :
-                                convertPercentageToScale(categoryAverage, 'points', course.maxPoints)}
+                            {convertPercentageToGPA(categoryAverage, course.gpaScale || '4.0').toFixed(2)}
                           </span>
                         </div>
                       ) : (
@@ -847,21 +857,21 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                           return (
                             <div
                               key={grade.id}
-                              className={`p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg relative ${hasScore
+                              className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg relative ${hasScore
                                   ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm'
                                   : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200 shadow-sm hover:shadow-md'
                                 }`}
                               onClick={() => !hasScore && handleAssessmentClick(grade)}
                             >
-                              {}
-                              <div className="absolute top-3 right-3 flex gap-2">
+                              {/* Action Buttons - Mobile Responsive */}
+                              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col sm:flex-row gap-1 sm:gap-2">
                                 {!hasScore ? (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleAssessmentClick(grade);
                                     }}
-                                    className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+                                    className="bg-green-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                   >
                                     Add Score
                                   </button>
@@ -872,7 +882,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                       setSelectedGrade(grade);
                                       setShowEditScore(true);
                                     }}
-                                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+                                    className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                   >
                                     Edit Score
                                   </button>
@@ -892,7 +902,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                     });
                                     setShowAddGrade(true);
                                   }}
-                                  className="bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+                                  className="bg-gray-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                 >
                                   Edit
                                 </button>
@@ -902,13 +912,13 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                     e.stopPropagation();
                                     deleteGrade(grade.id, grade.categoryId);
                                   }}
-                                  className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+                                  className="bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                 >
                                   Delete
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-4 pr-32">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pr-16 sm:pr-32">
                                 {}
                                 <div className={`w-14 h-14 ${hasScore ? 'bg-green-500' : 'bg-blue-500'} rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0`}>
                                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -918,23 +928,23 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
 
                                 {}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h4 className="text-lg font-bold text-gray-900 truncate">{grade.name}</h4>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(determineAssessmentStatus(grade))}`}>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                                    <h4 className="text-base sm:text-lg font-bold text-gray-900 truncate">{grade.name}</h4>
+                                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold self-start ${getStatusColor(determineAssessmentStatus(grade))}`}>
                                       {determineAssessmentStatus(grade)}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-4 mb-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
                                     <div className="text-sm text-gray-600">
                                       {hasScore ? (
-                                        <span className={`font-bold text-lg ${getGradeColor(percentage)}`}>
+                                        <span className={`font-bold text-base sm:text-lg ${getGradeColor(percentage)}`}>
                                           {(() => {
                                             let adjustedScore = grade.score;
                                             if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
                                               adjustedScore += grade.extraCreditPoints;
                                             }
                                             return adjustedScore;
-                                          })()}/{grade.maxScore} ({percentage.toFixed(1)}%)
+                                          })()}/{grade.maxScore} ({percentage.toFixed(1)}% | {convertPercentageToGPA(percentage, course.gpaScale || '4.0').toFixed(2)} GPA)
                                           {grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0 && (
                                             <span className="ml-2 text-green-600 font-medium">
                                               (+{grade.extraCreditPoints})
@@ -954,7 +964,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                     </div>
 
                                     <div className="flex items-center gap-2 text-gray-500">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                       </svg>
                                       <span className="text-sm font-medium">Due: {grade.date}</span>
@@ -965,12 +975,12 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                   {grade.note && grade.note.trim() !== '' && (
                                     <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                                       <div className="flex items-center gap-2 mb-1">
-                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                         <span className="text-sm text-blue-800 font-semibold">Note</span>
                                       </div>
-                                      <p className="text-sm text-blue-700 leading-relaxed">{grade.note}</p>
+                                      <p className="text-sm text-blue-700 leading-relaxed break-words">{grade.note}</p>
                                     </div>
                                   )}
                                 </div>
@@ -1303,6 +1313,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         onCourseCreated={handleCourseUpdated}
         editingCourse={editingCourse}
         existingCourses={[course]}
+        courseColorScheme={colorScheme}
       />
 
       {}

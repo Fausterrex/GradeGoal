@@ -3,9 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import GradeService from '../../services/gradeService';
 import {
   getGoalsByUid,
-  createGoal,
-  updateGoal,
-  deleteGoal
+  createGoal
 } from '../../backend/api';
 
 function GoalSetting({ course, grades, onGoalUpdate }) {
