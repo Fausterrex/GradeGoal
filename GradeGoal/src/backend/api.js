@@ -206,34 +206,6 @@ export async function unarchiveCourse(id) {
   return response.json();
 }
 
-export async function getActiveCoursesByUid(uid) {
-  const response = await fetch(`${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/active`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch active courses with status ${response.status}`);
-  }
-  return response.json();
-}
-
-export async function getArchivedCoursesByUid(uid) {
-  const response = await fetch(`${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/archived`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Failed to fetch archived courses with status ${response.status}`);
-  }
-  return response.json();
-}
-
 export async function addCategoryToCourse(courseId, categoryData) {
   const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/categories`, {
     method: 'POST',
@@ -495,8 +467,6 @@ export async function updateUserPassword(email, passwordData) {
   try {
     // First get the user by email to get the user ID
     const user = await getUserProfile(email);
-    console.log('User found:', user);
-    console.log('Password data:', passwordData);
     
     const response = await fetch(`${API_BASE_URL}/api/users/${user.userId}/password`, {
       method: 'PUT',
@@ -506,8 +476,6 @@ export async function updateUserPassword(email, passwordData) {
       body: JSON.stringify(passwordData),
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers.get('content-type'));
 
     if (!response.ok) {
       // Handle both JSON and text responses
@@ -517,7 +485,6 @@ export async function updateUserPassword(email, passwordData) {
         throw new Error(errorData.message || 'Failed to update password');
       } else {
         const errorText = await response.text();
-        console.log('Error text:', errorText);
         throw new Error(errorText || 'Failed to update password');
       }
     }

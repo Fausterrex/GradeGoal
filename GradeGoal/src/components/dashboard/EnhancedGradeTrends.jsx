@@ -7,10 +7,7 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  ComposedChart,
-  Legend
+  ComposedChart
 } from "recharts";
 import GradeService from '../../services/gradeService';
 import { getCourseColorScheme } from '../../utils/courseColors';

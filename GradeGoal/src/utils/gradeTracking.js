@@ -149,26 +149,6 @@ export const generateWeeklySnapshots = (courses, grades, weeks = 12) => {
   return snapshots;
 };
 
-/**
- * Calculate course progress based on categories
- * @param {Array} categories - Array of category snapshots
- * @returns {number} Progress percentage
- */
-const calculateCourseProgress = (categories) => {
-  if (!categories || categories.length === 0) return 0;
-
-  let totalWeight = 0;
-  let completedWeight = 0;
-
-  categories.forEach(category => {
-    totalWeight += category.weight || 0;
-    if (category.currentAverage > 0) {
-      completedWeight += category.weight || 0;
-    }
-  });
-
-  return totalWeight > 0 ? (completedWeight / totalWeight) * 100 : 0;
-};
 
 /**
  * Calculate overall progress across all courses

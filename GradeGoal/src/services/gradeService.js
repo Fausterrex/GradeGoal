@@ -269,9 +269,6 @@ class GradeService {
     }
   }
 
-  static calculateCourseProgress(categories, grades) {
-    return calculateCourseProgress(categories, grades);
-  }
 }
 
 export default GradeService;

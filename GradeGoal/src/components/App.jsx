@@ -19,7 +19,7 @@ function App() {
               <Route path="/" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
-                  <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                  <div className="flex-1 overflow-hidden w-full mx-auto">
                     <Landingpage/>
                   </div>
                 </div>
@@ -54,7 +54,7 @@ function App() {
               <Route path="/signup" element={
                 <div className="flex flex-col h-screen w-full">
                   <Header />
-                  <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                  <div className="flex-1 overflow-hidden w-full mx-auto">
                     <Signup/>
                   </div>
                 </div>

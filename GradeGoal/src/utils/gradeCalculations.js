@@ -46,40 +46,7 @@ export function convertGPAToPercentage(gpa, gpaScale = '4.0') {
   return Math.round(percentage * 100) / 100; // Round to 2 decimal places
 }
 
-export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
-  if (!grade || grade.score === null || grade.score === undefined || grade.score === '') {
-    return 0;
-  }
 
-  let adjustedScore = grade.score;
-
-  // Add extra credit points if this is an extra credit assessment
-  if (grade.isExtraCredit && grade.extraCreditPoints) {
-    adjustedScore += grade.extraCreditPoints;
-  }
-
-  if (scale === GRADING_SCALES.PERCENTAGE) {
-    return Math.min(adjustedScore, 100); // Cap at 100%
-  } else if (scale === GRADING_SCALES.GPA) {
-    // Convert GPA to percentage (assuming 4.0 = 100%, 0.0 = 0%)
-    return (adjustedScore / 4.0) * 100;
-  } else if (scale === GRADING_SCALES.POINTS) {
-    return (adjustedScore / maxPoints) * 100;
-  }
-
-  return 0;
-}
-
-export function convertPercentageToScale(percentage, scale, maxPoints = 100, gpaScale = '4.0') {
-  if (scale === GRADING_SCALES.PERCENTAGE) {
-    return Math.round(percentage);
-  } else if (scale === GRADING_SCALES.GPA) {
-    return convertPercentageToGPA(percentage, gpaScale);
-  } else if (scale === GRADING_SCALES.POINTS) {
-    return Math.round((percentage / 100) * maxPoints);
-  }
-  return percentage;
-}
 
 export function calculateCategoryAverage(grades, scale, maxPoints = 100, handleMissing = 'exclude') {
   if (!grades || grades.length === 0) return 0;
