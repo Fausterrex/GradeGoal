@@ -1,19 +1,34 @@
-import React from 'react';
-import { FaTachometerAlt, FaBook, FaBullseye, FaClipboardList, FaCalendarAlt } from 'react-icons/fa';
+// ========================================
+// SIDEBAR COMPONENT
+// ========================================
+// This component provides the main navigation sidebar
+// Features: Navigation tabs, user profile, logout functionality
+
+import React from "react";
+import {
+  FaTachometerAlt,
+  FaBook,
+  FaBullseye,
+  FaClipboardList,
+  FaCalendarAlt,
+} from "react-icons/fa";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   // Navigation items configuration
   const navItems = [
-    { icon: <FaTachometerAlt />, label: 'Dashboard', tab: 'overview' },
-    { icon: <FaBook />, label: 'Courses', tab: 'courses' },
-    { icon: <FaBullseye />, label: 'Goals', tab: 'goals' },
-    { icon: <FaClipboardList />, label: 'Reports', tab: 'reports' },
-    { icon: <FaCalendarAlt />, label: 'Calendar', tab: 'calendar' },
+    { icon: <FaTachometerAlt />, label: "Dashboard", tab: "overview" },
+    { icon: <FaBook />, label: "Courses", tab: "courses" },
+    { icon: <FaBullseye />, label: "Goals", tab: "goals" },
+    { icon: <FaClipboardList />, label: "Reports", tab: "reports" },
+    { icon: <FaCalendarAlt />, label: "Calendar", tab: "calendar" },
   ];
 
   return (
     <div className="w-60 h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-between px-2 py-6 z-10 rounded-tr-4xl rounded-br-4xl overflow-hidden">
       <div className="space-y-6">
+        {/* ========================================
+            LOGO AND BRANDING
+            ======================================== */}
         <div className="flex flex-col items-center justify-center text-2xl font-bold mb-6">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-2">
             <span className="text-[#8168C5] text-xl">GG</span>
@@ -21,6 +36,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           <h2>Grade Goal</h2>
         </div>
 
+        {/* ========================================
+            NAVIGATION ITEMS
+            ======================================== */}
         <div className="flex flex-col items-start space-y-6">
           {navItems.map((item) => (
             <NavItem
@@ -40,14 +58,22 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 const NavItem = ({ icon, label, isActive, onClick }) => (
   <div
     className={`flex items-center p-2 rounded-md cursor-pointer space-x-2 group w-full ${
-      isActive ? 'bg-[#6D4FC2] text-white' : ''
+      isActive ? "bg-[#6D4FC2] text-white" : ""
     }`}
     onClick={onClick}
   >
-    <div className={`text-3xl ml-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+    <div
+      className={`text-3xl ml-5 ${
+        isActive ? "text-white" : "text-gray-400 group-hover:text-white"
+      }`}
+    >
       {icon}
     </div>
-    <span className={`text-xl font-medium mx-8 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+    <span
+      className={`text-xl font-medium mx-8 ${
+        isActive ? "text-white" : "text-gray-400 group-hover:text-white"
+      }`}
+    >
       {label}
     </span>
   </div>

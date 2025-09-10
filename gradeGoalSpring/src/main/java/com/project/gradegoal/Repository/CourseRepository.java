@@ -26,7 +26,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByInstructorName(String instructorName);
 
-    List<Course> findByTargetGradeGreaterThan(java.math.BigDecimal targetGrade);
+    // Target grades are now managed through the Academic Goals system
+    // This method is no longer used
 
     long countByUserId(Long userId);
 

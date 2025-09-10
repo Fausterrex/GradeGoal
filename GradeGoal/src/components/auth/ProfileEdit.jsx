@@ -1,30 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { getUserProfile, updateUserProfile, updateUserPassword } from '../../backend/api';
-import { FaTimes, FaUser, FaLock, FaCamera, FaSave, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { updatePassword as updateFirebasePassword, reauthenticateWithCredential, EmailAuthProvider, getAuth } from 'firebase/auth';
+// ========================================
+// PROFILE EDIT COMPONENT
+// ========================================
+// This component handles user profile editing including personal information
+// updates and password changes. It provides a modal interface for users to
+// modify their account details and security settings.
+
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import {
+  getUserProfile,
+  updateUserProfile,
+  updateUserPassword,
+} from "../../backend/api";
+import {
+  FaTimes,
+  FaUser,
+  FaLock,
+  FaCamera,
+  FaSave,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
+import {
+  updatePassword as updateFirebasePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  getAuth,
+} from "firebase/auth";
 
 const ProfileEdit = ({ isOpen, onClose }) => {
   const { currentUser, updateCurrentUserWithData } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [userData, setUserData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    profilePictureUrl: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    profilePictureUrl: "",
   });
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   });
 
   useEffect(() => {
@@ -38,16 +62,17 @@ const ProfileEdit = ({ isOpen, onClose }) => {
       setLoading(true);
       // Use email to get user profile since the API uses email-based lookup
       const profile = await getUserProfile(currentUser.email);
-      
+
       setUserData({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        email: profile.email || currentUser.email || '',
-        profilePictureUrl: profile.profilePictureUrl || currentUser.photoURL || ''
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        email: profile.email || currentUser.email || "",
+        profilePictureUrl:
+          profile.profilePictureUrl || currentUser.photoURL || "",
       });
     } catch (error) {
-      console.error('Error loading profile:', error);
-      setError('Failed to load profile data');
+      console.error("Error loading profile:", error);
+      setError("Failed to load profile data");
     } finally {
       setLoading(false);
     }
@@ -55,24 +80,24 @@ const ProfileEdit = ({ isOpen, onClose }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUserData(prev => ({
+    setUserData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({
+    setPasswordData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -82,9 +107,9 @@ const ProfileEdit = ({ isOpen, onClose }) => {
       // Convert file to base64 for preview
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUserData(prev => ({
+        setUserData((prev) => ({
           ...prev,
-          profilePictureUrl: e.target.result
+          profilePictureUrl: e.target.result,
         }));
       };
       reader.readAsDataURL(file);
@@ -95,27 +120,27 @@ const ProfileEdit = ({ isOpen, onClose }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       await updateUserProfile(currentUser.email, {
         firstName: userData.firstName,
-        lastName: userData.lastName
+        lastName: userData.lastName,
       });
 
       // Update the current user context
       updateCurrentUserWithData({
         displayName: `${userData.firstName} ${userData.lastName}`,
-        photoURL: userData.profilePictureUrl
+        photoURL: userData.profilePictureUrl,
       });
 
-      setSuccess('Profile updated successfully!');
+      setSuccess("Profile updated successfully!");
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setError(error.message || 'Failed to update profile');
+      console.error("Error updating profile:", error);
+      setError(error.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -125,60 +150,69 @@ const ProfileEdit = ({ isOpen, onClose }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        setError('New passwords do not match');
+        setError("New passwords do not match");
         return;
       }
 
       if (passwordData.newPassword.length < 6) {
-        setError('New password must be at least 6 characters');
+        setError("New password must be at least 6 characters");
         return;
       }
 
       if (!passwordData.currentPassword) {
-        setError('Current password is required');
+        setError("Current password is required");
         return;
       }
 
-      console.log('Updating Firebase password for user:', currentUser.email);
-      console.log('Current password entered:', passwordData.currentPassword);
-      console.log('New password:', passwordData.newPassword);
-      
+      console.log("Updating Firebase password for user:", currentUser.email);
+      console.log("Current password entered:", passwordData.currentPassword);
+      console.log("New password:", passwordData.newPassword);
+
       // Get the Firebase auth instance and current user
       const auth = getAuth();
       const firebaseUser = auth.currentUser;
-      
+
       if (!firebaseUser) {
-        throw new Error('No user is currently signed in');
+        throw new Error("No user is currently signed in");
       }
-      
+
       // Re-authenticate user with current password
-      const credential = EmailAuthProvider.credential(firebaseUser.email, passwordData.currentPassword);
+      const credential = EmailAuthProvider.credential(
+        firebaseUser.email,
+        passwordData.currentPassword
+      );
       await reauthenticateWithCredential(firebaseUser, credential);
-      
+
       // Update password in Firebase Auth
       await updateFirebasePassword(firebaseUser, passwordData.newPassword);
 
-      setSuccess('Password updated successfully!');
+      setSuccess("Password updated successfully!");
       setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
       setShowPasswordSection(false);
     } catch (error) {
-      console.error('Error updating password:', error);
-      if (error.code === 'auth/wrong-password') {
-        setError('The current password you entered is incorrect. Please check your password and try again.');
-      } else if (error.code === 'auth/weak-password') {
-        setError('The new password is too weak. Please choose a stronger password.');
-      } else if (error.code === 'auth/requires-recent-login') {
-        setError('For security reasons, please log out and log back in before changing your password.');
+      console.error("Error updating password:", error);
+      if (error.code === "auth/wrong-password") {
+        setError(
+          "The current password you entered is incorrect. Please check your password and try again."
+        );
+      } else if (error.code === "auth/weak-password") {
+        setError(
+          "The new password is too weak. Please choose a stronger password."
+        );
+      } else if (error.code === "auth/requires-recent-login") {
+        setError(
+          "For security reasons, please log out and log back in before changing your password."
+        );
       } else {
-        setError(error.message || 'Failed to update password');
+        setError(error.message || "Failed to update password");
       }
     } finally {
       setLoading(false);
@@ -189,8 +223,16 @@ const ProfileEdit = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* ========================================
+          PROFILE EDIT MODAL OVERLAY
+          ======================================== */}
+      {/* ========================================
+          PROFILE EDIT MODAL CONTAINER
+          ======================================== */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+        {/* ========================================
+            MODAL HEADER
+            ======================================== */}
         <div className="bg-gradient-to-r from-[#8168C5] to-[#3E325F] p-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -208,8 +250,13 @@ const ProfileEdit = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Content */}
+        {/* ========================================
+            MODAL CONTENT
+            ======================================== */}
         <div className="p-6">
+          {/* ========================================
+              ERROR AND SUCCESS MESSAGES
+              ======================================== */}
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
               {error}
@@ -222,12 +269,17 @@ const ProfileEdit = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Profile Picture Section */}
+          {/* ========================================
+              PROFILE PICTURE SECTION
+              ======================================== */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Profile Picture
             </label>
             <div className="flex items-center space-x-4">
+              {/* ========================================
+                  PROFILE PICTURE DISPLAY
+                  ======================================== */}
               <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                 {userData.profilePictureUrl ? (
                   <img
@@ -239,6 +291,9 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                   <FaUser className="text-gray-400 text-2xl" />
                 )}
               </div>
+              {/* ========================================
+                  PROFILE PICTURE UPLOAD
+                  ======================================== */}
               <div>
                 <input
                   type="file"
@@ -300,7 +355,9 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                 disabled
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
               />
-              <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Email cannot be changed
+              </p>
             </div>
 
             <div className="flex space-x-3 pt-4">
@@ -310,7 +367,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                 className="flex items-center px-6 py-2 bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white rounded-lg hover:from-[#6D4FC2] hover:to-[#2E2150] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FaSave className="mr-2" />
-                {loading ? 'Saving...' : 'Save Profile'}
+                {loading ? "Saving..." : "Save Profile"}
               </button>
 
               <button
@@ -327,7 +384,9 @@ const ProfileEdit = ({ isOpen, onClose }) => {
           {/* Password Section */}
           {showPasswordSection && (
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Change Password</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Change Password
+              </h3>
               <form onSubmit={handleSavePassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -344,7 +403,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                     />
                     <button
                       type="button"
-                      onClick={() => togglePasswordVisibility('current')}
+                      onClick={() => togglePasswordVisibility("current")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
                       {showPasswords.current ? <FaEyeSlash /> : <FaEye />}
@@ -368,7 +427,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                     />
                     <button
                       type="button"
-                      onClick={() => togglePasswordVisibility('new')}
+                      onClick={() => togglePasswordVisibility("new")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
                       {showPasswords.new ? <FaEyeSlash /> : <FaEye />}
@@ -392,7 +451,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                     />
                     <button
                       type="button"
-                      onClick={() => togglePasswordVisibility('confirm')}
+                      onClick={() => togglePasswordVisibility("confirm")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
                       {showPasswords.confirm ? <FaEyeSlash /> : <FaEye />}
@@ -406,7 +465,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
                     disabled={loading}
                     className="px-6 py-2 bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white rounded-lg hover:from-[#6D4FC2] hover:to-[#2E2150] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? 'Updating...' : 'Update Password'}
+                    {loading ? "Updating..." : "Update Password"}
                   </button>
                   <button
                     type="button"

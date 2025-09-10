@@ -52,7 +52,7 @@ public class CourseService {
         existingCourse.setSemester(courseData.getSemester());
         existingCourse.setAcademicYear(courseData.getAcademicYear());
         existingCourse.setCreditHours(courseData.getCreditHours());
-        existingCourse.setTargetGrade(courseData.getTargetGrade());
+        // Target grades are now managed through the Academic Goals system
         existingCourse.setInstructorName(courseData.getInstructorName());
         existingCourse.setColorIndex(courseData.getColorIndex());
 
@@ -131,7 +131,9 @@ public class CourseService {
             Course course = courseOpt.get();
 
             BigDecimal finalGrade = calculateFinalCourseGrade(courseId);
-            BigDecimal finalGPA = convertGradeToGPA(finalGrade, course.getTargetGrade());
+            // Target grades are now managed through the Academic Goals system
+            // For now, use a simple GPA calculation based on the final grade
+            BigDecimal finalGPA = finalGrade.divide(new BigDecimal("25"), 2, BigDecimal.ROUND_HALF_UP);
 
             course.setCalculatedCourseGrade(finalGrade);
             course.setCourseGpa(finalGPA);
@@ -224,15 +226,8 @@ public class CourseService {
         return BigDecimal.ZERO;
     }
 
-    private BigDecimal convertGradeToGPA(BigDecimal grade, BigDecimal targetGrade) {
-
-        if (grade.compareTo(targetGrade) >= 0) {
-            return new BigDecimal("4.00");
-        }
-
-        BigDecimal ratio = grade.divide(targetGrade, 4, BigDecimal.ROUND_HALF_UP);
-        return ratio.multiply(new BigDecimal("4.00")).setScale(2, BigDecimal.ROUND_HALF_UP);
-    }
+    // Target grades are now managed through the Academic Goals system
+    // This method is no longer used
 
     public Course restoreCourse(Long courseId) {
         Optional<Course> courseOpt = courseRepository.findById(courseId);
@@ -252,15 +247,8 @@ public class CourseService {
         return courseRepository.findByCourseCodeAndUserId(courseCode, userId);
     }
 
-    public Course updateTargetGrade(Long courseId, BigDecimal targetGrade) {
-        Optional<Course> courseOpt = courseRepository.findById(courseId);
-        if (courseOpt.isPresent()) {
-            Course course = courseOpt.get();
-            course.setTargetGrade(targetGrade);
-            return courseRepository.save(course);
-        }
-        return null;
-    }
+    // Target grades are now managed through the Academic Goals system
+    // This method is no longer used
 
     public Course updateCalculatedGrade(Long courseId, BigDecimal calculatedGrade) {
         Optional<Course> courseOpt = courseRepository.findById(courseId);

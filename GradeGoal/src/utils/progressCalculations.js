@@ -1,3 +1,8 @@
+// ========================================
+// PROGRESS CALCULATIONS UTILITY
+// ========================================
+// This utility calculates course progress based on completed assessments
+// and category weights. It provides percentage-based progress tracking.
 
 export const calculateCourseProgress = (categories, grades) => {
   if (!categories || categories.length === 0) return 0;
@@ -6,11 +11,11 @@ export const calculateCourseProgress = (categories, grades) => {
   let completedWeight = 0;
 
   // Calculate progress based on weighted category completion with partial progress
-  categories.forEach(category => {
+  categories.forEach((category) => {
     const categoryGrades = grades[category.id] || [];
     // Handle both property naming conventions: weight/weightPercentage and name/categoryName
     const categoryWeight = category.weight || category.weightPercentage || 0;
-    const categoryName = category.name || category.categoryName || 'Unknown';
+    const categoryName = category.name || category.categoryName || "Unknown";
     totalWeight += categoryWeight;
 
     // Calculate partial completion within this category
@@ -18,12 +23,13 @@ export const calculateCourseProgress = (categories, grades) => {
       let completedAssessments = 0;
       let totalAssessments = categoryGrades.length;
 
-      categoryGrades.forEach(grade => {
-        const hasScore = grade.score !== undefined &&
-                        grade.score !== null &&
-                        grade.score !== '' &&
-                        grade.score !== 0 &&
-                        !isNaN(parseFloat(grade.score));
+      categoryGrades.forEach((grade) => {
+        const hasScore =
+          grade.score !== undefined &&
+          grade.score !== null &&
+          grade.score !== "" &&
+          grade.score !== 0 &&
+          !isNaN(parseFloat(grade.score));
         if (hasScore) {
           completedAssessments++;
         }
@@ -48,4 +54,3 @@ export const calculateCourseProgress = (categories, grades) => {
     return 0;
   }
 };
-

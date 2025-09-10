@@ -105,19 +105,90 @@ public class CourseControllerNew {
                     }
                 }
 
-                String targetGradeStr = data.get("targetGrade") != null ? data.get("targetGrade").toString().trim() : "";
-                if (targetGradeStr.isEmpty() || targetGradeStr.equals("null")) {
-                    course.setTargetGrade(new java.math.BigDecimal("93.00"));
-                } else {
+                // Target grades are now managed through the Academic Goals system
+
+                // Handle colorIndex
+                if (data.containsKey("colorIndex")) {
                     try {
-                        course.setTargetGrade(new java.math.BigDecimal(targetGradeStr));
-                    } catch (NumberFormatException e) {
-                        course.setTargetGrade(new java.math.BigDecimal("93.00"));
+                        course.setColorIndex(((Number) data.get("colorIndex")).intValue());
+                    } catch (Exception e) {
+                        course.setColorIndex(0); // Default to 0 if parsing fails
                     }
+                } else {
+                    course.setColorIndex(0); // Default to 0 if not provided
                 }
 
-                course.setSemester(Course.Semester.FIRST);
-                course.setAcademicYear("2024");
+                // Handle semester
+                if (data.containsKey("semester")) {
+                    String semesterStr = data.get("semester").toString();
+                    if (semesterStr != null && !semesterStr.isEmpty()) {
+                        try {
+                            course.setSemester(Course.Semester.valueOf(semesterStr.toUpperCase()));
+                        } catch (IllegalArgumentException e) {
+                            course.setSemester(Course.Semester.FIRST); // Default to FIRST
+                        }
+                    } else {
+                        course.setSemester(Course.Semester.FIRST);
+                    }
+                } else {
+                    course.setSemester(Course.Semester.FIRST);
+                }
+
+                // Handle academicYear
+                if (data.containsKey("academicYear")) {
+                    String academicYearStr = data.get("academicYear").toString();
+                    if (academicYearStr != null && !academicYearStr.isEmpty()) {
+                        course.setAcademicYear(academicYearStr);
+                    } else {
+                        course.setAcademicYear("2024");
+                    }
+                } else {
+                    course.setAcademicYear("2024");
+                }
+
+                // Handle categorySystem
+                if (data.containsKey("categorySystem")) {
+                    String categorySystemStr = data.get("categorySystem").toString();
+                    if (categorySystemStr != null && !categorySystemStr.isEmpty()) {
+                        course.setCategorySystem(categorySystemStr);
+                    } else {
+                        course.setCategorySystem("3-categories");
+                    }
+                } else {
+                    course.setCategorySystem("3-categories");
+                }
+
+                // Handle gradingScale
+                if (data.containsKey("gradingScale")) {
+                    course.setGradingScale((String) data.get("gradingScale"));
+                } else {
+                    course.setGradingScale("percentage"); // Default to percentage
+                }
+
+                // Handle gpaScale
+                if (data.containsKey("gpaScale")) {
+                    course.setGpaScale((String) data.get("gpaScale"));
+                } else {
+                    course.setGpaScale("4.0"); // Default to 4.0
+                }
+
+                // Handle maxPoints
+                if (data.containsKey("maxPoints")) {
+                    try {
+                        course.setMaxPoints(((Number) data.get("maxPoints")).intValue());
+                    } catch (Exception e) {
+                        course.setMaxPoints(100); // Default to 100 if parsing fails
+                    }
+                } else {
+                    course.setMaxPoints(100); // Default to 100 if not provided
+                }
+
+                // Handle handleMissing
+                if (data.containsKey("handleMissing")) {
+                    course.setHandleMissing((String) data.get("handleMissing"));
+                } else {
+                    course.setHandleMissing("exclude"); // Default to exclude
+                }
 
             } else if (courseData instanceof Course) {
                 course = (Course) courseData;
@@ -159,12 +230,7 @@ public class CourseControllerNew {
                 if (dataMap.containsKey("creditHours")) {
                     existingCourse.setCreditHours(((Number) dataMap.get("creditHours")).intValue());
                 }
-                if (dataMap.containsKey("targetGrade")) {
-                    Object targetGrade = dataMap.get("targetGrade");
-                    if (targetGrade != null) {
-                        existingCourse.setTargetGrade(new java.math.BigDecimal(targetGrade.toString()));
-                    }
-                }
+                // Target grades are now managed through the Academic Goals system
                 if (dataMap.containsKey("colorIndex")) {
                     existingCourse.setColorIndex(((Number) dataMap.get("colorIndex")).intValue());
                 }
@@ -183,6 +249,18 @@ public class CourseControllerNew {
                 }
                 if (dataMap.containsKey("categorySystem")) {
                     existingCourse.setCategorySystem((String) dataMap.get("categorySystem"));
+                }
+                if (dataMap.containsKey("gradingScale")) {
+                    existingCourse.setGradingScale((String) dataMap.get("gradingScale"));
+                }
+                if (dataMap.containsKey("gpaScale")) {
+                    existingCourse.setGpaScale((String) dataMap.get("gpaScale"));
+                }
+                if (dataMap.containsKey("maxPoints")) {
+                    existingCourse.setMaxPoints(((Number) dataMap.get("maxPoints")).intValue());
+                }
+                if (dataMap.containsKey("handleMissing")) {
+                    existingCourse.setHandleMissing((String) dataMap.get("handleMissing"));
                 }
                 if (dataMap.containsKey("instructorName")) {
                     existingCourse.setInstructorName((String) dataMap.get("instructorName"));

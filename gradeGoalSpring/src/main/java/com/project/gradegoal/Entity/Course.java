@@ -34,8 +34,6 @@ public class Course {
     @Column(name = "credit_hours", nullable = false)
     private Integer creditHours = 3;
 
-    @Column(name = "target_grade", precision = 5, scale = 2)
-    private BigDecimal targetGrade = new BigDecimal("93.00");
 
     @Column(name = "calculated_course_grade", precision = 5, scale = 2)
     private BigDecimal calculatedCourseGrade = new BigDecimal("0.00");
@@ -54,6 +52,18 @@ public class Course {
 
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    @Column(name = "grading_scale")
+    private String gradingScale = "percentage";
+
+    @Column(name = "gpa_scale")
+    private String gpaScale = "4.0";
+
+    @Column(name = "max_points")
+    private Integer maxPoints = 100;
+
+    @Column(name = "handle_missing")
+    private String handleMissing = "exclude";
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -115,8 +125,6 @@ public class Course {
     public Integer getCreditHours() { return creditHours; }
     public void setCreditHours(Integer creditHours) { this.creditHours = creditHours; }
 
-    public BigDecimal getTargetGrade() { return targetGrade; }
-    public void setTargetGrade(BigDecimal targetGrade) { this.targetGrade = targetGrade; }
 
     public BigDecimal getCalculatedCourseGrade() { return calculatedCourseGrade; }
     public void setCalculatedCourseGrade(BigDecimal calculatedCourseGrade) { this.calculatedCourseGrade = calculatedCourseGrade; }
@@ -135,6 +143,18 @@ public class Course {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public String getGradingScale() { return gradingScale; }
+    public void setGradingScale(String gradingScale) { this.gradingScale = gradingScale; }
+
+    public String getGpaScale() { return gpaScale; }
+    public void setGpaScale(String gpaScale) { this.gpaScale = gpaScale; }
+
+    public Integer getMaxPoints() { return maxPoints; }
+    public void setMaxPoints(Integer maxPoints) { this.maxPoints = maxPoints; }
+
+    public String getHandleMissing() { return handleMissing; }
+    public void setHandleMissing(String handleMissing) { this.handleMissing = handleMissing; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -1,10 +1,19 @@
+// ========================================
+// GRADE SERVICE
+// ========================================
+// This service handles all grade-related calculations and operations.
+// It provides methods for calculating course grades, GPA conversions,
+// course impact analysis, and progress tracking.
 
-
-import { calculateCourseGrade, calculateCategoryAverage } from '../utils/gradeCalculations';
-import { calculateCourseProgress } from '../utils/progressCalculations';
+import {
+  calculateCourseGrade,
+  calculateCategoryAverage,
+} from "../utils/gradeCalculations";
+import { calculateCourseProgress } from "../utils/progressCalculations";
 
 class GradeService {
-
+  // Calculates the impact of a course on overall GPA
+  // Converts course grade to percentage format for consistent comparison
   static calculateCourseImpact(course, currentGrades) {
     try {
       const courseGrade = this.calculateCourseGrade(course, currentGrades);
@@ -12,21 +21,23 @@ class GradeService {
       if (!courseGrade.success) {
         return {
           success: false,
-          message: 'Unable to calculate course grade'
+          message: "Unable to calculate course grade",
         };
       }
 
-      const gradingScale = course.gradingScale || 'percentage';
-      const gpaScale = course.gpaScale || '4.0';
+      const gradingScale = course.gradingScale || "percentage";
+      const gpaScale = course.gpaScale || "4.0";
       const maxPoints = course.maxPoints || 100;
 
       let percentageGrade;
-      if (gradingScale === 'percentage') {
+      if (gradingScale === "percentage") {
         percentageGrade = courseGrade.courseGrade;
-      } else if (gradingScale === 'gpa') {
-
-        percentageGrade = this.convertGPAToPercentage(courseGrade.courseGrade, gpaScale);
-      } else if (gradingScale === 'points') {
+      } else if (gradingScale === "gpa") {
+        percentageGrade = this.convertGPAToPercentage(
+          courseGrade.courseGrade,
+          gpaScale
+        );
+      } else if (gradingScale === "points") {
         percentageGrade = (courseGrade.courseGrade / maxPoints) * 100;
       } else {
         percentageGrade = courseGrade.courseGrade;
@@ -35,31 +46,36 @@ class GradeService {
       return {
         success: true,
         courseGrade: percentageGrade,
-        message: 'Course grade calculated successfully'
+        message: "Course grade calculated successfully",
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Error calculating course impact'
+        message: "Error calculating course impact",
       };
     }
   }
 
+  // Calculates the final grade for a course based on category weights and grades
+  // Handles different grading scales (percentage, GPA, points)
   static calculateCourseGrade(course, currentGrades) {
     try {
-
-      if (!course.categories || !Array.isArray(course.categories) || course.categories.length === 0) {
+      if (
+        !course.categories ||
+        !Array.isArray(course.categories) ||
+        course.categories.length === 0
+      ) {
         return {
           success: false,
           courseGrade: 0,
           categoryAverages: {},
-          message: 'No categories found for this course'
+          message: "No categories found for this course",
         };
       }
 
-      const categoriesWithGrades = course.categories.map(cat => ({
+      const categoriesWithGrades = course.categories.map((cat) => ({
         ...cat,
-        grades: currentGrades[cat.id] || []
+        grades: currentGrades[cat.id] || [],
       }));
 
       const courseGrade = calculateCourseGrade(
@@ -69,7 +85,7 @@ class GradeService {
         course.handleMissing
       );
 
-      const categoryAverages = categoriesWithGrades.map(cat => ({
+      const categoryAverages = categoriesWithGrades.map((cat) => ({
         categoryId: cat.id,
         categoryName: cat.name || cat.categoryName,
         average: calculateCategoryAverage(
@@ -78,50 +94,46 @@ class GradeService {
           course.maxPoints,
           course.handleMissing
         ),
-        weight: cat.weight || cat.weightPercentage
+        weight: cat.weight || cat.weightPercentage,
       }));
 
       return {
         success: true,
         courseGrade,
         categoryAverages,
-        message: 'Course grade calculated successfully'
+        message: "Course grade calculated successfully",
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to calculate course grade'
+        message: "Failed to calculate course grade",
       };
     }
   }
 
-  static convertGPAToPercentage(gpa, gpaScale = '4.0') {
+  static convertGPAToPercentage(gpa, gpaScale = "4.0") {
     const scale = this.getGPAScale(gpaScale);
     if (!scale) return 0;
 
     let percentage;
     if (scale.inverted) {
-
       percentage = ((scale.max - gpa) / (scale.max - scale.min)) * 100;
     } else {
-
       percentage = ((gpa - scale.min) / (scale.max - scale.min)) * 100;
     }
 
     return Math.round(percentage * 100) / 100;
   }
 
-  static convertPercentageToGPA(percentage, gpaScale = '4.0') {
+  static convertPercentageToGPA(percentage, gpaScale = "4.0") {
     const scale = this.getGPAScale(gpaScale);
     if (!scale) return 0;
 
     let gpa;
     if (scale.inverted) {
-
-      gpa = scale.max - ((percentage / 100) * (scale.max - scale.min));
+      gpa = scale.max - (percentage / 100) * (scale.max - scale.min);
     } else {
-
-      gpa = scale.min + ((percentage / 100) * (scale.max - scale.min));
+      gpa = scale.min + (percentage / 100) * (scale.max - scale.min);
     }
 
     return Math.round(gpa * 100) / 100;
@@ -129,12 +141,12 @@ class GradeService {
 
   static getGPAScale(gpaScale) {
     const scales = {
-      '4.0': { max: 4.0, min: 1.0, inverted: false },
-      '5.0': { max: 5.0, min: 1.0, inverted: false },
-      'inverted-4.0': { max: 4.0, min: 1.0, inverted: true },
-      'inverted-5.0': { max: 5.0, min: 1.0, inverted: true }
+      "4.0": { max: 4.0, min: 1.0, inverted: false },
+      "5.0": { max: 5.0, min: 1.0, inverted: false },
+      "inverted-4.0": { max: 4.0, min: 1.0, inverted: true },
+      "inverted-5.0": { max: 5.0, min: 1.0, inverted: true },
     };
-    return scales[gpaScale] || scales['4.0'];
+    return scales[gpaScale] || scales["4.0"];
   }
 
   static updateCGPA(courses, grades) {
@@ -143,15 +155,14 @@ class GradeService {
         return {
           success: true,
           overallGPA: 0,
-          message: 'No courses to calculate'
+          message: "No courses to calculate",
         };
       }
 
       let totalWeightedGrade = 0;
       let totalCredits = 0;
 
-      courses.forEach(course => {
-
+      courses.forEach((course) => {
         if (course.isActive === false) {
           return;
         }
@@ -160,26 +171,27 @@ class GradeService {
         const result = this.calculateCourseImpact(course, courseGrades);
 
         if (result.success) {
-
           let courseGPA;
 
-          const gradingScale = course.gradingScale || 'percentage';
-          const gpaScale = course.gpaScale || '4.0';
+          const gradingScale = course.gradingScale || "percentage";
+          const gpaScale = course.gpaScale || "4.0";
           const units = course.units || 3;
           const maxPoints = course.maxPoints || 100;
 
-          if (gradingScale === 'percentage') {
-            courseGPA = this.convertPercentageToGPA(result.courseGrade, gpaScale);
-          } else if (gradingScale === 'gpa') {
+          if (gradingScale === "percentage") {
+            courseGPA = this.convertPercentageToGPA(
+              result.courseGrade,
+              gpaScale
+            );
+          } else if (gradingScale === "gpa") {
             courseGPA = result.courseGrade;
           } else {
-
             const percentage = (result.courseGrade / maxPoints) * 100;
             courseGPA = this.convertPercentageToGPA(percentage, gpaScale);
           }
 
           if (!isNaN(courseGPA) && isFinite(courseGPA)) {
-            totalWeightedGrade += (courseGPA * units);
+            totalWeightedGrade += courseGPA * units;
             totalCredits += units;
           }
         }
@@ -189,7 +201,7 @@ class GradeService {
         return {
           success: true,
           overallGPA: 0,
-          message: 'No valid courses for CGPA calculation'
+          message: "No valid courses for CGPA calculation",
         };
       }
 
@@ -198,73 +210,12 @@ class GradeService {
       return {
         success: true,
         overallGPA: Math.round(overallGPA * 100) / 100,
-        message: 'CGPA calculated successfully'
+        message: "CGPA calculated successfully",
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Error updating CGPA'
-      };
-    }
-  }
-
-
-  static analyzeGoalFeasibility(course, targetGrade, currentGrades) {
-    try {
-      const currentGrade = this.calculateCourseImpact(course, currentGrades);
-
-      if (!currentGrade.success) {
-        return {
-          success: false,
-          message: 'Unable to calculate current grade'
-        };
-      }
-
-      let targetPercentage;
-      if (course.gradingScale === 'percentage') {
-        targetPercentage = parseFloat(targetGrade);
-      } else if (course.gradingScale === 'gpa') {
-
-        targetPercentage = this.convertGPAToPercentage(parseFloat(targetGrade), course.gpaScale || '4.0');
-      } else if (course.gradingScale === 'points') {
-        targetPercentage = (parseFloat(targetGrade) / course.maxPoints) * 100;
-      } else {
-        targetPercentage = parseFloat(targetGrade);
-      }
-
-      if (isNaN(targetPercentage)) {
-        return {
-          success: false,
-          message: 'Invalid target grade format'
-        };
-      }
-
-      const currentPercentage = currentGrade.courseGrade;
-      const difference = targetPercentage - currentPercentage;
-
-      let feasibility;
-      if (difference <= 0) {
-        feasibility = 'exceeded';
-      } else if (difference <= 10) {
-        feasibility = 'achievable';
-      } else if (difference <= 20) {
-        feasibility = 'moderate';
-      } else {
-        feasibility = 'challenging';
-      }
-
-      return {
-        success: true,
-        currentGrade: currentPercentage,
-        targetGrade: targetPercentage,
-        difference: Math.abs(difference),
-        feasibility,
-        message: 'Goal feasibility analyzed successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Error analyzing goal feasibility'
+        message: "Error updating CGPA",
       };
     }
   }

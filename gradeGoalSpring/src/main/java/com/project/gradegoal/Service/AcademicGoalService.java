@@ -31,12 +31,22 @@ public class AcademicGoalService {
     }
 
     public AcademicGoal createAcademicGoalForUser(Long userId, AcademicGoal.GoalType goalType,
-                                                 String goalTitle, BigDecimal targetValue, Long courseId) {
+                                                 String goalTitle, BigDecimal targetValue, Long courseId,
+                                                 LocalDate targetDate, String description, AcademicGoal.Priority priority) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             AcademicGoal goal = new AcademicGoal(userId, goalType, goalTitle, targetValue);
             if (courseId != null) {
                 goal.setCourseId(courseId);
+            }
+            if (targetDate != null) {
+                goal.setTargetDate(targetDate);
+            }
+            if (description != null && !description.trim().isEmpty()) {
+                goal.setDescription(description);
+            }
+            if (priority != null) {
+                goal.setPriority(priority);
             }
             return academicGoalRepository.save(goal);
         }
@@ -51,13 +61,14 @@ public class AcademicGoalService {
         return academicGoalRepository.findByUserId(userId);
     }
 
+    public List<AcademicGoal> getAcademicGoalsByCourse(Long userId, Long courseId) {
+        return academicGoalRepository.findByUserIdAndCourseId(userId, courseId);
+    }
+
     public List<AcademicGoal> getAcademicGoalsByUserIdAndType(Long userId, AcademicGoal.GoalType goalType) {
         return academicGoalRepository.findByUserIdAndGoalType(userId, goalType);
     }
 
-    public List<AcademicGoal> getAcademicGoalsByUserIdAndCourseId(Long userId, Long courseId) {
-        return academicGoalRepository.findByUserIdAndCourseId(userId, courseId);
-    }
 
     public List<AcademicGoal> getAcademicGoalsByUserIdAndAchievementStatus(Long userId, Boolean isAchieved) {
         return academicGoalRepository.findByUserIdAndIsAchieved(userId, isAchieved);

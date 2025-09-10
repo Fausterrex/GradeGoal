@@ -1,3 +1,10 @@
+// ========================================
+// PRIVATE ROUTE COMPONENT
+// ========================================
+// This component protects routes that require authentication.
+// It checks if a user is logged in and either renders the protected component
+// or redirects to the login page.
+
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";

@@ -1,95 +1,107 @@
-import React, { useContext, useState, useEffect } from 'react';
+// ========================================
+// AUTHENTICATION CONTEXT
+// ========================================
+// This context provides authentication state and methods throughout the application.
+// It manages user login, logout, registration, and password reset functionality
+// using Firebase Authentication.
+
+import React, { useContext, useState, useEffect } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail
-} from 'firebase/auth';
-import { auth } from '../backend/firebase';
+  sendPasswordResetEmail,
+} from "firebase/auth";
+import { auth } from "../backend/firebase";
 
 const AuthContext = React.createContext();
 
+// Hook to access authentication context
 export function useAuth() {
-    return useContext(AuthContext);
+  return useContext(AuthContext);
 }
 
+// Authentication provider component that wraps the entire application
 export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState();
+  const [loading, setLoading] = useState(true);
 
-    const [currentUser, setCurrentUser] = useState();
-    const [loading, setLoading] = useState(true);
+  // Creates a new user account with email and password
+  function signup(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password);
+  }
 
-    function signup(email, password) {
-        return createUserWithEmailAndPassword(auth, email, password);
+  // Signs in an existing user with email and password
+  function login(email, password) {
+    return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  // Placeholder for UID-based login (not implemented)
+  function loginWithUid(uid) {
+    return Promise.resolve();
+  }
+
+  // Updates the current user data in the context state
+  function updateCurrentUserWithData(userData) {
+    const firebaseUser = auth.currentUser;
+
+    if (firebaseUser && userData) {
+      const updatedUser = {
+        ...firebaseUser,
+        ...userData,
+      };
+
+      setCurrentUser(updatedUser);
+      return updatedUser;
+    } else if (currentUser && userData) {
+      const updatedUser = {
+        ...currentUser,
+        ...userData,
+      };
+
+      setCurrentUser(updatedUser);
+      return updatedUser;
     }
+    return currentUser;
+  }
 
-    function login(email, password) {
-        return signInWithEmailAndPassword(auth, email, password);
-    }
+  // Refreshes the current user from Firebase
+  function refreshCurrentUser() {
+    return auth.currentUser
+      ? Promise.resolve(auth.currentUser)
+      : Promise.reject("No user");
+  }
 
-    function loginWithUid(uid) {
-        return Promise.resolve();
-    }
+  // Signs out the current user
+  function logout() {
+    return signOut(auth);
+  }
 
-    function updateCurrentUserWithData(userData) {
-        const firebaseUser = auth.currentUser;
+  // Sends password reset email to the specified email address
+  function resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
+  }
 
-        if (firebaseUser && userData) {
-            const updatedUser = {
-                ...firebaseUser,
-                ...userData
-            };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
-            setCurrentUser(updatedUser);
-            return updatedUser;
-        } else if (currentUser && userData) {
-            const updatedUser = {
-                ...currentUser,
-                ...userData
-            };
+  const value = {
+    currentUser,
+    loading,
+    signup,
+    login,
+    loginWithUid,
+    updateCurrentUserWithData,
+    refreshCurrentUser,
+    logout,
+    resetPassword,
+  };
 
-            setCurrentUser(updatedUser);
-            return updatedUser;
-        }
-        return currentUser;
-    }
-
-    function refreshCurrentUser() {
-        return auth.currentUser ? Promise.resolve(auth.currentUser) : Promise.reject('No user');
-    }
-
-    function logout() {
-        return signOut(auth);
-    }
-
-    function resetPassword(email) {
-        return sendPasswordResetEmail(auth, email);
-    }
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setCurrentUser(user);
-            setLoading(false);
-        });
-        return unsubscribe;
-    }, []);
-
-    const value = {
-        currentUser,
-        loading,
-        signup,
-        login,
-        loginWithUid,
-        updateCurrentUserWithData,
-        refreshCurrentUser,
-        logout,
-        resetPassword
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-

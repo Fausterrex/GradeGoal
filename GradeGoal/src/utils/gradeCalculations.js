@@ -1,36 +1,43 @@
+// ========================================
+// GRADE CALCULATIONS UTILITY
+// ========================================
+// This utility provides functions for converting between different grading scales
+// and calculating course grades. It supports percentage, GPA, and points-based grading.
 
 // Grading scale constants
 export const GRADING_SCALES = {
-  PERCENTAGE: 'percentage',
-  GPA: 'gpa',
-  POINTS: 'points'
+  PERCENTAGE: "percentage",
+  GPA: "gpa",
+  POINTS: "points",
 };
 
 // GPA scale configurations with support for inverted scales
 export const GPA_SCALES = {
-  '4.0': { max: 4.0, min: 1.0, inverted: false },
-  '5.0': { max: 5.0, min: 1.0, inverted: false },
-  'inverted-4.0': { max: 4.0, min: 1.0, inverted: true },
-  'inverted-5.0': { max: 5.0, min: 1.0, inverted: true }
+  "4.0": { max: 4.0, min: 1.0, inverted: false },
+  "5.0": { max: 5.0, min: 1.0, inverted: false },
+  "inverted-4.0": { max: 4.0, min: 1.0, inverted: true },
+  "inverted-5.0": { max: 5.0, min: 1.0, inverted: true },
 };
 
-export function convertPercentageToGPA(percentage, gpaScale = '4.0') {
+// Converts percentage grade to GPA based on specified scale
+export function convertPercentageToGPA(percentage, gpaScale = "4.0") {
   const scale = GPA_SCALES[gpaScale];
   if (!scale) return 0;
 
   let gpa;
   if (scale.inverted) {
     // Inverted scale: 4.0 = F (0%), 1.0 = A (100%)
-    gpa = scale.max - ((percentage / 100) * (scale.max - scale.min));
+    gpa = scale.max - (percentage / 100) * (scale.max - scale.min);
   } else {
     // Standard scale: 1.0 = F (0%), 4.0/5.0 = A (100%)
-    gpa = scale.min + ((percentage / 100) * (scale.max - scale.min));
+    gpa = scale.min + (percentage / 100) * (scale.max - scale.min);
   }
 
   return Math.round(gpa * 100) / 100; // Round to 2 decimal places
 }
 
-export function convertGPAToPercentage(gpa, gpaScale = '4.0') {
+// Converts GPA to percentage based on specified scale
+export function convertGPAToPercentage(gpa, gpaScale = "4.0") {
   const scale = GPA_SCALES[gpaScale];
   if (!scale) return 0;
 
@@ -46,8 +53,14 @@ export function convertGPAToPercentage(gpa, gpaScale = '4.0') {
   return Math.round(percentage * 100) / 100; // Round to 2 decimal places
 }
 
+// Converts any grade format to percentage for consistent calculations
 export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
-  if (!grade || grade.score === null || grade.score === undefined || grade.score === '') {
+  if (
+    !grade ||
+    grade.score === null ||
+    grade.score === undefined ||
+    grade.score === ""
+  ) {
     return 0;
   }
 
@@ -70,7 +83,12 @@ export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
   return 0;
 }
 
-export function convertPercentageToScale(percentage, scale, maxPoints = 100, gpaScale = '4.0') {
+export function convertPercentageToScale(
+  percentage,
+  scale,
+  maxPoints = 100,
+  gpaScale = "4.0"
+) {
   if (scale === GRADING_SCALES.PERCENTAGE) {
     return Math.round(percentage);
   } else if (scale === GRADING_SCALES.GPA) {
@@ -81,13 +99,24 @@ export function convertPercentageToScale(percentage, scale, maxPoints = 100, gpa
   return percentage;
 }
 
-export function calculateCategoryAverage(grades, scale, maxPoints = 100, handleMissing = 'exclude') {
+export function calculateCategoryAverage(
+  grades,
+  scale,
+  maxPoints = 100,
+  handleMissing = "exclude"
+) {
   if (!grades || grades.length === 0) return 0;
 
-  let validGrades = grades.filter(grade => {
-    if (handleMissing === 'exclude') {
-      return grade.score !== null && grade.score !== undefined && grade.score !== '' &&
-             grade.maxScore !== null && grade.maxScore !== undefined && grade.maxScore !== '';
+  let validGrades = grades.filter((grade) => {
+    if (handleMissing === "exclude") {
+      return (
+        grade.score !== null &&
+        grade.score !== undefined &&
+        grade.score !== "" &&
+        grade.maxScore !== null &&
+        grade.maxScore !== undefined &&
+        grade.maxScore !== ""
+      );
     } else {
       return true; // treat missing as 0
     }
@@ -111,13 +140,18 @@ export function calculateCategoryAverage(grades, scale, maxPoints = 100, handleM
   return totalPercentage / validGrades.length;
 }
 
-export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, handleMissing = 'exclude') {
+export function calculateCourseGrade(
+  categories,
+  gradingScale,
+  maxPoints = 100,
+  handleMissing = "exclude"
+) {
   if (!categories || categories.length === 0) return 0;
 
   let totalWeightedGrade = 0;
   let totalWeight = 0;
 
-  categories.forEach(category => {
+  categories.forEach((category) => {
     // Handle both property naming conventions: weight/weightPercentage
     const categoryWeight = category.weight || category.weightPercentage || 0;
 
@@ -129,7 +163,7 @@ export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, 
         handleMissing
       );
 
-      totalWeightedGrade += (categoryAverage * categoryWeight);
+      totalWeightedGrade += categoryAverage * categoryWeight;
       totalWeight += categoryWeight;
     }
   });
@@ -139,12 +173,10 @@ export function calculateCourseGrade(categories, gradingScale, maxPoints = 100, 
   return totalWeightedGrade / totalWeight;
 }
 
-
 export function getGradeColor(percentage) {
-  if (percentage >= 90) return 'text-green-600';
-  if (percentage >= 80) return 'text-blue-600';
-  if (percentage >= 70) return 'text-yellow-600';
-  if (percentage >= 60) return 'text-orange-600';
-  return 'text-red-600';
+  if (percentage >= 90) return "text-green-600";
+  if (percentage >= 80) return "text-blue-600";
+  if (percentage >= 70) return "text-yellow-600";
+  if (percentage >= 60) return "text-orange-600";
+  return "text-red-600";
 }
-

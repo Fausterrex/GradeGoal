@@ -55,12 +55,12 @@ public class AcademicGoal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    @JsonIgnoreProperties("academicGoals")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", insertable = false, updatable = false)
-    @JsonIgnoreProperties("academicGoals")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Course course;
 
     public AcademicGoal() {
