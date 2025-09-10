@@ -26,6 +26,8 @@ const GoalSetting = ({ userEmail, courses = [], isCompact = false }) => {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState(null);
   const [formData, setFormData] = useState({
     goalTitle: "",
     goalType: "COURSE_GRADE",
@@ -154,21 +156,35 @@ const GoalSetting = ({ userEmail, courses = [], isCompact = false }) => {
     }
   };
 
-  const deleteGoal = async (goalId) => {
+  const confirmDeleteGoal = (goal) => {
+    setGoalToDelete(goal);
+    setShowDeleteConfirm(true);
+  };
+
+  const deleteGoal = async () => {
+    if (!goalToDelete) return;
+    
     try {
       const response = await fetch(
-        `http://localhost:8080/api/academic-goals/${goalId}`,
+        `http://localhost:8080/api/academic-goals/${goalToDelete.goalId}`,
         {
           method: "DELETE",
         }
       );
 
       if (response.ok) {
-        setGoals(goals.filter((goal) => goal.goalId !== goalId));
+        setGoals(goals.filter((goal) => goal.goalId !== goalToDelete.goalId));
+        setShowDeleteConfirm(false);
+        setGoalToDelete(null);
       }
     } catch (error) {
       console.error("Error deleting goal:", error);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setGoalToDelete(null);
   };
 
   const editGoal = (goal) => {
@@ -618,8 +634,9 @@ const GoalSetting = ({ userEmail, courses = [], isCompact = false }) => {
                       ======================================== */}
                     {!isCompact && (
                       <button
-                        onClick={() => deleteGoal(goal.goalId)}
+                        onClick={() => confirmDeleteGoal(goal)}
                         className="text-red-400 hover:text-red-300 text-lg p-1 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete goal"
                       >
                         <FaTimes />
                       </button>
@@ -844,6 +861,75 @@ const GoalSetting = ({ userEmail, courses = [], isCompact = false }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================
+          DELETE CONFIRMATION MODAL
+          ======================================== */}
+      {showDeleteConfirm && goalToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                <FaTimes className="text-red-600 text-lg" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800">
+                Delete Academic Goal
+              </h3>
+            </div>
+
+            {/* Modal Content */}
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete this goal? This action cannot be undone.
+              </p>
+              
+              {/* Goal Details */}
+              <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-red-400">
+                <div className="flex items-center mb-2">
+                  <div className="text-lg mr-3">
+                    {getGoalTypeIcon(goalToDelete.goalType)}
+                  </div>
+                  <span className="font-bold text-gray-900">
+                    {goalToDelete.goalTitle}
+                  </span>
+                </div>
+                <div className="text-gray-700">
+                  <div className="font-semibold">
+                    Target: {goalToDelete.targetValue}%
+                  </div>
+                  {goalToDelete.courseId && (
+                    <div className="text-sm text-gray-600">
+                      Course: {courses.find((c) => c.courseId === goalToDelete.courseId)?.courseName || "Course"}
+                    </div>
+                  )}
+                  {goalToDelete.targetDate && (
+                    <div className="text-sm text-gray-600">
+                      Target Date: {new Date(goalToDelete.targetDate).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteGoal}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Delete Goal
+              </button>
+            </div>
           </div>
         </div>
       )}
