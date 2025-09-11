@@ -17,6 +17,7 @@ import {
   updateAssessmentCategory,
 } from "../../backend/api";
 import { getAllColors } from "../../utils/courseColors";
+import ConfirmationModal from "../common/ConfirmationModal";
 
 function AddCourse({
   isOpen,
@@ -34,6 +35,22 @@ function AddCourse({
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [hasGrades, setHasGrades] = useState(false);
   const [isHistoricalData, setIsHistoricalData] = useState(false);
+  const [originalCategories, setOriginalCategories] = useState([]);
+  const [hasCategoryChanges, setHasCategoryChanges] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    type: "edit",
+    title: "",
+    message: "",
+    confirmText: "",
+    cancelText: "",
+    showWarning: false,
+    warningItems: [],
+    showTip: false,
+    tipMessage: "",
+    onConfirm: null,
+    onClose: null,
+  });
 
   // ========================================
   // COURSE FORM DATA
@@ -82,24 +99,53 @@ function AddCourse({
 
       setTimeout(() => setIsFormLoading(false), 100);
     } else {
+      // For new courses, check if there are existing courses in the same academic period
+      const currentAcademicYear = new Date().getFullYear().toString();
+      const currentSemester = "FIRST"; // Default semester
+      
+      // Find existing courses in the same academic year/semester
+      const existingCoursesInPeriod = existingCourses.filter(course => 
+        course.academicYear === currentAcademicYear && 
+        course.semester === currentSemester &&
+        course.isActive !== false
+      );
+      
+      // Get the most common GPA scale from existing courses
+      let suggestedGpaScale = "4.0"; // Default
+      if (existingCoursesInPeriod.length > 0) {
+        const gpaScaleCounts = {};
+        existingCoursesInPeriod.forEach(course => {
+          const scale = course.gpaScale || "4.0";
+          gpaScaleCounts[scale] = (gpaScaleCounts[scale] || 0) + 1;
+        });
+        
+        // Find the most common GPA scale
+        const mostCommonScale = Object.entries(gpaScaleCounts)
+          .sort(([,a], [,b]) => b - a)[0];
+        
+        if (mostCommonScale) {
+          suggestedGpaScale = mostCommonScale[0];
+        }
+      }
+
       setNewCourse({
         name: "",
         courseCode: "",
         units: 3,
         creditHours: 3,
-        semester: "FIRST",
-        academicYear: new Date().getFullYear().toString(),
+        semester: currentSemester,
+        academicYear: currentAcademicYear,
         gradingScale: GRADING_SCALES.PERCENTAGE,
         maxPoints: 100,
         handleMissing: "exclude",
         categorySystem: "3-categories",
-        gpaScale: "4.0",
+        gpaScale: suggestedGpaScale,
         colorIndex: 0,
         categories: [],
       });
       setIsFormLoading(false);
     }
-  }, [editingCourse, isOpen]);
+  }, [editingCourse, isOpen, existingCourses]);
 
   useEffect(() => {
     const loadExistingCategories = async () => {
@@ -122,6 +168,9 @@ function AddCourse({
             };
             return updated;
           });
+
+          // Store original categories for comparison
+          setOriginalCategories(transformedCategories || []);
         } catch (error) {}
       }
     };
@@ -369,6 +418,62 @@ function AddCourse({
       return;
     }
 
+    // If editing a course, check for category changes and show confirmation modal
+    if (editingCourse) {
+      const hasChanges = checkForCategoryChanges();
+      setHasCategoryChanges(hasChanges);
+      
+      if (hasChanges) {
+        setConfirmationModal({
+          isOpen: true,
+          type: "warning",
+          title: "Warning",
+          message: "You have modified the category weights or structure of this course. This will affect how existing grades are calculated and may change the overall course grade.",
+          confirmText: "Continue Anyway",
+          cancelText: "Cancel Changes",
+          showWarning: true,
+          warningItems: [
+            "Course grade calculations will be recalculated",
+            "Grade percentages may change significantly"
+          ],
+          onConfirm: async () => {
+            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            await processCourseSubmission();
+          },
+          onClose: () => {
+            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            // Reset categories to original
+            setNewCourse(prev => ({
+              ...prev,
+              categories: [...originalCategories]
+            }));
+            setHasCategoryChanges(false);
+          },
+        });
+      } else {
+        setConfirmationModal({
+          isOpen: true,
+          type: "edit",
+          title: "Are you sure?",
+          message: "Do you really want to update this course?",
+          confirmText: "CONFIRM",
+          cancelText: "Close",
+          onConfirm: async () => {
+            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            await processCourseSubmission();
+          },
+          onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false })),
+        });
+      }
+      return;
+    }
+
+    // For new courses, proceed directly
+    await processCourseSubmission();
+  };
+
+  const processCourseSubmission = async () => {
+
     try {
       const courseData = {
         email: currentUser.email,
@@ -497,6 +602,38 @@ function AddCourse({
 
   const cancelEdit = () => {
     onClose();
+  };
+
+
+  const checkForCategoryChanges = () => {
+    if (!editingCourse || !hasGrades || originalCategories.length === 0) {
+      return false;
+    }
+
+    const currentCategories = newCourse.categories;
+    
+    // Check if number of categories changed
+    if (currentCategories.length !== originalCategories.length) {
+      return true;
+    }
+
+    // Check if any category weights changed
+    for (let i = 0; i < Math.min(currentCategories.length, originalCategories.length); i++) {
+      const current = currentCategories[i];
+      const original = originalCategories[i];
+      
+      if (current.name !== original.name || 
+          Math.abs(parseFloat(current.weight) - parseFloat(original.weight)) > 0.01) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const handleCategoryChange = () => {
+    const hasChanges = checkForCategoryChanges();
+    setHasCategoryChanges(hasChanges);
   };
 
   if (!isOpen) return null;
@@ -656,9 +793,9 @@ function AddCourse({
                   className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
                   required
                 >
-                  <option value="FIRST">First Semester</option>
-                  <option value="SECOND">Second Semester</option>
-                  <option value="THIRD">Third Semester</option>
+                  <option value="First">First Semester</option>
+                  <option value="Second">Second Semester</option>
+                  <option value="Third">Third Semester</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -892,6 +1029,59 @@ function AddCourse({
                   </svg>
                 </div>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the GPA scale for this course
+              </p>
+              {(() => {
+                // Check if there are existing courses with different GPA scales
+                const currentAcademicYear = new Date().getFullYear().toString();
+                const currentSemester = "FIRST";
+                const existingCoursesInPeriod = existingCourses.filter(course => 
+                  course.academicYear === currentAcademicYear && 
+                  course.semester === currentSemester &&
+                  course.isActive !== false &&
+                  course.id !== editingCourse?.id // Exclude current course if editing
+                );
+                
+                if (existingCoursesInPeriod.length > 0) {
+                  const differentScaleCourses = existingCoursesInPeriod.filter(course => 
+                    (course.gpaScale || "4.0") !== newCourse.gpaScale
+                  );
+                  
+                  if (differentScaleCourses.length > 0) {
+                    return (
+                      <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">
+                              GPA Scale Inconsistency Warning
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              You have {differentScaleCourses.length} other course(s) in {currentAcademicYear} {currentSemester} semester using different GPA scales. 
+                              This may cause incorrect cumulative GPA calculations in the dashboard.
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1 font-medium">
+                              Recommended: Use the same GPA scale as your other courses for accurate grade calculations.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-xs text-green-700">
+                          Consistent with other courses in {currentAcademicYear} {currentSemester} semester
+                        </p>
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
             </div>
 
             {/* ========================================
@@ -1175,6 +1365,25 @@ function AddCourse({
           </div>
         </form>
       </div>
+
+      {/* ========================================
+          REUSABLE CONFIRMATION MODAL
+          ======================================== */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={confirmationModal.onClose}
+        onConfirm={confirmationModal.onConfirm}
+        type={confirmationModal.type}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+        showWarning={confirmationModal.showWarning}
+        warningItems={confirmationModal.warningItems}
+        showTip={confirmationModal.showTip}
+        tipMessage={confirmationModal.tipMessage}
+      />
+
     </div>
   );
 }

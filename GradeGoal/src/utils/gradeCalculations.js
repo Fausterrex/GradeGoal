@@ -27,12 +27,17 @@ export function convertPercentageToGPA(percentage, gpaScale = "4.0") {
   let gpa;
   if (scale.inverted) {
     // Inverted scale: 4.0 = F (0%), 1.0 = A (100%)
-    gpa = scale.max - (percentage / 100) * (scale.max - scale.min);
+    // For inverted scale, we need to invert the percentage first, capping at 0 for percentages >= 100
+    const invertedPercentage = Math.max(0, 100 - percentage);
+    gpa = scale.min + (invertedPercentage / 100) * (scale.max - scale.min);
   } else {
     // Standard scale: 1.0 = F (0%), 4.0/5.0 = A (100%)
     gpa = scale.min + (percentage / 100) * (scale.max - scale.min);
   }
 
+  // Cap the GPA at the scale maximum to prevent exceeding the scale
+  gpa = Math.min(gpa, scale.max);
+  
   return Math.round(gpa * 100) / 100; // Round to 2 decimal places
 }
 
@@ -44,17 +49,21 @@ export function convertGPAToPercentage(gpa, gpaScale = "4.0") {
   let percentage;
   if (scale.inverted) {
     // Inverted scale: 4.0 = F (0%), 1.0 = A (100%)
-    percentage = ((scale.max - gpa) / (scale.max - scale.min)) * 100;
+    // For inverted scale, we need to invert the result
+    const rawPercentage = ((gpa - scale.min) / (scale.max - scale.min)) * 100;
+    percentage = 100 - rawPercentage;
   } else {
     // Standard scale: 1.0 = F (0%), 4.0/5.0 = A (100%)
     percentage = ((gpa - scale.min) / (scale.max - scale.min)) * 100;
   }
 
+  // Ensure percentage is not negative
+  percentage = Math.max(0, percentage);
   return Math.round(percentage * 100) / 100; // Round to 2 decimal places
 }
 
 // Converts any grade format to percentage for consistent calculations
-export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
+export function convertGradeToPercentage(grade, scale, maxPoints = 100, gpaScale = "4.0") {
   if (
     !grade ||
     grade.score === null ||
@@ -74,7 +83,12 @@ export function convertGradeToPercentage(grade, scale, maxPoints = 100) {
   if (scale === GRADING_SCALES.PERCENTAGE) {
     return Math.min(adjustedScore, 100); // Cap at 100%
   } else if (scale === GRADING_SCALES.GPA) {
-    // Convert GPA to percentage (assuming 4.0 = 100%, 0.0 = 0%)
+    // Convert GPA to percentage using the actual GPA scale
+    const gpaScaleConfig = GPA_SCALES[gpaScale];
+    if (gpaScaleConfig) {
+      return ((adjustedScore - gpaScaleConfig.min) / (gpaScaleConfig.max - gpaScaleConfig.min)) * 100;
+    }
+    // Fallback to 4.0 scale if scale not found
     return (adjustedScore / 4.0) * 100;
   } else if (scale === GRADING_SCALES.POINTS) {
     return (adjustedScore / maxPoints) * 100;

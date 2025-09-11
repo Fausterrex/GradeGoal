@@ -29,8 +29,9 @@ export const calculateCumulativeGPA = (courses, grades) => {
         if (courseResult.success) {
           let courseGPA = courseResult.courseGrade;
 
-          // Convert to GPA if it's a percentage
-          if (courseGPA > 4.0) {
+          // Convert to GPA if it's a percentage (check against the course's actual GPA scale)
+          const courseGPAScale = GradeService.getGPAScale(course.gpaScale || "4.0");
+          if (courseGPAScale && courseGPA > courseGPAScale.max) {
             courseGPA = GradeService.convertPercentageToGPA(
               courseGPA,
               course.gpaScale || "4.0"
@@ -113,8 +114,9 @@ export const getCumulativeGPAStats = (courses, grades) => {
         if (courseResult.success) {
           let courseGPA = courseResult.courseGrade;
 
-          // Convert to GPA if it's a percentage
-          if (courseGPA > 4.0) {
+          // Convert to GPA if it's a percentage (check against the course's actual GPA scale)
+          const courseGPAScale = GradeService.getGPAScale(course.gpaScale || "4.0");
+          if (courseGPAScale && courseGPA > courseGPAScale.max) {
             courseGPA = GradeService.convertPercentageToGPA(
               courseGPA,
               course.gpaScale || "4.0"

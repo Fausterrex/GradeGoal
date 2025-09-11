@@ -273,7 +273,7 @@ function GradeSuccessFeedback({
               ======================================== */}
           <div className="flex gap-3 pt-4">
             <button
-              onClick={onEnterAnother}
+              onClick={() => onEnterAnother(gradeData.categoryId)}
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
               <svg
@@ -289,7 +289,7 @@ function GradeSuccessFeedback({
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
-              Add Another Grade
+              Add Another Assessment
             </button>
             <button
               onClick={onReturnToCourse}
@@ -305,10 +305,16 @@ function GradeSuccessFeedback({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                 />
               </svg>
-              Return to Course
+              View Course Details
             </button>
           </div>
         </div>

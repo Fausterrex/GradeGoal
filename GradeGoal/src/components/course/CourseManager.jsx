@@ -15,6 +15,7 @@ import {
 import { getCourseColorScheme } from "../../utils/courseColors";
 import { convertPercentageToGPA } from "../../utils/gradeCalculations";
 import AddCourse from "./AddCourse";
+import ConfirmationModal from "../common/ConfirmationModal";
 
 function CourseManager({
   onCourseUpdate,
@@ -36,6 +37,22 @@ function CourseManager({
   const [archivedCourses, setArchivedCourses] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
   const [showCourses, setShowCourses] = useState(true);
+
+  // State for confirmation modals
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    type: "edit",
+    title: "",
+    message: "",
+    confirmText: "",
+    cancelText: "",
+    showWarning: false,
+    warningItems: [],
+    showTip: false,
+    tipMessage: "",
+    onConfirm: null,
+    onClose: null,
+  });
 
   // Effect to handle course updates
   useEffect(() => {
@@ -73,59 +90,83 @@ function CourseManager({
     // Grades will be refreshed manually when needed
   };
 
-  const deleteCourse = async (courseId) => {
-    if (window.confirm("Are you sure you want to delete this course?")) {
-      try {
-        await deleteCourseApi(courseId);
-
-        // Update parent component with updated courses list
-        const updatedCourses = courses.filter(
-          (course) => course.id !== courseId
-        );
-        updateParentCourses(updatedCourses);
-      } catch (error) {
-        alert("Failed to delete course. Please try again.");
-      }
-    }
+  const handleDeleteClick = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    
+    setConfirmationModal({
+      isOpen: true,
+      type: "delete",
+      title: "Delete Course",
+      message: `Permanently delete "${course.name}"? This action will permanently delete the course and ALL associated data including grades, assessments, categories, and goals. This cannot be undone.`,
+      confirmText: "Delete Permanently",
+      cancelText: "Cancel",
+      showWarning: true,
+      warningItems: [
+        "All grades and assessment scores",
+        "All assessment categories and weights", 
+        "All academic goals for this course",
+        "Course settings and configuration",
+        "This action CANNOT be undone"
+      ],
+      showTip: true,
+      tipMessage: "Consider archiving the course instead to preserve all data while removing it from your main course list.",
+      onConfirm: async () => {
+        try {
+          await deleteCourseApi(course.id);
+          const updatedCourses = courses.filter(c => c.id !== course.id);
+          updateParentCourses(updatedCourses);
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          alert("Failed to delete course. Please try again.");
+        }
+      },
+      onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false })),
+    });
   };
 
-  const archiveCourse = async (courseId) => {
-    if (
-      window.confirm(
-        "Archive this course? It will be hidden from the main view but all data will be preserved. You can restore it later from the archive."
-      )
-    ) {
-      try {
-        await archiveCourseApi(courseId);
+  const handleArchiveClick = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    
+    setConfirmationModal({
+      isOpen: true,
+      type: "archive",
+      title: "Archive Course",
+      message: `Archive "${course.name}"? This course will be moved to the archive section. All data including grades, assessments, and categories will be preserved and can be restored later.`,
+      confirmText: "Archive Course",
+      cancelText: "Cancel",
+      showWarning: true,
+      warningItems: [
+        "Course disappears from main course list",
+        "All grades and data are preserved",
+        "Course can be restored from archive anytime",
+        "No data loss occurs"
+      ],
+      onConfirm: async () => {
+        try {
+          await archiveCourseApi(course.id);
 
-        // Find the course to archive
-        const courseToArchive = courses.find(
-          (course) => course.id === courseId
-        );
-        if (courseToArchive) {
           // Mark the course as inactive locally for immediate UI feedback
-          const archivedCourse = { ...courseToArchive, isActive: false };
+          const archivedCourse = { ...course, isActive: false };
 
           // Add to archived courses
           setArchivedCourses((prev) => [...prev, archivedCourse]);
 
-          // Also update the local courses state to mark this course as inactive
-          // This ensures it doesn't appear in the main courses section
-          const updatedCourses = courses.map((course) =>
-            course.id === courseId ? { ...course, isActive: false } : course
+          // Update the local courses state to mark this course as inactive
+          const updatedCourses = courses.map(c =>
+            c.id === course.id ? { ...c, isActive: false } : c
           );
 
           // Update parent immediately so the course disappears from main section
           updateParentCourses(updatedCourses);
-        }
 
-        alert(
-          "Course archived successfully! You can restore it later from the archive."
-        );
-      } catch (error) {
-        alert("Failed to archive course. Please try again.");
-      }
-    }
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+          alert("Course archived successfully! You can restore it later from the archive.");
+        } catch (error) {
+          alert("Failed to archive course. Please try again.");
+        }
+      },
+      onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false })),
+    });
   };
 
   const handleCourseSelection = (course) => {
@@ -475,7 +516,7 @@ function CourseManager({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            archiveCourse(course.id);
+                            handleArchiveClick(course.id);
                           }}
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                           title="Archive Course"
@@ -498,7 +539,7 @@ function CourseManager({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteCourse(course.id);
+                            handleDeleteClick(course.id);
                           }}
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                           title="Delete Course"
@@ -744,6 +785,24 @@ function CourseManager({
         onCourseCreated={handleCourseCreated}
         editingCourse={editingCourse}
         existingCourses={courses}
+      />
+
+      {/* ========================================
+          REUSABLE CONFIRMATION MODAL
+          ======================================== */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={confirmationModal.onClose}
+        onConfirm={confirmationModal.onConfirm}
+        type={confirmationModal.type}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+        showWarning={confirmationModal.showWarning}
+        warningItems={confirmationModal.warningItems}
+        showTip={confirmationModal.showTip}
+        tipMessage={confirmationModal.tipMessage}
       />
     </div>
   );

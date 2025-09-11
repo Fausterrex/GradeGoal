@@ -423,9 +423,9 @@ function MainDashboard({ initialTab = "overview" }) {
     setPreviousTab(activeTab);
     setSelectedCourse(course);
 
-    setActiveTab("courses");
+    setActiveTab("grades");
 
-    navigate("/dashboard/courses");
+    navigate(`/dashboard/course/${course.id}`);
 
     setIsOpeningOverlay(true);
     setIsCourseManagerExpanded(true);
@@ -947,9 +947,17 @@ function MainDashboard({ initialTab = "overview" }) {
                                 </div>
 
                                 {/* Course Name */}
-                                <h3 className="text-lg font-medium mb-2 text-white">
-                                  {course.name}
-                                </h3>
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="text-lg font-medium text-white">
+                                    {course.name}
+                                  </h3>
+                                  <div className="flex items-center gap-1 text-white/60 text-xs">
+                                    <span>View Details</span>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </div>
+                                </div>
 
                                 {/* Progress Bar */}
                                 <div className="flex items-center">
@@ -1007,6 +1015,7 @@ function MainDashboard({ initialTab = "overview" }) {
                   course={selectedCourse}
                   onGradeUpdate={handleGradeUpdate}
                   onBack={() => setSelectedCourse(null)}
+                  onNavigateToCourse={handleCourseNavigation}
                 />
               </div>
             ) : (

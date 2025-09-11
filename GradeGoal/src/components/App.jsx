@@ -107,6 +107,17 @@ function App() {
                   </div>
                 }
               />
+              <Route
+                path="/dashboard/course/:courseId"
+                element={
+                  <div className="flex flex-col h-screen w-full">
+                    <PrivateRoute
+                      component={MainDashboard}
+                      initialTab="grades"
+                    />
+                  </div>
+                }
+              />
 
               {/* ========================================
                   AUTHENTICATION ROUTES

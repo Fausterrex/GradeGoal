@@ -26,8 +26,9 @@ import {
 import AddCourse from "./AddCourse";
 import GradeSuccessFeedback from "./GradeSuccessFeedback";
 import { getCourseColorScheme } from "../../utils/courseColors";
+import ConfirmationModal from "../common/ConfirmationModal";
 
-function GradeEntry({ course, onGradeUpdate, onBack }) {
+function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
   const { currentUser } = useAuth();
 
   // ========================================
@@ -44,9 +45,6 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     name: "",
     maxScore: "",
     date: new Date().toISOString().split("T")[0],
-    assessmentType: "",
-    isExtraCredit: false,
-    extraCreditPoints: null,
     note: "",
   });
   const [editingGrade, setEditingGrade] = useState(null);
@@ -57,6 +55,24 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
   const [lastSavedGrade, setLastSavedGrade] = useState(null);
   const [targetGrade, setTargetGrade] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [scoreExtraCredit, setScoreExtraCredit] = useState(false);
+  const [scoreExtraCreditPoints, setScoreExtraCreditPoints] = useState("");
+  const [editScoreExtraCredit, setEditScoreExtraCredit] = useState(false);
+  const [editScoreExtraCreditPoints, setEditScoreExtraCreditPoints] = useState("");
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    type: "edit",
+    title: "",
+    message: "",
+    confirmText: "",
+    cancelText: "",
+    showWarning: false,
+    warningItems: [],
+    showTip: false,
+    tipMessage: "",
+    onConfirm: null,
+    onClose: null,
+  });
 
   useEffect(() => {
     if (course && currentUser) {
@@ -97,15 +113,57 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     }
   }, [course, currentUser]);
 
-  useEffect(() => {
-    if (newGrade.assessmentType && !newGrade.name) {
-      const typeName =
-        newGrade.assessmentType.charAt(0).toUpperCase() +
-        newGrade.assessmentType.slice(1) +
-        " ";
-      setNewGrade((prev) => ({ ...prev, name: typeName }));
+  // Generate assessment name based on category and auto-increment
+  const generateAssessmentName = (categoryId, customName = "") => {
+    if (!categoryId || !categories.length) return customName;
+    
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return customName;
+    
+    // Get all existing assessments in this category
+    const categoryGrades = Object.values(grades).flat().filter(grade => 
+      grade.categoryId === categoryId
+    );
+    
+    // Extract prefix from category name (e.g., "Quizzes" -> "Quiz")
+    const categoryName = category.name.toLowerCase();
+    let prefix = categoryName;
+    
+    // Handle common plural forms
+    if (categoryName.endsWith('zes')) {
+      prefix = categoryName.slice(0, -3); // "Quizzes" -> "Quiz"
+    } else if (categoryName.endsWith('ies')) {
+      prefix = categoryName.slice(0, -3) + 'y'; // "Categories" -> "Category"
+    } else if (categoryName.endsWith('s') && !categoryName.endsWith('ss')) {
+      prefix = categoryName.slice(0, -1); // "Assignments" -> "Assignment"
     }
-  }, [newGrade.assessmentType]);
+    
+    // Capitalize first letter
+    prefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    
+    // If user provided a custom name, use it
+    if (customName && customName.trim()) {
+      return customName.trim();
+    }
+    
+    // Find the next number for this prefix
+    let nextNumber = 1;
+    const existingNames = categoryGrades.map(grade => grade.name);
+    
+    while (existingNames.includes(`${prefix} ${nextNumber}`)) {
+      nextNumber++;
+    }
+    
+    return `${prefix} ${nextNumber}`;
+  };
+
+  // Auto-generate name when category changes
+  useEffect(() => {
+    if (newGrade.categoryId && !newGrade.name) {
+      const generatedName = generateAssessmentName(newGrade.categoryId);
+      setNewGrade(prev => ({ ...prev, name: generatedName }));
+    }
+  }, [newGrade.categoryId, categories, grades]);
 
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
@@ -185,20 +243,23 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
           transformedGrades[categoryId] = [];
         }
 
-        transformedGrades[categoryId].push({
+        const transformedGrade = {
           id: grade.gradeId || grade.id,
           categoryId: categoryId,
           name: grade.assessment?.assessmentName || grade.name,
           maxScore: grade.assessment?.maxPoints || grade.maxScore,
           score: grade.pointsEarned,
           date: grade.assessment?.dueDate || grade.date,
-          assessmentType: grade.assessmentType,
+          assessmentType: "", // No longer used
           isExtraCredit: grade.isExtraCredit,
           extraCreditPoints: grade.extraCreditPoints,
           note: grade.notes || grade.note,
           createdAt: grade.createdAt,
           updatedAt: grade.updatedAt,
-        });
+        };
+        
+        
+        transformedGrades[categoryId].push(transformedGrade);
       });
       setGrades(transformedGrades);
     } catch (error) {}
@@ -232,11 +293,9 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         maxScore: parseFloat(newGrade.maxScore),
         score: null,
         date: newGrade.date,
-        assessmentType: newGrade.assessmentType,
-        isExtraCredit: newGrade.isExtraCredit,
-        extraCreditPoints: newGrade.extraCreditPoints
-          ? parseFloat(newGrade.extraCreditPoints)
-          : null,
+        assessmentType: "", // No longer used
+        isExtraCredit: false,
+        extraCreditPoints: null,
         note: newGrade.note,
         categoryId: newGrade.categoryId,
       };
@@ -328,9 +387,6 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         name: "",
         maxScore: "",
         date: new Date().toISOString().split("T")[0],
-        assessmentType: "",
-        isExtraCredit: false,
-        extraCreditPoints: null,
         note: "",
       });
       setShowAddGrade(false);
@@ -373,9 +429,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         maxScore: selectedGrade.maxScore,
         score: score,
         date: selectedGrade.date,
-        assessmentType: selectedGrade.assessmentType,
-        isExtraCredit: selectedGrade.isExtraCredit || false,
-        extraCreditPoints: selectedGrade.extraCreditPoints || null,
+        assessmentType: "", // No longer used
+        isExtraCredit: scoreExtraCredit,
+        extraCreditPoints: scoreExtraCredit && scoreExtraCreditPoints 
+          ? parseFloat(scoreExtraCreditPoints) 
+          : null,
         note: selectedGrade.note || "",
         categoryId: selectedGrade.categoryId,
       };
@@ -429,7 +487,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         maxScore: selectedGrade.maxScore,
         score: score,
         date: selectedGrade.date,
-        assessmentType: selectedGrade.assessmentType,
+        assessmentType: "", // No longer used
         isExtraCredit: selectedGrade.isExtraCredit,
         extraCreditPoints: selectedGrade.extraCreditPoints,
         note: selectedGrade.note,
@@ -438,6 +496,8 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
 
       setShowScoreInput(false);
       setSelectedGrade(null);
+      setScoreExtraCredit(false);
+      setScoreExtraCreditPoints("");
     } catch (error) {
       alert("Failed to update score. Please try again.");
     }
@@ -445,6 +505,8 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
 
   const handleEditScore = (grade) => {
     setSelectedGrade(grade);
+    setEditScoreExtraCredit(grade.isExtraCredit || false);
+    setEditScoreExtraCreditPoints(grade.extraCreditPoints || "");
     setShowEditScore(true);
   };
 
@@ -468,9 +530,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         maxScore: selectedGrade.maxScore,
         score: score,
         date: selectedGrade.date,
-        assessmentType: selectedGrade.assessmentType,
-        isExtraCredit: selectedGrade.isExtraCredit || false,
-        extraCreditPoints: selectedGrade.extraCreditPoints || null,
+        assessmentType: "", // No longer used
+        isExtraCredit: editScoreExtraCredit,
+        extraCreditPoints: editScoreExtraCredit && editScoreExtraCreditPoints 
+          ? parseFloat(editScoreExtraCreditPoints) 
+          : null,
         note: selectedGrade.note || "",
         categoryId: selectedGrade.categoryId,
       };
@@ -524,9 +588,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
         maxScore: selectedGrade.maxScore,
         score: score,
         date: selectedGrade.date,
-        assessmentType: selectedGrade.assessmentType,
-        isExtraCredit: selectedGrade.isExtraCredit,
-        extraCreditPoints: selectedGrade.extraCreditPoints,
+        assessmentType: "", // No longer used
+        isExtraCredit: editScoreExtraCredit,
+        extraCreditPoints: editScoreExtraCredit && editScoreExtraCreditPoints 
+          ? parseFloat(editScoreExtraCreditPoints) 
+          : null,
         note: selectedGrade.note,
       });
       setShowSuccessFeedback(true);
@@ -544,49 +610,67 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
       name: grade.name,
       maxScore: grade.maxScore,
       date: grade.date,
-      assessmentType: grade.assessmentType,
-      isExtraCredit: grade.isExtraCredit,
-      extraCreditPoints: grade.extraCreditPoints,
       note: grade.note || "",
     });
     setEditingGrade(grade);
     setShowAddGrade(true);
   };
 
-  const deleteGrade = async (gradeId, categoryId) => {
-    if (window.confirm("Are you sure you want to delete this assessment?")) {
-      try {
-        await deleteGradeApi(gradeId);
+  const handleDeleteAssessment = (gradeId, categoryId) => {
+    const grade = grades[categoryId]?.find(g => g.id === gradeId);
+    const gradeName = grade?.name || "this assessment";
+    
+    setConfirmationModal({
+      isOpen: true,
+      type: "delete",
+      title: "Delete Assessment",
+      message: `Permanently delete "${gradeName}"? This action will permanently remove the assessment and all associated data including scores and notes. This cannot be undone.`,
+      confirmText: "Delete Permanently",
+      cancelText: "Cancel",
+      showWarning: true,
+      warningItems: [
+        "Assessment will be permanently removed",
+        "All scores and data will be lost",
+        "Course grade calculations will be affected",
+        "This action CANNOT be undone"
+      ],
+      onConfirm: async () => {
+        try {
+          await deleteGradeApi(gradeId);
 
-        setGrades((prevGrades) => {
-          const updatedGrades = { ...prevGrades };
-          if (updatedGrades[categoryId]) {
-            updatedGrades[categoryId] = updatedGrades[categoryId].filter(
-              (g) => g.id !== gradeId
-            );
+          setGrades((prevGrades) => {
+            const updatedGrades = { ...prevGrades };
+            if (updatedGrades[categoryId]) {
+              updatedGrades[categoryId] = updatedGrades[categoryId].filter(
+                (g) => g.id !== gradeId
+              );
+            }
+            return updatedGrades;
+          });
+
+          setSuccessMessage("Assessment deleted successfully!");
+
+          setTimeout(() => {
+            setSuccessMessage("");
+          }, 3000);
+
+          if (onGradeUpdate) {
+            const updatedGrades = { ...grades };
+            if (updatedGrades[categoryId]) {
+              updatedGrades[categoryId] = updatedGrades[categoryId].filter(
+                (g) => g.id !== gradeId
+              );
+            }
+            onGradeUpdate(updatedGrades);
           }
-          return updatedGrades;
-        });
 
-        setSuccessMessage("Assessment deleted successfully!");
-
-        setTimeout(() => {
-          setSuccessMessage("");
-        }, 3000);
-
-        if (onGradeUpdate) {
-          const updatedGrades = { ...grades };
-          if (updatedGrades[categoryId]) {
-            updatedGrades[categoryId] = updatedGrades[categoryId].filter(
-              (g) => g.id !== gradeId
-            );
-          }
-          onGradeUpdate(updatedGrades);
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          alert("Failed to delete assessment. Please try again.");
         }
-      } catch (error) {
-        alert("Failed to delete assessment. Please try again.");
-      }
-    }
+      },
+      onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false })),
+    });
   };
 
   const getCategoryAverage = (categoryId) => {
@@ -690,6 +774,17 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
     setEditingGrade(null);
   };
 
+  const handleEditCourseClick = (e) => {
+    e.stopPropagation();
+    // Ensure colorIndex is included when editing
+    const courseWithColorIndex = {
+      ...course,
+      colorIndex: course.colorIndex !== undefined ? course.colorIndex : 0,
+    };
+    setEditingCourse(courseWithColorIndex);
+    setShowEditCourse(true);
+  };
+
   if (!course) return <div>No course selected</div>;
 
   const courseGrade = getCourseGrade();
@@ -737,17 +832,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
             </button>
 
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Ensure colorIndex is included when editing
-                const courseWithColorIndex = {
-                  ...course,
-                  colorIndex:
-                    course.colorIndex !== undefined ? course.colorIndex : 0,
-                };
-                setEditingCourse(courseWithColorIndex);
-                setShowEditCourse(true);
-              }}
+              onClick={handleEditCourseClick}
               className={`flex items-center gap-3 ${
                 course.isActive === false
                   ? "bg-gray-400 cursor-not-allowed"
@@ -1109,8 +1194,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedGrade(grade);
-                                        setShowEditScore(true);
+                                        handleEditScore(grade);
                                       }}
                                       className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                     >
@@ -1142,7 +1226,7 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      deleteGrade(grade.id, grade.categoryId);
+                                      handleDeleteAssessment(grade.id, grade.categoryId);
                                     }}
                                     className="bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
                                   >
@@ -1192,6 +1276,11 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                                       >
                                         {determineAssessmentStatus(grade)}
                                       </span>
+                                      {grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0 && (
+                                        <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-bold self-start bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                          EXTRA CREDIT
+                                        </span>
+                                      )}
                                     </div>
                                     {/* ========================================
                                         ASSESSMENT SCORE AND DATE
@@ -1391,52 +1480,44 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
             <div className="p-6">
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category
-                    </label>
-                    <select
-                      value={newGrade.categoryId}
-                      onChange={(e) =>
-                        setNewGrade({ ...newGrade, categoryId: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      {categories &&
-                        categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                  {/* Category Selection - Show dropdown only if no category is pre-selected */}
+                  {!newGrade.categoryId ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={newGrade.categoryId}
+                        onChange={(e) =>
+                          setNewGrade({ ...newGrade, categoryId: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {categories &&
+                          categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  ) : (
+                    /* Show pre-selected category as embedded field */
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-medium">
+                        {categories.find(cat => cat.id === newGrade.categoryId)?.name || 'Selected Category'}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Category is embedded from the selected category section
+                      </p>
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assessment Type
-                    </label>
-                    <select
-                      value={newGrade.assessmentType}
-                      onChange={(e) =>
-                        setNewGrade({
-                          ...newGrade,
-                          assessmentType: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                      required
-                    >
-                      <option value="">Select Type</option>
-                      <option value="assignment">Assignment</option>
-                      <option value="quiz">Quiz</option>
-                      <option value="exam">Exam</option>
-                      <option value="project">Project</option>
-                      <option value="participation">Participation</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1449,8 +1530,12 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                         setNewGrade({ ...newGrade, name: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                      placeholder="Auto-generated based on category"
                       required
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Name will auto-generate based on category (e.g., "Quiz 1", "Assignment 2"), or customize as needed
+                    </p>
                   </div>
 
                   <div>
@@ -1514,55 +1599,6 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                     </p>
                   </div>
 
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isExtraCredit"
-                      checked={newGrade.isExtraCredit}
-                      onChange={(e) =>
-                        setNewGrade({
-                          ...newGrade,
-                          isExtraCredit: e.target.checked,
-                        })
-                      }
-                      className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="isExtraCredit"
-                      className="text-sm text-gray-700"
-                    >
-                      Extra Credit
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-500 -mt-2 mb-2">
-                    Check this if this assessment provides extra credit points
-                  </p>
-
-                  {newGrade.isExtraCredit && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Extra Credit Points
-                      </label>
-                      <input
-                        type="number"
-                        value={newGrade.extraCreditPoints || ""}
-                        onChange={(e) =>
-                          setNewGrade({
-                            ...newGrade,
-                            extraCreditPoints: e.target.value
-                              ? parseFloat(e.target.value)
-                              : null,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                        step="0.01"
-                        min="0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Enter the number of points to add to the total score
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 mt-6">
@@ -1611,19 +1647,65 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
               </p>
 
               <form onSubmit={handleScoreSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Score Obtained
-                  </label>
-                  <input
-                    type="number"
-                    name="score"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                    step="0.01"
-                    min="0"
-                    max={selectedGrade.maxScore}
-                    required
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Score Obtained
+                    </label>
+                    <input
+                      type="number"
+                      name="score"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                      step="0.01"
+                      min="0"
+                      max={selectedGrade.maxScore}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="scoreExtraCredit"
+                      checked={scoreExtraCredit}
+                      onChange={(e) => {
+                        setScoreExtraCredit(e.target.checked);
+                        if (!e.target.checked) {
+                          setScoreExtraCreditPoints("");
+                        }
+                      }}
+                      className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="scoreExtraCredit"
+                      className="text-sm text-gray-700"
+                    >
+                      Extra Credit
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                    Check this if this score includes extra credit points
+                  </p>
+
+                  {scoreExtraCredit && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Extra Credit Points
+                      </label>
+                      <input
+                        type="number"
+                        value={scoreExtraCreditPoints}
+                        onChange={(e) => setScoreExtraCreditPoints(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                        step="0.01"
+                        min="0"
+                        placeholder="Enter extra credit points"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the number of extra credit points to add to your score
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -1632,6 +1714,8 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                     onClick={() => {
                       setShowScoreInput(false);
                       setSelectedGrade(null);
+                      setScoreExtraCredit(false);
+                      setScoreExtraCreditPoints("");
                     }}
                     className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
@@ -1691,12 +1775,55 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
                   />
                 </div>
 
+                <div className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    id="editScoreExtraCredit"
+                    checked={editScoreExtraCredit}
+                    onChange={(e) => {
+                      setEditScoreExtraCredit(e.target.checked);
+                      if (!e.target.checked) {
+                        setEditScoreExtraCreditPoints("");
+                      }
+                    }}
+                    className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="editScoreExtraCredit" className="text-sm text-gray-700">
+                    Extra Credit
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 -mt-2 mb-4">
+                  Check this if this score includes extra credit points
+                </p>
+
+                {editScoreExtraCredit && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Extra Credit Points
+                    </label>
+                    <input
+                      type="number"
+                      value={editScoreExtraCreditPoints}
+                      onChange={(e) => setEditScoreExtraCreditPoints(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter extra credit points"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the number of extra credit points to add to your score
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowEditScore(false);
                       setSelectedGrade(null);
+                      setEditScoreExtraCredit(false);
+                      setEditScoreExtraCreditPoints("");
                     }}
                     className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
@@ -1739,19 +1866,51 @@ function GradeEntry({ course, onGradeUpdate, onBack }) {
           course={course}
           grades={grades}
           categories={categories}
-          onEnterAnother={() => {
-            setShowSuccessFeedback(false);
-            setShowAddGrade(true);
-          }}
+           onEnterAnother={(categoryId) => {
+             setShowSuccessFeedback(false);
+             setNewGrade((prev) => ({
+               ...prev,
+               categoryId: categoryId,
+               name: "",
+               maxScore: "",
+               date: new Date().toISOString().split("T")[0],
+               note: "",
+             }));
+             setEditingGrade(null);
+             setShowAddGrade(true);
+           }}
           onReturnToCourse={() => {
             setShowSuccessFeedback(false);
-            onBack();
+            if (onNavigateToCourse) {
+              onNavigateToCourse(course);
+            } else {
+              onBack();
+            }
           }}
           onClose={() => {
             setShowSuccessFeedback(false);
           }}
         />
       )}
+
+      {/* ========================================
+          REUSABLE CONFIRMATION MODAL
+          ======================================== */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={confirmationModal.onClose}
+        onConfirm={confirmationModal.onConfirm}
+        type={confirmationModal.type}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+        showWarning={confirmationModal.showWarning}
+        warningItems={confirmationModal.warningItems}
+        showTip={confirmationModal.showTip}
+        tipMessage={confirmationModal.tipMessage}
+      />
+
     </div>
   );
 }
