@@ -1,6 +1,7 @@
 package com.project.gradegoal.Controller;
 
 import com.project.gradegoal.Entity.AcademicGoal;
+import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Service.AcademicGoalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,9 @@ public class AcademicGoalController {
                 request.getCourseId(),
                 request.getTargetDate(),
                 request.getDescription(),
-                request.getPriority()
+                request.getPriority(),
+                request.getSemester(),
+                request.getAcademicYear()
             );
             return ResponseEntity.ok(createdGoal);
         } catch (Exception e) {
@@ -122,6 +125,8 @@ public class AcademicGoalController {
             existingGoal.setTargetDate(request.getTargetDate());
             existingGoal.setDescription(request.getDescription());
             existingGoal.setPriority(request.getPriority());
+            existingGoal.setSemester(request.getSemester());
+            existingGoal.setAcademicYear(request.getAcademicYear());
 
             AcademicGoal updatedGoal = academicGoalService.updateAcademicGoal(existingGoal);
             return ResponseEntity.ok(updatedGoal);
@@ -218,6 +223,8 @@ public class AcademicGoalController {
         private LocalDate targetDate;
         private String description;
         private AcademicGoal.Priority priority;
+        private Course.Semester semester;
+        private String academicYear;
 
         // Getters and setters
         public AcademicGoal.GoalType getGoalType() { return goalType; }
@@ -240,6 +247,12 @@ public class AcademicGoalController {
 
         public AcademicGoal.Priority getPriority() { return priority; }
         public void setPriority(AcademicGoal.Priority priority) { this.priority = priority; }
+
+        public Course.Semester getSemester() { return semester; }
+        public void setSemester(Course.Semester semester) { this.semester = semester; }
+
+        public String getAcademicYear() { return academicYear; }
+        public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
     }
 
     public static class UpdatePriorityRequest {
@@ -257,6 +270,8 @@ public class AcademicGoalController {
         private LocalDate targetDate;
         private String description;
         private AcademicGoal.Priority priority;
+        private Course.Semester semester;
+        private String academicYear;
 
         // Getters and setters
         public String getGoalTitle() { return goalTitle; }
@@ -279,5 +294,11 @@ public class AcademicGoalController {
 
         public AcademicGoal.Priority getPriority() { return priority; }
         public void setPriority(AcademicGoal.Priority priority) { this.priority = priority; }
+
+        public Course.Semester getSemester() { return semester; }
+        public void setSemester(Course.Semester semester) { this.semester = semester; }
+
+        public String getAcademicYear() { return academicYear; }
+        public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
     }
 }

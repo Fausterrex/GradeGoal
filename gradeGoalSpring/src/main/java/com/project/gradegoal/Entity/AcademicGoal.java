@@ -47,6 +47,13 @@ public class AcademicGoal {
     @Column(name = "achieved_date")
     private LocalDate achievedDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "semester")
+    private Course.Semester semester;
+
+    @Column(name = "academic_year")
+    private String academicYear;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -108,6 +115,12 @@ public class AcademicGoal {
 
     public LocalDate getAchievedDate() { return achievedDate; }
     public void setAchievedDate(LocalDate achievedDate) { this.achievedDate = achievedDate; }
+
+    public Course.Semester getSemester() { return semester; }
+    public void setSemester(Course.Semester semester) { this.semester = semester; }
+
+    public String getAcademicYear() { return academicYear; }
+    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

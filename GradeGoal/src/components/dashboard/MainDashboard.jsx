@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import CourseManager from "../course/CourseManager";
 import GradeEntry from "../course/GradeEntry";
-import GoalSetting from "./GoalSetting";
+import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
@@ -118,6 +118,8 @@ function MainDashboard({ initialTab = "overview" }) {
               courseCode: course.courseCode,
               colorIndex:
                 course.colorIndex !== undefined ? course.colorIndex : 0,
+              semester: course.semester,
+              academicYear: course.academicYear,
               categories,
             };
 
@@ -130,6 +132,8 @@ function MainDashboard({ initialTab = "overview" }) {
               courseCode: course.courseCode,
               colorIndex:
                 course.colorIndex !== undefined ? course.colorIndex : 0,
+              semester: course.semester,
+              academicYear: course.academicYear,
               categories: [],
             };
             return transformedCourse;
@@ -139,7 +143,7 @@ function MainDashboard({ initialTab = "overview" }) {
 
       setCourses(coursesWithCategories);
 
-      if (coursesWithCategories.length > 0 && activeTab === "overview") {
+      if (coursesWithCategories.length > 0 && (activeTab === "overview" || activeTab === "goals")) {
         await loadAllGrades(coursesWithCategories);
       } else {
         setIsLoading(false);
@@ -272,6 +276,13 @@ function MainDashboard({ initialTab = "overview" }) {
     }
   }, [courses, activeTab, loadAllGrades]);
 
+  // Load grades when switching to goals tab
+  useEffect(() => {
+    if (activeTab === "goals" && courses.length > 0 && Object.keys(grades).length === 0) {
+      loadAllGrades();
+    }
+  }, [activeTab, courses, grades, loadAllGrades]);
+
   useEffect(() => {
     setActiveTab(initialTab);
 
@@ -355,64 +366,61 @@ function MainDashboard({ initialTab = "overview" }) {
         Object.keys(updatedData).forEach((categoryId) => {
           if (updatedData[categoryId] && updatedData[categoryId].length > 0) {
             mergedGrades[categoryId] = updatedData[categoryId];
+          } else if (updatedData[categoryId] && updatedData[categoryId].length === 0) {
+            // Category is empty (all grades deleted)
+            mergedGrades[categoryId] = [];
           }
         });
 
-        if (selectedCourse) {
-          try {
-            const progress = calculateCourseProgress(
-              selectedCourse.categories,
-              mergedGrades
-            );
-
-            let courseGrade = "Ongoing";
-            let hasGrades = false;
-
-            if (
-              selectedCourse.categories &&
-              selectedCourse.categories.length > 0
-            ) {
-              const gradeResult = GradeService.calculateCourseGrade(
-                selectedCourse,
+        // Recalculate progress for ALL courses with the updated grades
+        setCourses((prevCourses) => {
+          return prevCourses.map((course) => {
+            try {
+              const progress = calculateCourseProgress(
+                course.categories,
                 mergedGrades
               );
-              if (gradeResult.success) {
-                courseGrade = gradeResult.courseGrade;
-                hasGrades = true;
 
-                const gradingScale =
-                  selectedCourse.gradingScale || "percentage";
-                const gpaScale = selectedCourse.gpaScale || "4.0";
+              let courseGrade = "Ongoing";
+              let hasGrades = false;
 
-                if (
-                  gradingScale === "gpa" ||
-                  (gradingScale === "percentage" && courseGrade > 100)
-                ) {
-                  courseGrade = GradeService.convertPercentageToGPA(
-                    courseGrade,
-                    gpaScale
-                  );
+              if (course.categories && course.categories.length > 0) {
+                const gradeResult = GradeService.calculateCourseGrade(
+                  course,
+                  mergedGrades
+                );
+                if (gradeResult.success) {
+                  courseGrade = gradeResult.courseGrade;
+                  hasGrades = true;
+
+                  const gradingScale = course.gradingScale || "percentage";
+                  const gpaScale = course.gpaScale || "4.0";
+
+                  if (
+                    gradingScale === "gpa" ||
+                    (gradingScale === "percentage" && courseGrade > 100)
+                  ) {
+                    courseGrade = GradeService.convertPercentageToGPA(
+                      courseGrade,
+                      gpaScale
+                    );
+                  }
                 }
               }
+
+              return {
+                ...course,
+                categories: course.categories?.map((cat) => ({ ...cat })) || [],
+                progress: isNaN(progress) || !isFinite(progress) ? 0 : progress,
+                currentGrade: courseGrade,
+                hasGrades: hasGrades,
+              };
+            } catch (error) {
+              console.error(`Error updating course progress for ${course.name}:`, error);
+              return course; // Return unchanged course if error
             }
-
-            const updatedCourse = {
-              ...selectedCourse,
-              categories: selectedCourse.categories.map((cat) => ({ ...cat })),
-              progress: isNaN(progress) || !isFinite(progress) ? 0 : progress,
-              currentGrade: courseGrade,
-              hasGrades: hasGrades,
-            };
-
-            setSelectedCourse(updatedCourse);
-
-            setCourses((prevCourses) =>
-              prevCourses.map((course) =>
-                course.id === selectedCourse.id ? updatedCourse : course
-              )
-            );
-          } catch (error) {}
-        }
+          });
+        });
 
         return mergedGrades;
       });
@@ -715,6 +723,7 @@ function MainDashboard({ initialTab = "overview" }) {
                   <GoalSetting
                     userEmail={currentUser?.email}
                     courses={courses}
+                    grades={grades}
                   />
                 </div>
               )}

@@ -297,95 +297,69 @@ function AddCourse({
     existingCategories
   ) => {
     try {
-      const existingCategoryIds = existingCategories.map(
-        (cat) => cat.id || cat.categoryId
-      );
+      // Create maps for easier lookup
+      const existingCategoriesMap = new Map();
+      existingCategories.forEach(cat => {
+        existingCategoriesMap.set(cat.categoryName || cat.name, cat);
+      });
 
-      const newCategoryIds = newCategories
-        .filter((cat) => cat.id && typeof cat.id === "number")
-        .map((cat) => cat.id);
+      const newCategoriesMap = new Map();
+      newCategories.forEach(cat => {
+        newCategoriesMap.set(cat.name, cat);
+      });
 
-      const categorySystemChanged =
-        newCategories.length !== existingCategories.length;
-
-      if (categorySystemChanged) {
-        for (const category of existingCategories) {
-          await deleteAssessmentCategory(category.id);
+      // Find categories to delete (exist in database but not in new categories)
+      const categoriesToDelete = [];
+      for (const [name, existingCategory] of existingCategoriesMap) {
+        if (!newCategoriesMap.has(name)) {
+          categoriesToDelete.push(existingCategory);
         }
+      }
 
-        for (const category of newCategories) {
-          const categoryData = {
-            categoryName: category.name,
-            weightPercentage: category.weight,
-          };
-          await addCategoryToCourse(courseId, categoryData);
+      // Find categories to add (exist in new categories but not in database)
+      const categoriesToAdd = [];
+      for (const [name, newCategory] of newCategoriesMap) {
+        if (!existingCategoriesMap.has(name)) {
+          categoriesToAdd.push(newCategory);
         }
-      } else if (newCategories.length < existingCategories.length) {
-        const categoriesToDelete = existingCategories.slice(
-          newCategories.length
-        );
+      }
 
-        for (const category of categoriesToDelete) {
-          await deleteAssessmentCategory(category.id);
+      // Find categories to update (exist in both but with different properties)
+      const categoriesToUpdate = [];
+      for (const [name, newCategory] of newCategoriesMap) {
+        const existingCategory = existingCategoriesMap.get(name);
+        if (existingCategory && (
+          newCategory.name !== existingCategory.categoryName ||
+          newCategory.weight !== existingCategory.weightPercentage
+        )) {
+          categoriesToUpdate.push({
+            existing: existingCategory,
+            updated: newCategory
+          });
         }
+      }
 
-        for (let i = 0; i < newCategories.length; i++) {
-          const newCategory = newCategories[i];
-          const existingCategory = existingCategories[i];
+      // Delete categories that are no longer needed
+      for (const category of categoriesToDelete) {
+        await deleteAssessmentCategory(category.id || category.categoryId);
+      }
 
-          if (
-            newCategory.name !== existingCategory.categoryName ||
-            newCategory.weight !== existingCategory.weightPercentage
-          ) {
-            const categoryData = {
-              categoryName: newCategory.name,
-              weightPercentage: newCategory.weight,
-            };
-            await updateAssessmentCategory(existingCategory.id, categoryData);
-          }
-        }
-      } else if (newCategories.length > existingCategories.length) {
-        const categoriesToAdd = newCategories.slice(existingCategories.length);
+      // Add new categories
+      for (const category of categoriesToAdd) {
+        const categoryData = {
+          categoryName: category.name,
+          weightPercentage: category.weight,
+        };
+        await addCategoryToCourse(courseId, categoryData);
+      }
 
-        for (const category of categoriesToAdd) {
-          const categoryData = {
-            categoryName: category.name,
-            weightPercentage: category.weight,
-          };
-          await addCategoryToCourse(courseId, categoryData);
-        }
-
-        for (let i = 0; i < existingCategories.length; i++) {
-          const newCategory = newCategories[i];
-          const existingCategory = existingCategories[i];
-
-          if (
-            newCategory.name !== existingCategory.categoryName ||
-            newCategory.weight !== existingCategory.weightPercentage
-          ) {
-            const categoryData = {
-              categoryName: newCategory.name,
-              weightPercentage: newCategory.weight,
-            };
-            await updateAssessmentCategory(existingCategory.id, categoryData);
-          }
-        }
-      } else {
-        for (let i = 0; i < newCategories.length; i++) {
-          const newCategory = newCategories[i];
-          const existingCategory = existingCategories[i];
-
-          if (
-            newCategory.name !== existingCategory.categoryName ||
-            newCategory.weight !== existingCategory.weightPercentage
-          ) {
-            const categoryData = {
-              categoryName: newCategory.name,
-              weightPercentage: newCategory.weight,
-            };
-            await updateAssessmentCategory(existingCategory.id, categoryData);
-          }
-        }
+      // Update existing categories that have changed
+      for (const { existing, updated } of categoriesToUpdate) {
+        const categoryData = {
+          categoryName: updated.name,
+          weightPercentage: updated.weight,
+        };
+        await updateAssessmentCategory(existing.id || existing.categoryId, categoryData);
       }
     } catch (error) {
       throw error;
@@ -793,9 +767,9 @@ function AddCourse({
                   className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
                   required
                 >
-                  <option value="First">First Semester</option>
-                  <option value="Second">Second Semester</option>
-                  <option value="Third">Third Semester</option>
+                  <option value="FIRST">First Semester</option>
+                  <option value="SECOND">Second Semester</option>
+                  <option value="THIRD">Third Semester</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg

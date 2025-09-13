@@ -32,7 +32,8 @@ public class AcademicGoalService {
 
     public AcademicGoal createAcademicGoalForUser(Long userId, AcademicGoal.GoalType goalType,
                                                  String goalTitle, BigDecimal targetValue, Long courseId,
-                                                 LocalDate targetDate, String description, AcademicGoal.Priority priority) {
+                                                 LocalDate targetDate, String description, AcademicGoal.Priority priority,
+                                                 Course.Semester semester, String academicYear) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             AcademicGoal goal = new AcademicGoal(userId, goalType, goalTitle, targetValue);
@@ -47,6 +48,12 @@ public class AcademicGoalService {
             }
             if (priority != null) {
                 goal.setPriority(priority);
+            }
+            if (semester != null) {
+                goal.setSemester(semester);
+            }
+            if (academicYear != null && !academicYear.trim().isEmpty()) {
+                goal.setAcademicYear(academicYear);
             }
             return academicGoalRepository.save(goal);
         }

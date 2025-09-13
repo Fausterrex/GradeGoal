@@ -8,6 +8,9 @@
 import {
   calculateCourseGrade,
   calculateCategoryAverage,
+  convertPercentageToGPA,
+  convertGPAToPercentage,
+  GPA_SCALES,
 } from "../utils/gradeCalculations";
 import { calculateCourseProgress } from "../utils/progressCalculations";
 
@@ -111,53 +114,17 @@ class GradeService {
     }
   }
 
+  // GPA conversion methods now use the imported functions from gradeCalculations.js
   static convertGPAToPercentage(gpa, gpaScale = "4.0") {
-    const scale = this.getGPAScale(gpaScale);
-    if (!scale) return 0;
-
-    let percentage;
-    if (scale.inverted) {
-      // Inverted scale: 4.0 = F (0%), 1.0 = A (100%)
-      // For inverted scale, we need to invert the result
-      const rawPercentage = ((gpa - scale.min) / (scale.max - scale.min)) * 100;
-      percentage = 100 - rawPercentage;
-    } else {
-      percentage = ((gpa - scale.min) / (scale.max - scale.min)) * 100;
-    }
-
-    // Ensure percentage is not negative
-    percentage = Math.max(0, percentage);
-    return Math.round(percentage * 100) / 100;
+    return convertGPAToPercentage(gpa, gpaScale);
   }
 
   static convertPercentageToGPA(percentage, gpaScale = "4.0") {
-    const scale = this.getGPAScale(gpaScale);
-    if (!scale) return 0;
-
-    let gpa;
-    if (scale.inverted) {
-      // Inverted scale: 4.0 = F (0%), 1.0 = A (100%)
-      // For inverted scale, we need to invert the percentage first, capping at 0 for percentages >= 100
-      const invertedPercentage = Math.max(0, 100 - percentage);
-      gpa = scale.min + (invertedPercentage / 100) * (scale.max - scale.min);
-    } else {
-      gpa = scale.min + (percentage / 100) * (scale.max - scale.min);
-    }
-
-    // Cap the GPA at the scale maximum to prevent exceeding the scale
-    gpa = Math.min(gpa, scale.max);
-
-    return Math.round(gpa * 100) / 100;
+    return convertPercentageToGPA(percentage, gpaScale);
   }
 
   static getGPAScale(gpaScale) {
-    const scales = {
-      "4.0": { max: 4.0, min: 1.0, inverted: false },
-      "5.0": { max: 5.0, min: 1.0, inverted: false },
-      "inverted-4.0": { max: 4.0, min: 1.0, inverted: true },
-      "inverted-5.0": { max: 5.0, min: 1.0, inverted: true },
-    };
-    return scales[gpaScale] || scales["4.0"];
+    return GPA_SCALES[gpaScale] || GPA_SCALES["4.0"];
   }
 
   static updateCGPA(courses, grades) {
