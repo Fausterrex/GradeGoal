@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import CourseManager from "../course/CourseManager";
-import GradeEntry from "../course/GradeEntry";
+import GradeEntry from "../course/course_details/GradeEntry";
 import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";

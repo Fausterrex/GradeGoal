@@ -26,21 +26,11 @@ const SideCourseList = ({
           onClick={onToggleExpanded}
           className="w-12 h-12 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
         >
-          <svg
-            className={`w-6 h-6 text-[#8168C5] group-hover:text-[#3E325F] transition-all duration-300 ${
+          <span className={`text-[#8168C5] group-hover:text-[#3E325F] transition-all duration-300 text-xl ${
               isExpanded ? "rotate-180" : ""
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d={isExpanded ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
-            />
-          </svg>
+            }`}>
+            {isExpanded ? "❯" : "❮"}
+          </span>
         </button>
       </div>
       {/* ========================================

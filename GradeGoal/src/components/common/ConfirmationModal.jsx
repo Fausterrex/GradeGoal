@@ -38,11 +38,7 @@ function ConfirmationModal({
           confirmHoverColor: "hover:bg-red-700",
           confirmText: confirmText || "Delete Permanently",
           cancelText: cancelText || "Cancel",
-          defaultIcon: (
-            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          ),
+          defaultIcon: <span className="text-red-600 text-lg">⚠️</span>,
           warningBgColor: "bg-red-50",
           warningBorderColor: "border-red-200",
           warningTextColor: "text-red-800",
@@ -55,11 +51,7 @@ function ConfirmationModal({
           confirmHoverColor: "hover:bg-orange-700",
           confirmText: confirmText || "Archive",
           cancelText: cancelText || "Cancel",
-          defaultIcon: (
-            <svg className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          defaultIcon: <span className="text-orange-600 text-lg">ℹ️</span>,
           warningBgColor: "bg-orange-50",
           warningBorderColor: "border-orange-200",
           warningTextColor: "text-orange-800",
@@ -72,11 +64,7 @@ function ConfirmationModal({
           confirmHoverColor: "hover:bg-amber-700",
           confirmText: confirmText || "Continue Anyway",
           cancelText: cancelText || "Cancel",
-          defaultIcon: (
-            <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          ),
+          defaultIcon: <span className="text-amber-600 text-lg">⚠️</span>,
           warningBgColor: "bg-amber-50",
           warningBorderColor: "border-amber-200",
           warningTextColor: "text-amber-800",
@@ -89,11 +77,7 @@ function ConfirmationModal({
           confirmHoverColor: "hover:bg-blue-700",
           confirmText: confirmText || "OK",
           cancelText: cancelText || "Cancel",
-          defaultIcon: (
-            <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          defaultIcon: <span className="text-blue-600 text-lg">ℹ️</span>,
           warningBgColor: "bg-blue-50",
           warningBorderColor: "border-blue-200",
           warningTextColor: "text-blue-800",
@@ -106,11 +90,7 @@ function ConfirmationModal({
           confirmHoverColor: "hover:bg-green-700",
           confirmText: confirmText || "Confirm",
           cancelText: cancelText || "Cancel",
-          defaultIcon: (
-            <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          defaultIcon: <span className="text-green-600 text-lg">✅</span>,
           warningBgColor: "bg-green-50",
           warningBorderColor: "border-green-200",
           warningTextColor: "text-green-800",
@@ -233,9 +213,7 @@ function ConfirmationModal({
           {showTip && tipMessage && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="text-blue-600 text-lg">ℹ️</span>
                 <p className="text-xs text-blue-700">
                   <strong>Tip:</strong> {tipMessage}
                 </p>
@@ -252,10 +230,7 @@ function ConfirmationModal({
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <span className="animate-spin text-lg">⟳</span>
                   Processing...
                 </div>
               ) : (

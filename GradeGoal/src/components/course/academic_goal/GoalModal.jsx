@@ -232,19 +232,7 @@ const GoalModal = ({
                       <option value="2027">2027-2028</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg
-                        className="w-4 h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      <span className="text-gray-400 text-lg">▼</span>
                     </div>
                   </div>
                 </div>
