@@ -3,9 +3,12 @@ package com.project.gradegoal.Service;
 import com.project.gradegoal.Entity.Grade;
 import com.project.gradegoal.Entity.Assessment;
 import com.project.gradegoal.Entity.AssessmentCategory;
+import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Repository.GradeRepository;
 import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
+import com.project.gradegoal.Repository.CourseRepository;
+import com.project.gradegoal.Service.DatabaseCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,12 @@ public class GradeService {
 
     @Autowired
     private AssessmentService assessmentService;
+    
+    @Autowired
+    private DatabaseCalculationService databaseCalculationService;
+    
+    @Autowired
+    private CourseRepository courseRepository;
 
     @Transactional
     public Grade createGrade(Long assessmentId, Grade grade) {
@@ -37,7 +46,20 @@ public class GradeService {
             Assessment assessment = assessmentOpt.get();
             grade.setAssessmentId(assessmentId);
             grade.setAssessment(assessment);
-            return gradeRepository.save(grade);
+            Grade savedGrade = gradeRepository.save(grade);
+            
+            // Update user analytics after creating grade
+            try {
+                Long userId = getUserIdFromAssessment(assessmentId);
+                Long courseId = getCourseIdFromAssessment(assessmentId);
+                if (userId != null && courseId != null) {
+                    databaseCalculationService.updateUserAnalytics(userId, courseId);
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating user analytics after creating grade: " + e.getMessage());
+            }
+            
+            return savedGrade;
         }
         throw new RuntimeException("Assessment not found with ID: " + assessmentId);
     }
@@ -69,7 +91,20 @@ public class GradeService {
 
     @Transactional
     public Grade updateGrade(Grade grade) {
-        return gradeRepository.save(grade);
+        Grade savedGrade = gradeRepository.save(grade);
+        
+        // Update user analytics after updating grade
+        try {
+            Long userId = getUserIdFromAssessment(grade.getAssessmentId());
+            Long courseId = getCourseIdFromAssessment(grade.getAssessmentId());
+            if (userId != null && courseId != null) {
+                databaseCalculationService.updateUserAnalytics(userId, courseId);
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating user analytics after updating grade: " + e.getMessage());
+        }
+        
+        return savedGrade;
     }
 
     @Transactional
@@ -152,6 +187,17 @@ public class GradeService {
                 existingGrade.getAssessment().setStatus(newStatus);
                 existingGrade.getAssessment().setUpdatedAt(LocalDateTime.now());
                 assessmentRepository.save(existingGrade.getAssessment());
+            }
+
+            // Update user analytics after updating grade from frontend
+            try {
+                Long userId = getUserIdFromAssessment(existingGrade.getAssessmentId());
+                Long courseId = getCourseIdFromAssessment(existingGrade.getAssessmentId());
+                if (userId != null && courseId != null) {
+                    databaseCalculationService.updateUserAnalytics(userId, courseId);
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating user analytics after updating grade from frontend: " + e.getMessage());
             }
 
             return savedGrade;
@@ -302,7 +348,20 @@ public class GradeService {
             grade.setIsExtraCredit(isExtraCredit != null ? isExtraCredit : false);
             grade.setExtraCreditPoints(extraCreditPoints != null ? BigDecimal.valueOf(extraCreditPoints) : null);
 
-            return gradeRepository.save(grade);
+            Grade savedGrade = gradeRepository.save(grade);
+            
+            // Update user analytics after creating assessment and grade
+            try {
+                Long userId = getUserIdFromAssessment(savedGrade.getAssessmentId());
+                Long courseId = getCourseIdFromAssessment(savedGrade.getAssessmentId());
+                if (userId != null && courseId != null) {
+                    databaseCalculationService.updateUserAnalytics(userId, courseId);
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating user analytics after creating assessment and grade: " + e.getMessage());
+            }
+            
+            return savedGrade;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create assessment and grade: " + e.getMessage(), e);
         }
@@ -365,6 +424,52 @@ public class GradeService {
         } else {
             return Assessment.AssessmentStatus.UPCOMING;
         }
+    }
+    
+    // Helper methods to get userId and courseId from assessmentId
+    private Long getUserIdFromAssessment(Long assessmentId) {
+        try {
+            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
+            if (assessmentOpt.isPresent()) {
+                Assessment assessment = assessmentOpt.get();
+                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
+                if (categoryOpt.isPresent()) {
+                    // We need to get userId from course table
+                    return getUserIdFromCourse(categoryOpt.get().getCourseId());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting userId from assessment: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    private Long getCourseIdFromAssessment(Long assessmentId) {
+        try {
+            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
+            if (assessmentOpt.isPresent()) {
+                Assessment assessment = assessmentOpt.get();
+                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
+                if (categoryOpt.isPresent()) {
+                    return categoryOpt.get().getCourseId();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting courseId from assessment: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    private Long getUserIdFromCourse(Long courseId) {
+        try {
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+            if (courseOpt.isPresent()) {
+                return courseOpt.get().getUserId();
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting userId from course: " + e.getMessage());
+        }
+        return null;
     }
 
 }

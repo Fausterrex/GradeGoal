@@ -113,79 +113,17 @@ export function convertPercentageToScale(
   return percentage;
 }
 
-export function calculateCategoryAverage(
-  grades,
-  scale,
-  maxPoints = 100,
-  handleMissing = "exclude"
-) {
-  if (!grades || grades.length === 0) return 0;
-
-  let validGrades = grades.filter((grade) => {
-    if (handleMissing === "exclude") {
-      return (
-        grade.score !== null &&
-        grade.score !== undefined &&
-        grade.score !== "" &&
-        grade.maxScore !== null &&
-        grade.maxScore !== undefined &&
-        grade.maxScore !== ""
-      );
-    } else {
-      return true; // treat missing as 0
-    }
-  });
-
-  if (validGrades.length === 0) return 0;
-
-  const totalPercentage = validGrades.reduce((sum, grade) => {
-    let adjustedScore = grade.score || 0;
-
-    // Add extra credit points if this is an extra credit assessment
-    if (grade.isExtraCredit && grade.extraCreditPoints) {
-      adjustedScore += grade.extraCreditPoints;
-    }
-
-    // Calculate percentage with adjusted score
-    const percentage = (adjustedScore / grade.maxScore) * 100;
-    return sum + percentage;
-  }, 0);
-
-  return totalPercentage / validGrades.length;
-}
-
-export function calculateCourseGrade(
-  categories,
-  gradingScale,
-  maxPoints = 100,
-  handleMissing = "exclude"
-) {
-  if (!categories || categories.length === 0) return 0;
-
-  let totalWeightedGrade = 0;
-  let totalWeight = 0;
-
-  categories.forEach((category) => {
-    // Handle both property naming conventions: weight/weightPercentage
-    const categoryWeight = category.weight || category.weightPercentage || 0;
-
-    if (categoryWeight > 0 && category.grades) {
-      const categoryAverage = calculateCategoryAverage(
-        category.grades,
-        category.gradingScale || gradingScale,
-        maxPoints,
-        handleMissing
-      );
-
-      totalWeightedGrade += categoryAverage * categoryWeight;
-      totalWeight += categoryWeight;
-    }
-  });
-
-  if (totalWeight === 0) return 0;
-
-  return totalWeightedGrade / totalWeight;
-}
+// ========================================
+// OLD CALCULATION FUNCTIONS REMOVED
+// ========================================
+// The following functions have been removed and replaced with database calculations:
+// - calculateCategoryAverage() - Now uses database functions
+// - calculateCourseGrade() - Now uses database functions
+// 
+// These functions are backed up in OLD_CALCULATIONS_BACKUP.js
+// 
+// Only utility/conversion functions remain below as they are not calculation logic
+// that should be replaced with database functions.
 
 export function getGradeColor(percentage) {
   if (percentage >= 90) return "text-green-600";

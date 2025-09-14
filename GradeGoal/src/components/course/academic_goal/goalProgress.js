@@ -6,16 +6,66 @@
 
 import { calculateCumulativeGPA } from '../../../utils/cgpa';
 import GradeService from '../../../services/gradeService';
+import { calculateCourseGrade as calculateCourseGradeDB, checkGoalProgress } from '../../../services/databaseCalculationService';
+import { convertGPAToPercentage } from '../../../utils/gradeCalculations';
+
+// Cache for database calculations to prevent infinite loops
+const calculationCache = new Map();
+const CACHE_DURATION = 30000; // 30 seconds cache
 
 /**
- * Calculate goal progress for different goal types
+ * Clear expired cache entries
+ */
+const clearExpiredCache = () => {
+  const now = Date.now();
+  for (const [key, value] of calculationCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      calculationCache.delete(key);
+    }
+  }
+};
+
+// Clear expired cache every 5 minutes
+setInterval(clearExpiredCache, 300000);
+
+/**
+ * Cached database calculation to prevent infinite loops
+ */
+const getCachedCourseGrade = async (courseId) => {
+  const cacheKey = `course_grade_${courseId}`;
+  const now = Date.now();
+  
+  // Check if we have a valid cached result
+  if (calculationCache.has(cacheKey)) {
+    const cached = calculationCache.get(cacheKey);
+    if (now - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+  }
+  
+  // Make the database call
+  try {
+    const result = await calculateCourseGradeDB(courseId);
+    calculationCache.set(cacheKey, {
+      data: result,
+      timestamp: now
+    });
+    return result;
+  } catch (error) {
+    console.warn('Database calculation failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Calculate goal progress for different goal types using database calculations
  * @param {Object} goal - The academic goal object
  * @param {Array} courses - Array of all courses
  * @param {Object} grades - Object containing course grades
  * @param {Object} userStats - User statistics (current GPA, etc.)
- * @returns {Object} Progress information
+ * @returns {Promise<Object>} Progress information
  */
-export const calculateGoalProgress = (goal, courses, grades, userStats = {}, allGoals = []) => {
+export const calculateGoalProgress = async (goal, courses, grades, userStats = {}, allGoals = []) => {
   if (!goal) {
     return {
       progress: 0,
@@ -47,7 +97,7 @@ export const calculateGoalProgress = (goal, courses, grades, userStats = {}, all
   try {
     switch (goal.goalType) {
       case 'COURSE_GRADE':
-        const courseResult = calculateCourseGradeProgress(goal, courses, grades);
+        const courseResult = await calculateCourseGradeProgress(goal, courses, grades);
         currentValue = courseResult.currentValue;
         isCourseCompleted = courseResult.isCourseCompleted;
         courseCompletionStatus = courseResult.courseCompletionStatus;
@@ -164,9 +214,9 @@ export const calculateGoalProgress = (goal, courses, grades, userStats = {}, all
 };
 
 /**
- * Calculate progress for course-specific goals
+ * Calculate progress for course-specific goals using database calculations
  */
-const calculateCourseGradeProgress = (goal, courses, grades) => {
+const calculateCourseGradeProgress = async (goal, courses, grades) => {
   if (!goal.courseId) return { currentValue: 0, isCourseCompleted: false, courseCompletionStatus: 'ongoing' };
 
   const course = courses.find(c => c.courseId === goal.courseId);
@@ -178,11 +228,29 @@ const calculateCourseGradeProgress = (goal, courses, grades) => {
     const courseProgress = course.progress || 0;
     const isCourseCompleted = courseProgress >= 100;
     
-    const gradeResult = GradeService.calculateCourseGrade(course, grades);
+    let courseGrade = 0;
     
-    if (gradeResult.success) {
-      let courseGrade = gradeResult.courseGrade;
-      
+    // Try to use cached database calculation first if course has an ID
+    if (course.id) {
+      try {
+        courseGrade = await getCachedCourseGrade(course.id);
+      } catch (error) {
+        console.warn('⚠️ GoalProgress - Database calculation failed, falling back to JavaScript:', error);
+        // Fallback to JavaScript calculation
+        const gradeResult = GradeService.calculateCourseGrade(course, grades);
+        if (gradeResult.success) {
+          courseGrade = gradeResult.courseGrade;
+        }
+      }
+    } else {
+      // Fallback to JavaScript calculation
+      const gradeResult = GradeService.calculateCourseGrade(course, grades);
+      if (gradeResult.success) {
+        courseGrade = gradeResult.courseGrade;
+      }
+    }
+    
+    if (courseGrade > 0) {
       // Convert to percentage if needed for comparison
       if (course.gradingScale === 'gpa') {
         // If it's a GPA scale, convert GPA to percentage

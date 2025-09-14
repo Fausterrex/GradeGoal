@@ -4,8 +4,8 @@
 // Individual assessment category with its assessments
 
 import React from "react";
-import { convertPercentageToGPA } from "../../../utils/gradeCalculations";
-import { getGradeColor } from "../../../utils/gradeCalculations";
+import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
+import { getGradeColor } from "../../../../utils/gradeCalculations";
 import AssessmentCard from "./AssessmentCard";
 
 function AssessmentCategory({

@@ -3,7 +3,7 @@
 // ========================================
 // Section that displays all assessment categories
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import AssessmentCategory from "./AssessmentCategory";
 
 function AssessmentCategories({
@@ -17,6 +17,29 @@ function AssessmentCategories({
   onEditAssessment,
   onDeleteAssessment
 }) {
+  const [categoryAverages, setCategoryAverages] = useState({});
+
+  // Calculate category averages asynchronously
+  useEffect(() => {
+    const loadCategoryAverages = async () => {
+      if (!categories || categories.length === 0) return;
+      
+      const averages = {};
+      for (const category of categories) {
+        try {
+          const average = await getCategoryAverage(category.id);
+          averages[category.id] = average;
+        } catch (error) {
+          console.error('Error calculating category average:', error);
+          averages[category.id] = null;
+        }
+      }
+      setCategoryAverages(averages);
+    };
+
+    loadCategoryAverages();
+  }, [categories, getCategoryAverage]);
+
   if (!categories || categories.length === 0) {
     return (
       <div className="col-span-2 text-center py-12">
@@ -38,7 +61,7 @@ function AssessmentCategories({
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
       {categories.map((category) => {
         const categoryGrades = grades[category.id] || [];
-        const categoryAverage = getCategoryAverage(category.id);
+        const categoryAverage = categoryAverages[category.id] || null;
 
         return (
           <AssessmentCategory

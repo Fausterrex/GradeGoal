@@ -102,7 +102,7 @@ export const getCurrentAcademicPeriod = (courses = []) => {
  * @param {string} semester - Semester to filter by ('FIRST' or 'SECOND')
  * @returns {number} Semester GPA (0-4.0 scale)
  */
-export const calculateSemesterGPA = (
+export const calculateSemesterGPA = async (
   courses,
   grades,
   academicYear,
@@ -126,7 +126,6 @@ export const calculateSemesterGPA = (
         course.academicYear === academicYear &&
         course.semester === semester
     );
-
     if (semesterCourses.length === 0) {
       return 0;
     }
@@ -135,10 +134,10 @@ export const calculateSemesterGPA = (
     let totalWeightedGPA = 0;
     let totalWeight = 0;
 
-    semesterCourses.forEach((course) => {
+    for (const course of semesterCourses) {
       try {
         // Pass the entire grades object - GradeService will filter by course categories
-        const courseResult = GradeService.calculateCourseGrade(course, grades);
+        const courseResult = await GradeService.calculateCourseGrade(course, grades);
 
         if (courseResult.success) {
           let courseGPA = courseResult.courseGrade;
@@ -151,9 +150,12 @@ export const calculateSemesterGPA = (
             );
           }
 
-          const courseWeight = course.creditHours || 3;
-          totalWeightedGPA += courseGPA * courseWeight;
-          totalWeight += courseWeight;
+          // Only include courses with meaningful grades (greater than 0)
+          if (courseGPA > 0) {
+            const courseWeight = course.creditHours || 3;
+            totalWeightedGPA += courseGPA * courseWeight;
+            totalWeight += courseWeight;
+          }
         }
       } catch (error) {
         console.error(
@@ -161,9 +163,10 @@ export const calculateSemesterGPA = (
           error
         );
       }
-    });
+    }
 
-    return totalWeight > 0 ? totalWeightedGPA / totalWeight : 0;
+    const finalGPA = totalWeight > 0 ? totalWeightedGPA / totalWeight : 0;
+    return finalGPA;
   } catch (error) {
     console.error(
       `Error calculating semester GPA for ${academicYear} ${semester}:`,
@@ -179,7 +182,7 @@ export const calculateSemesterGPA = (
  * @param {Object} grades - Grades object containing all course grades
  * @returns {number} Overall GPA for all active courses (0-4.0 scale)
  */
-export const calculateAllCoursesGPA = (courses, grades) => {
+export const calculateAllCoursesGPA = async (courses, grades) => {
   if (!courses || !Array.isArray(courses) || !grades) {
     return 0;
   }
@@ -196,10 +199,10 @@ export const calculateAllCoursesGPA = (courses, grades) => {
     let totalWeightedGPA = 0;
     let totalWeight = 0;
 
-    activeCourses.forEach((course) => {
+    for (const course of activeCourses) {
       try {
         // Pass the entire grades object - GradeService will filter by course categories
-        const courseResult = GradeService.calculateCourseGrade(course, grades);
+        const courseResult = await GradeService.calculateCourseGrade(course, grades);
 
         if (courseResult.success) {
           let courseGPA = courseResult.courseGrade;
@@ -212,9 +215,12 @@ export const calculateAllCoursesGPA = (courses, grades) => {
             );
           }
 
-          const courseWeight = course.creditHours || 3;
-          totalWeightedGPA += courseGPA * courseWeight;
-          totalWeight += courseWeight;
+          // Only include courses with meaningful grades (greater than 0)
+          if (courseGPA > 0) {
+            const courseWeight = course.creditHours || 3;
+            totalWeightedGPA += courseGPA * courseWeight;
+            totalWeight += courseWeight;
+          }
         }
       } catch (error) {
         console.error(
@@ -222,7 +228,7 @@ export const calculateAllCoursesGPA = (courses, grades) => {
           error
         );
       }
-    });
+    }
 
     return totalWeight > 0 ? totalWeightedGPA / totalWeight : 0;
   } catch (error) {
@@ -237,7 +243,7 @@ export const calculateAllCoursesGPA = (courses, grades) => {
  * @param {Object} grades - Grades object containing all course grades
  * @returns {number} Current semester GPA (0-4.0 scale)
  */
-export const calculateCurrentSemesterGPA = (courses, grades) => {
+export const calculateCurrentSemesterGPA = async (courses, grades) => {
   if (!courses || courses.length === 0) {
     return 0;
   }
@@ -247,7 +253,7 @@ export const calculateCurrentSemesterGPA = (courses, grades) => {
     const academicPeriods = getAllAcademicPeriods(courses);
 
     if (academicPeriods.length === 0) {
-      return calculateAllCoursesGPA(courses, grades);
+      return await calculateAllCoursesGPA(courses, grades);
     }
 
     // Sort by academic year and semester to get the most recent
@@ -264,7 +270,7 @@ export const calculateCurrentSemesterGPA = (courses, grades) => {
     const mostRecentPeriod = sortedPeriods[0];
 
     // Calculate GPA for the most recent semester
-    const semesterGPA = calculateSemesterGPA(
+    const semesterGPA = await calculateSemesterGPA(
       courses,
       grades,
       mostRecentPeriod.academicYear,
@@ -273,13 +279,13 @@ export const calculateCurrentSemesterGPA = (courses, grades) => {
 
     // If semester GPA is 0, fall back to all courses GPA
     if (semesterGPA === 0) {
-      return calculateAllCoursesGPA(courses, grades);
+      return await calculateAllCoursesGPA(courses, grades);
     }
 
     return semesterGPA;
   } catch (error) {
     console.error("Error calculating current semester GPA:", error);
-    return calculateAllCoursesGPA(courses, grades);
+    return await calculateAllCoursesGPA(courses, grades);
   }
 };
 
@@ -289,7 +295,7 @@ export const calculateCurrentSemesterGPA = (courses, grades) => {
  * @param {Object} grades - Grades object containing all course grades
  * @returns {Object} Object containing GPA and semester details
  */
-export const getCurrentSemesterGPADetails = (courses, grades) => {
+export const getCurrentSemesterGPADetails = async (courses, grades) => {
   if (!courses || courses.length === 0) {
     return {
       gpa: 0,
@@ -341,7 +347,7 @@ export const getCurrentSemesterGPADetails = (courses, grades) => {
     const mostRecentPeriod = sortedPeriods[0];
 
     // Calculate GPA for the most recent semester
-    const gpa = calculateSemesterGPA(
+    const gpa = await calculateSemesterGPA(
       courses,
       grades,
       mostRecentPeriod.academicYear,
@@ -356,16 +362,16 @@ export const getCurrentSemesterGPADetails = (courses, grades) => {
         course.semester === mostRecentPeriod.semester
     );
 
-    // Count completed courses (courses with grades)
+    // Count completed courses (courses with meaningful grades)
     let completedCourses = 0;
     coursesInSemester.forEach((course) => {
       try {
-        const courseGrades = grades[course.id] || grades[course.courseId] || {};
+        // Pass the entire grades object - GradeService will filter by course categories
         const courseResult = GradeService.calculateCourseGrade(
           course,
-          courseGrades
+          grades
         );
-        if (courseResult.success) {
+        if (courseResult.success && courseResult.courseGrade > 0) {
           completedCourses++;
         }
       } catch (error) {
@@ -458,10 +464,10 @@ export const getSemesterGPAStats = (
 
     semesterCourses.forEach((course) => {
       try {
-        const courseGrades = grades[course.id] || grades[course.courseId] || {};
+        // Pass the entire grades object - GradeService will filter by course categories
         const courseResult = GradeService.calculateCourseGrade(
           course,
-          courseGrades
+          grades
         );
 
         if (courseResult.success) {
@@ -475,10 +481,13 @@ export const getSemesterGPAStats = (
             );
           }
 
-          const courseWeight = course.creditHours || 3;
-          totalWeightedGPA += courseGPA * courseWeight;
-          totalWeight += courseWeight;
-          completedCourses++;
+          // Only include courses with meaningful grades (greater than 0)
+          if (courseGPA > 0) {
+            const courseWeight = course.creditHours || 3;
+            totalWeightedGPA += courseGPA * courseWeight;
+            totalWeight += courseWeight;
+            completedCourses++;
+          }
         }
       } catch (error) {
         console.error(

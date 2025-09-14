@@ -4,7 +4,7 @@
 // Consolidated component that combines analytics, statistics, status badges, and key metrics
 
 import React, { useMemo } from "react";
-import { convertPercentageToGPA } from "../../../utils/gradeCalculations";
+import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
 
 function UnifiedAnalytics({ 
   userAnalytics, 
@@ -58,34 +58,8 @@ function UnifiedAnalytics({
     };
   }, [grades]);
 
-  // Get status based on current performance
-  const getStatus = () => {
-    const currentGPA = convertPercentageToGPA(currentGrade, course.gpaScale || "4.0");
-    const targetGPA = targetGrade ? parseFloat(targetGrade) : null;
-    
-    if (!targetGPA) return { status: 'No Goal', color: 'gray', icon: '❓' };
-    
-    const gap = targetGPA - currentGPA;
-    if (gap <= 0) return { status: 'Excelling', color: 'green', icon: '🎉' };
-    if (gap <= 0.2) return { status: 'On Track', color: 'blue', icon: '✅' };
-    if (gap <= 0.5) return { status: 'At Risk', color: 'yellow', icon: '⚠️' };
-    return { status: 'Needs Attention', color: 'red', icon: '🚨' };
-  };
-
-  const status = getStatus();
   const performance_metrics = userAnalytics?.performance_metrics || {};
-  const predictions = performance_metrics?.predictions || {};
   const statistics = performance_metrics?.statistics || {};
-
-  const getStatusColor = (statusColor) => {
-    switch (statusColor) {
-      case 'green': return 'from-green-500 to-emerald-500';
-      case 'blue': return 'from-blue-500 to-cyan-500';
-      case 'yellow': return 'from-yellow-500 to-orange-500';
-      case 'red': return 'from-red-500 to-pink-500';
-      default: return 'from-gray-400 to-gray-500';
-    }
-  };
 
   const MetricCard = ({ title, value, subtitle, icon, urgent = false }) => (
     <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-4 ${urgent ? 'border-red-300' : ''}`}>
@@ -99,29 +73,9 @@ function UnifiedAnalytics({
     </div>
   );
 
+
   return (
     <div className="space-y-6">
-      {/* Status Badge */}
-      <div className="bg-white rounded border border-gray-200 overflow-hidden">
-        <div className={`bg-gradient-to-r ${getStatusColor(status.color)} px-6 py-4`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{status.icon}</span>
-              <div>
-                <h3 className="text-xl font-bold text-white">Current Status</h3>
-                <p className="text-white/80">{status.status}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-white">
-                {userAnalytics?.current_grade?.toFixed(1) || currentGrade?.toFixed(1) || '0.0'}%
-              </div>
-              <div className="text-white/80">Current Grade</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard

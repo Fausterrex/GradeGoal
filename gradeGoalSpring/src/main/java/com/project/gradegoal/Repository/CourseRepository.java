@@ -3,9 +3,11 @@ package com.project.gradegoal.Repository;
 import com.project.gradegoal.Entity.Course;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,4 +41,44 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByIsActiveTrue();
 
     List<Course> findByIsActiveFalse();
+
+    // ========================================
+    // DATABASE FUNCTION CALLS
+    // ========================================
+
+    @Query(value = "SELECT CalculateCourseGrade(:courseId)", nativeQuery = true)
+    BigDecimal calculateCourseGrade(@Param("courseId") Long courseId);
+
+    @Query(value = "SELECT CalculateCategoryGrade(:categoryId)", nativeQuery = true)
+    BigDecimal calculateCategoryGrade(@Param("categoryId") Long categoryId);
+
+    @Query(value = "SELECT CalculateGPA(:percentage)", nativeQuery = true)
+    BigDecimal calculateGPA(@Param("percentage") BigDecimal percentage);
+
+    @Query(value = "SELECT CalculateCumulativeGPA(:userId)", nativeQuery = true)
+    BigDecimal calculateCumulativeGPA(@Param("userId") Long userId);
+
+    // ========================================
+    // DATABASE PROCEDURE CALLS
+    // ========================================
+
+    @Modifying
+    @Query(value = "CALL UpdateCourseGrades(:courseId)", nativeQuery = true)
+    void updateCourseGrades(@Param("courseId") Long courseId);
+
+    @Modifying
+    @Query(value = "CALL UpdateUserAnalytics(:userId, :courseId)", nativeQuery = true)
+    void updateUserAnalytics(@Param("userId") Long userId, @Param("courseId") Long courseId);
+
+    @Modifying
+    @Query(value = "CALL CheckGoalProgress(:userId)", nativeQuery = true)
+    void checkGoalProgress(@Param("userId") Long userId);
+
+    @Modifying
+    @Query(value = "CALL CheckGradeAlerts(:userId)", nativeQuery = true)
+    void checkGradeAlerts(@Param("userId") Long userId);
+
+    @Modifying
+    @Query(value = "CALL InitializeSampleAchievements()", nativeQuery = true)
+    void initializeSampleAchievements();
 }

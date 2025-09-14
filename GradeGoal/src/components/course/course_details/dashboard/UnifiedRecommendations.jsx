@@ -4,7 +4,7 @@
 // Consolidated component that combines basic recommendations and smart analytics-based recommendations
 
 import React, { useState, useMemo } from "react";
-import analyticsService from "../../../services/analyticsService";
+import AnalyticsService from "../../../../services/analyticsService";
 
 function UnifiedRecommendations({ 
   course, 
@@ -135,7 +135,7 @@ function UnifiedRecommendations({
   // Get smart recommendations from analytics service
   const smartRecommendations = useMemo(() => {
     if (!userAnalytics || !course) return [];
-    return analyticsService.generateRecommendations(userAnalytics, course, categories);
+    return AnalyticsService.generateRecommendations(userAnalytics, course, categories);
   }, [userAnalytics, course, categories]);
 
   // Combine and deduplicate recommendations

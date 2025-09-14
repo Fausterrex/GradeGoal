@@ -4,12 +4,14 @@
 // Main dashboard layout that organizes all course detail components
 
 import React from "react";
-import InformationCard from "./InformationCard";
 import UnifiedAnalytics from "./UnifiedAnalytics";
 import UnifiedProgress from "./UnifiedProgress";
 import UnifiedRecommendations from "./UnifiedRecommendations";
 import UnifiedGradeBreakdown from "./UnifiedGradeBreakdown";
 import UserProgress from "./UserProgress";
+import GoalProgress from "./GoalProgress";
+
+
 
 function Dashboard({
   course,
@@ -19,21 +21,26 @@ function Dashboard({
   currentGrade,
   colorScheme,
   userProgress,
-  userAnalytics
+  userAnalytics,
+  onSetGoal = () => {} // Callback for setting goals
 }) {
   return (
     <div className="space-y-8">
-      {/* Top Row - Information and User Progress */}
+      {/* Top Row - Goal Progress and User Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <InformationCard 
-          course={course} 
-          colorScheme={colorScheme} 
+        <GoalProgress
+          currentGrade={currentGrade}
+          targetGrade={targetGrade}
+          course={course}
+          colorScheme={colorScheme}
+          onSetGoal={onSetGoal}
         />
         <UserProgress 
           userProgress={userProgress}
           course={course}
         />
       </div>
+  
 
       {/* Unified Analytics */}
       <UnifiedAnalytics

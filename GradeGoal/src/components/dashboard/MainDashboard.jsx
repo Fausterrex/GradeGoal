@@ -82,6 +82,9 @@ function MainDashboard({ initialTab = "overview" }) {
   const [isClosingOverlay, setIsClosingOverlay] = useState(false);
   const [isOpeningOverlay, setIsOpeningOverlay] = useState(false);
   const [previousTab, setPreviousTab] = useState("overview");
+  const [previousRoute, setPreviousRoute] = useState("/dashboard");
+  const [isFromSidebar, setIsFromSidebar] = useState(false);
+  
   const [showArchivedCourses, setShowArchivedCourses] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobileCourseListOpen, setIsMobileCourseListOpen] = useState(false);
@@ -196,7 +199,7 @@ function MainDashboard({ initialTab = "overview" }) {
 
         setGrades(allGrades);
 
-        const coursesWithProgress = coursesData.map((course) => {
+        const coursesWithProgressPromises = coursesData.map(async (course) => {
           try {
             const progress = calculateCourseProgress(
               course.categories,
@@ -207,26 +210,31 @@ function MainDashboard({ initialTab = "overview" }) {
             let hasGrades = false;
 
             if (course.categories && course.categories.length > 0) {
-              const gradeResult = GradeService.calculateCourseGrade(
-                course,
-                allGrades
-              );
-              if (gradeResult.success) {
-                courseGrade = gradeResult.courseGrade;
-                hasGrades = true;
+              try {
+                console.log('📊 MainDashboard - Calculating grade for course:', course.id);
+                const gradeResult = await GradeService.calculateCourseGrade(
+                  course,
+                  allGrades
+                );
+                if (gradeResult.success) {
+                  courseGrade = gradeResult.courseGrade;
+                  hasGrades = true;
 
-                const gradingScale = course.gradingScale || "percentage";
-                const gpaScale = course.gpaScale || "4.0";
+                  const gradingScale = course.gradingScale || "percentage";
+                  const gpaScale = course.gpaScale || "4.0";
 
-                if (
-                  gradingScale === "gpa" ||
-                  (gradingScale === "percentage" && courseGrade > 100)
-                ) {
-                  courseGrade = GradeService.convertPercentageToGPA(
-                    courseGrade,
-                    gpaScale
-                  );
+                  if (
+                    gradingScale === "gpa" ||
+                    (gradingScale === "percentage" && courseGrade > 100)
+                  ) {
+                    courseGrade = GradeService.convertPercentageToGPA(
+                      courseGrade,
+                      gpaScale
+                    );
+                  }
                 }
+              } catch (error) {
+                console.error('Error calculating course grade:', error);
               }
             }
 
@@ -245,6 +253,8 @@ function MainDashboard({ initialTab = "overview" }) {
             };
           }
         });
+
+        const coursesWithProgress = await Promise.all(coursesWithProgressPromises);
 
         setCourses(coursesWithProgress);
         setIsLoading(false);
@@ -284,7 +294,10 @@ function MainDashboard({ initialTab = "overview" }) {
   }, [activeTab, courses, grades, loadAllGrades]);
 
   useEffect(() => {
-    setActiveTab(initialTab);
+    // Only set initial tab on first load, not on every courses update
+    if (initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
 
     if (initialTab === "grades") {
       const path = window.location.pathname;
@@ -298,22 +311,38 @@ function MainDashboard({ initialTab = "overview" }) {
         }
       }
     }
-  }, [initialTab, courses]);
+  }, [initialTab, courses, activeTab]);
 
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (event) => {
       const path = window.location.pathname;
+      
       if (path === "/dashboard") {
         setActiveTab("overview");
       } else if (path.startsWith("/dashboard/")) {
         const tab = path.split("/")[2];
         if (["courses", "goals", "reports", "calendar"].includes(tab)) {
           setActiveTab(tab);
+          // Clear selected course when navigating to goals, reports, or calendar
+          if (tab === "goals" || tab === "reports" || tab === "calendar") {
+            setSelectedCourse(null);
+            // Also close course manager when navigating to these tabs
+            if (isCourseManagerExpanded) {
+              setIsClosingOverlay(true);
+              setTimeout(() => {
+                setIsCourseManagerExpanded(false);
+                setIsClosingOverlay(false);
+              }, 500);
+            } else {
+              setIsCourseManagerExpanded(false);
+            }
+          }
         } else if (tab === "course") {
           const courseId = path.split("/")[3];
           if (courseId) {
             const course = courses.find((c) => c.id === courseId);
             if (course) {
+              setPreviousRoute(window.location.pathname); // Store current route before navigation
               setSelectedCourse(course);
               setActiveTab("grades");
             }
@@ -322,9 +351,10 @@ function MainDashboard({ initialTab = "overview" }) {
       }
     };
 
+    // Only add the event listener, don't call handlePopState immediately
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [courses]);
+  }, [courses, isCourseManagerExpanded]);
 
   useEffect(() => {
     if (selectedCourse) {
@@ -373,8 +403,12 @@ function MainDashboard({ initialTab = "overview" }) {
         });
 
         // Recalculate progress for ALL courses with the updated grades
-        setCourses((prevCourses) => {
-          return prevCourses.map((course) => {
+        setCourses(prevCourses => {
+          // Use the previous courses state to avoid stale closure
+          const currentCourses = prevCourses;
+          
+          // Process courses asynchronously but return current state immediately
+          Promise.all(currentCourses.map(async (course) => {
             try {
               const progress = calculateCourseProgress(
                 course.categories,
@@ -385,26 +419,30 @@ function MainDashboard({ initialTab = "overview" }) {
               let hasGrades = false;
 
               if (course.categories && course.categories.length > 0) {
-                const gradeResult = GradeService.calculateCourseGrade(
-                  course,
-                  mergedGrades
-                );
-                if (gradeResult.success) {
-                  courseGrade = gradeResult.courseGrade;
-                  hasGrades = true;
+                try {
+                  const gradeResult = await GradeService.calculateCourseGrade(
+                    course,
+                    mergedGrades
+                  );
+                  if (gradeResult.success) {
+                    courseGrade = gradeResult.courseGrade;
+                    hasGrades = true;
 
-                  const gradingScale = course.gradingScale || "percentage";
-                  const gpaScale = course.gpaScale || "4.0";
+                    const gradingScale = course.gradingScale || "percentage";
+                    const gpaScale = course.gpaScale || "4.0";
 
-                  if (
-                    gradingScale === "gpa" ||
-                    (gradingScale === "percentage" && courseGrade > 100)
-                  ) {
-                    courseGrade = GradeService.convertPercentageToGPA(
-                      courseGrade,
-                      gpaScale
-                    );
+                    if (
+                      gradingScale === "gpa" ||
+                      (gradingScale === "percentage" && courseGrade > 100)
+                    ) {
+                      courseGrade = GradeService.convertPercentageToGPA(
+                        courseGrade,
+                        gpaScale
+                      );
+                    }
                   }
+                } catch (error) {
+                  console.error('Error calculating course grade in fallback:', error);
                 }
               }
 
@@ -419,7 +457,13 @@ function MainDashboard({ initialTab = "overview" }) {
               console.error(`Error updating course progress for ${course.name}:`, error);
               return course; // Return unchanged course if error
             }
+          })).then(coursesWithProgress => {
+            // Update courses with calculated progress
+            setCourses(coursesWithProgress);
           });
+          
+          // Return current state immediately to avoid blocking
+          return currentCourses;
         });
 
         return mergedGrades;
@@ -428,7 +472,13 @@ function MainDashboard({ initialTab = "overview" }) {
   };
 
   const handleCourseNavigation = (course) => {
-    setPreviousTab(activeTab);
+    // Only update previous values if we're not coming from sidebar
+    // This prevents overriding values set by sidebar expansion
+    if (!isFromSidebar) {
+      setPreviousTab(activeTab);
+      setPreviousRoute(window.location.pathname);
+    }
+    
     setSelectedCourse(course);
 
     setActiveTab("grades");
@@ -442,15 +492,31 @@ function MainDashboard({ initialTab = "overview" }) {
   const handleBackFromCourse = () => {
     setSelectedCourse(null);
 
-    setActiveTab("courses");
-    navigate("/dashboard/courses");
+    // Navigate back to the previous route
+    navigate(previousRoute);
+    
+    // Update active tab based on the previous tab (more reliable than parsing route)
+    setActiveTab(previousTab);
+    
+    // Reset sidebar flag
+    setIsFromSidebar(false);
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
 
-    if (tab === "overview" || tab === "reports" || tab === "calendar") {
+    if (tab === "overview" || tab === "reports" || tab === "calendar" || tab === "goals") {
       setSelectedCourse(null);
+      // Also close course manager when switching to these tabs
+      if (isCourseManagerExpanded) {
+        setIsClosingOverlay(true);
+        setTimeout(() => {
+          setIsCourseManagerExpanded(false);
+          setIsClosingOverlay(false);
+        }, 500);
+      } else {
+        setIsCourseManagerExpanded(false);
+      }
     }
 
     if (tab === "courses" && !selectedCourse) {
@@ -487,6 +553,12 @@ function MainDashboard({ initialTab = "overview" }) {
   };
 
   const calculateOverallGPA = () => {
+    // Safety check: ensure courses is an array
+    if (!Array.isArray(courses)) {
+      console.warn('Courses is not an array:', courses);
+      return 0;
+    }
+    
     if (courses.length === 0) return 0;
 
     const hasGrades = Object.keys(grades).length > 0;
@@ -780,6 +852,10 @@ function MainDashboard({ initialTab = "overview" }) {
               isExpanded={isCourseManagerExpanded}
               onToggleExpanded={() => {
                 if (!isCourseManagerExpanded) {
+                  // Store current tab and route when expanding course manager
+                  setPreviousTab(activeTab);
+                  setPreviousRoute(window.location.pathname);
+                  setIsFromSidebar(true); // Mark that we're coming from sidebar
                   setIsOpeningOverlay(true);
                   setIsCourseManagerExpanded(true);
                 } else {
@@ -787,6 +863,7 @@ function MainDashboard({ initialTab = "overview" }) {
                   setTimeout(() => {
                     setIsCourseManagerExpanded(false);
                     setIsClosingOverlay(false);
+                    setIsFromSidebar(false); // Reset sidebar flag
                   }, 500);
                 }
               }}
@@ -1023,8 +1100,20 @@ function MainDashboard({ initialTab = "overview" }) {
                 <GradeEntry
                   course={selectedCourse}
                   onGradeUpdate={handleGradeUpdate}
-                  onBack={() => setSelectedCourse(null)}
+                  onBack={handleBackFromCourse}
                   onNavigateToCourse={handleCourseNavigation}
+                  onClearSelectedCourse={() => setSelectedCourse(null)}
+                  onCloseCourseManager={() => {
+                    if (isCourseManagerExpanded) {
+                      setIsClosingOverlay(true);
+                      setTimeout(() => {
+                        setIsCourseManagerExpanded(false);
+                        setIsClosingOverlay(false);
+                      }, 500);
+                    } else {
+                      setIsCourseManagerExpanded(false);
+                    }
+                  }}
                 />
               </div>
             ) : (

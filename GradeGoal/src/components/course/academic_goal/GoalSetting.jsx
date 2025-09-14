@@ -52,15 +52,15 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
 
       try {
         const response = await fetch(`http://localhost:8080/api/academic-goals/user/${user.userId}`);
-      if (response.ok) {
+        if (response.ok) {
           const goalsData = await response.json();
           setGoals(goalsData);
-      } else {
-          console.error('Failed to fetch goals');
-      }
-    } catch (error) {
-        console.error('Error fetching goals:', error);
-    } finally {
+        } else {
+          console.error('Failed to fetch goals from database');
+        }
+      } catch (error) {
+        console.error('Error fetching goals from database:', error);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -77,15 +77,11 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     }
   }, [goals, activeFilter]);
 
-  // Recalculate progress when grades change
+  // Recalculate progress when grades change (debounced to prevent infinite loops)
   useEffect(() => {
     if (Object.keys(grades).length > 0 && goals.length > 0) {
-      console.log('GoalSetting grades useEffect triggered:', {
-        gradesKeys: Object.keys(grades).length,
-        gradesEmpty: Object.keys(grades).length === 0,
-        coursesLength: courses.length,
-        grades
-      });
+      // Progress will be recalculated by individual GoalCard components
+      // No need to trigger additional calculations here
     }
   }, [grades, courses, goals]);
 
@@ -122,12 +118,25 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     if (!user?.userId) return;
 
     try {
+      // Prepare goal data with proper validation
       const goalData = {
-        ...formData,
-        userId: user.userId,
+        userId: parseInt(user.userId),
+        goalTitle: formData.goalType, // Backend expects 'goalTitle' not 'goalType'
+        goalType: formData.goalType,
         targetValue: parseFloat(formData.targetValue),
-        courseId: formData.courseId ? parseInt(formData.courseId) : null
+        targetDate: formData.targetDate || null,
+        description: formData.description || '',
+        courseId: formData.courseId ? parseInt(formData.courseId) : null,
+        status: 'active',
+        priority: formData.priority || 'medium'
       };
+
+      // Remove any undefined or null values that might cause validation errors
+      Object.keys(goalData).forEach(key => {
+        if (goalData[key] === undefined || goalData[key] === '') {
+          delete goalData[key];
+        }
+      });
 
       const url = editingGoal 
         ? `http://localhost:8080/api/academic-goals/${editingGoal.goalId}`
@@ -153,12 +162,15 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
         } else {
           setGoals(prev => [...prev, updatedGoal]);
         }
+        
+        return updatedGoal;
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save goal');
+        const errorText = await response.text();
+        console.error('Backend error response:', errorText);
+        throw new Error(`Failed to save goal: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.error('Error saving goal:', error);
+      console.error('Error saving goal to database:', error);
       throw error;
     }
   };
@@ -171,20 +183,24 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
 
+    // Close modal immediately to prevent UI blocking
+    const goalToDelete = deleteConfirm;
+    setDeleteConfirm(null);
+
     try {
-      const response = await fetch(`http://localhost:8080/api/academic-goals/${deleteConfirm.goalId}`, {
+      const response = await fetch(`http://localhost:8080/api/academic-goals/${goalToDelete.goalId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setGoals(prev => prev.filter(goal => goal.goalId !== deleteConfirm.goalId));
+        setGoals(prev => prev.filter(goal => goal.goalId !== goalToDelete.goalId));
       } else {
         console.error('Failed to delete goal');
+        alert('Failed to delete goal. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting goal:', error);
-    } finally {
-      setDeleteConfirm(null);
+      alert('Error deleting goal. Please try again.');
     }
   };
 
@@ -267,7 +283,13 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
         message={`Are you sure you want to delete "${deleteConfirm?.goalTitle}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
-        isDestructive={true}
+        type="delete"
+        showWarning={true}
+        warningItems={[
+          "This goal will be permanently removed",
+          "All progress tracking will be lost",
+          "This action cannot be undone"
+        ]}
       />
     </div>
   );

@@ -3,9 +3,11 @@ package com.project.gradegoal.Repository;
 import com.project.gradegoal.Entity.Grade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -48,4 +50,9 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
 
     @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE a.categoryId IN (SELECT ac.categoryId FROM AssessmentCategory ac WHERE ac.courseId IN (SELECT c.courseId FROM Course c WHERE c.userId = :userId))")
     List<Grade> findGradesByUserId(@Param("userId") Long userId);
+
+    // ========================================
+    // DATABASE PROCEDURE CALLS
+    // ========================================
+
 }

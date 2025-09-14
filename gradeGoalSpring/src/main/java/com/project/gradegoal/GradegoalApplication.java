@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class GradegoalApplication {
+public class    GradegoalApplication {
 
     public static void main(String[] args) {
 

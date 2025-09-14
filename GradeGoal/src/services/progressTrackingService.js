@@ -12,6 +12,13 @@ import {
   calculateLevel,
   calculateStreak
 } from '../backend/progressAnalyticsApi';
+import { 
+  awardPoints as awardPointsDB, 
+  checkGoalProgress, 
+  checkGradeAlerts, 
+  checkUserAchievements,
+  calculateGPA
+} from './databaseCalculationService';
 
 class ProgressTrackingService {
   constructor() {
@@ -56,8 +63,15 @@ class ProgressTrackingService {
         points += this.pointsConfig.extra_credit_earned;
       }
 
-      // Award points
-      const result = await awardPoints(userId, points, 'grade_entered');
+      // Try to award points using database function first
+      let result;
+      try {
+        result = await awardPointsDB(userId, points, 'GRADE_ENTRY');
+      } catch (error) {
+        console.warn('Database function failed, using fallback:', error);
+        // Fallback to old API
+        result = await awardPoints(userId, points, 'grade_entered');
+      }
       
       // Check for level up
       await this.checkLevelUp(userId, result);
@@ -201,12 +215,18 @@ class ProgressTrackingService {
   async getUserProgressWithLevel(userId) {
     try {
       const progress = await getUserProgress(userId);
-      const levelInfo = calculateLevel(progress.total_points);
       
-      return {
+      // Handle both camelCase (database) and snake_case (localStorage) formats
+      const totalPoints = progress.totalPoints || progress.total_points || 0;
+      
+      const levelInfo = calculateLevel(totalPoints);
+      
+      const result = {
         ...progress,
         level_info: levelInfo
       };
+      
+      return result;
     } catch (error) {
       console.error('Error getting user progress with level:', error);
       throw error;
@@ -220,9 +240,12 @@ class ProgressTrackingService {
    */
   async checkLevelUp(userId, updatedProgress) {
     try {
-      const currentLevel = calculateLevel(updatedProgress.total_points);
+      // Handle both camelCase (database) and snake_case (localStorage) formats
+      const currentTotalPoints = updatedProgress.totalPoints || updatedProgress.total_points || 0;
+      const currentLevel = calculateLevel(currentTotalPoints);
       const previousProgress = await getUserProgress(userId);
-      const previousLevel = calculateLevel(previousProgress.total_points);
+      const previousTotalPoints = previousProgress.totalPoints || previousProgress.total_points || 0;
+      const previousLevel = calculateLevel(previousTotalPoints);
       
       if (currentLevel.level > previousLevel.level) {
         // User leveled up!
@@ -257,8 +280,6 @@ class ProgressTrackingService {
       await awardPoints(userId, levelUpBonus, 'level_up');
       
       // You could also trigger notifications, achievements, etc. here
-      console.log(`User ${userId} leveled up from ${previousLevel.level} to ${newLevel.level}!`);
-      
       return true;
     } catch (error) {
       console.error('Error handling level up:', error);

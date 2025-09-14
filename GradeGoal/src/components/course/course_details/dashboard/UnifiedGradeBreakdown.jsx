@@ -4,7 +4,7 @@
 // Consolidated component that combines enhanced grade breakdown and goal achievement likelihood
 
 import React, { useMemo } from "react";
-import { convertPercentageToGPA } from "../../../utils/gradeCalculations";
+import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
 
 function UnifiedGradeBreakdown({ 
   categories, 
@@ -259,6 +259,9 @@ function UnifiedGradeBreakdown({
               <div className="text-2xl font-bold text-gray-900">
                 {analysis.average ? convertPercentageToGPA(analysis.average, course.gpaScale || "4.0").toFixed(2) : '--'}
               </div>
+              <div className="text-sm text-gray-500">
+                {analysis.average ? `(${Math.round(analysis.average)}%)` : ''}
+              </div>
               <div className="text-sm text-gray-600">GPA</div>
             </div>
             
@@ -346,6 +349,9 @@ function UnifiedGradeBreakdown({
           <div className="text-center p-4 bg-white rounded border">
             <div className="text-3xl font-bold text-gray-900">
               {convertPercentageToGPA(getOverallContribution(), course.gpaScale || "4.0").toFixed(2)}
+            </div>
+            <div className="text-sm text-gray-500">
+              ({Math.round(getOverallContribution())}%)
             </div>
             <div className="text-sm text-gray-600">Overall GPA</div>
           </div>

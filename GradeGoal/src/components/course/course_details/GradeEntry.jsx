@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   convertPercentageToGPA,
   getGradeColor,
-  calculateCategoryAverage,
 } from "../../../utils/gradeCalculations";
 import GradeService from "../../../services/gradeService";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../../backend/api";
@@ -25,22 +25,24 @@ import GradeSuccessFeedback from "../GradeSuccessFeedback";
 import { getCourseColorScheme } from "../../../utils/courseColors";
 import ConfirmationModal from "../../common/ConfirmationModal";
 import progressTrackingService from "../../../services/progressTrackingService";
-import analyticsService from "../../../services/analyticsService";
+import AnalyticsService from "../../../services/analyticsService";
 import { calculateAndStoreAnalytics } from "../../../backend/progressAnalyticsApi";
+import { addOrUpdateGrade, updateCourseGrades, awardPoints, checkGoalProgress, checkGradeAlerts, checkUserAchievements } from "../../../services/databaseCalculationService";
 
 // Import the new components
 import MainHeader from "./MainHeader";
 import SuccessMessage from "./SuccessMessage";
 import ArchivedWarning from "./ArchivedWarning";
-import AssessmentCategories from "./AssessmentCategories";
-import AssessmentModal from "./AssessmentModal";
-import AddScoreModal from "./AddScoreModal";
-import EditScoreModal from "./EditScoreModal";
-import Dashboard from "./Dashboard";
-import { generateAssessmentName } from "./AssessmentUtils";
+import AssessmentCategories from "./assessments/AssessmentCategories";
+import AssessmentModal from "./assessments/AssessmentModal";
+import AddScoreModal from "./assessments/AddScoreModal";
+import EditScoreModal from "./assessments/EditScoreModal";
+import Dashboard from "./dashboard/Dashboard";
+import { generateAssessmentName } from "./assessments/AssessmentUtils";
 
-function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
+function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClearSelectedCourse, onCloseCourseManager }) {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   // ========================================
   // STATE MANAGEMENT
@@ -73,6 +75,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
   const [showDashboard, setShowDashboard] = useState(true); // Toggle between dashboard and assessments
   const [userProgress, setUserProgress] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);
+  const [courseGrade, setCourseGrade] = useState(0);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     type: "edit",
@@ -95,9 +98,22 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
     if (course && currentUser) {
       loadCategories();
       loadUserAndTargetGrade();
-      loadUserProgress();
     }
   }, [course, currentUser]);
+
+  // Load user progress when userId becomes available
+  useEffect(() => {
+    if (userId && course && currentUser) {
+      loadUserProgress();
+    }
+  }, [userId, course, currentUser]);
+
+  // Update course grade when grades or categories change
+  useEffect(() => {
+    if (course && categories.length > 0) {
+      updateCourseGrade();
+    }
+  }, [grades, categories, course]);
 
   useEffect(() => {
     if (course && currentUser) {
@@ -111,6 +127,11 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       loadUserAnalytics();
     }
   }, [userId, course, grades, categories, targetGrade]);
+
+  // Monitor userId changes
+  useEffect(() => {
+    // userId state updated
+  }, [userId]);
 
   // Auto-generate name when category changes
   useEffect(() => {
@@ -143,7 +164,16 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       );
 
       if (courseGradeGoal) {
-        setTargetGrade(courseGradeGoal.targetValue);
+        // Convert target value from percentage to GPA if it's greater than 4.0
+        const targetValue = courseGradeGoal.targetValue;
+        if (targetValue > 4.0) {
+          // It's a percentage, convert to GPA
+          const gpaValue = convertPercentageToGPA(targetValue, course.gpaScale || "4.0");
+          setTargetGrade(gpaValue);
+        } else {
+          // It's already a GPA value
+          setTargetGrade(targetValue);
+        }
       }
     } catch (error) {
       console.error("Error loading target grade:", error);
@@ -224,7 +254,9 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
 
   const loadUserProgress = async () => {
     try {
-      if (!userId) return;
+      if (!userId) {
+        return;
+      }
       
       const progress = await progressTrackingService.getUserProgressWithLevel(userId);
       setUserProgress(progress);
@@ -241,7 +273,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       if (!userId || !course) return;
 
       // Calculate analytics
-      const analytics = analyticsService.calculateCourseAnalytics(
+      const analytics = AnalyticsService.calculateCourseAnalytics(
         course,
         grades,
         categories,
@@ -276,7 +308,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
   // ========================================
   // CALCULATION FUNCTIONS
   // ========================================
-  const getCategoryAverage = (categoryId) => {
+  const getCategoryAverage = async (categoryId) => {
     if (!categories || categories.length === 0) {
       return null;
     }
@@ -285,22 +317,20 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
     if (categoryGrades.length === 0) return null;
 
     try {
-      const average = calculateCategoryAverage(
-        categoryGrades,
-        course.gradingScale || "percentage",
-        course.maxPoints || 100,
-        "exclude"
-      );
-
+      // Use database calculation for category average
+      const { calculateCategoryGrade } = await import('../../../services/databaseCalculationService');
+      const average = await calculateCategoryGrade(categoryId);
       return average === 0 ? null : average;
     } catch (error) {
+      console.warn('Database category calculation failed:', error);
       return null;
     }
   };
 
-  const getCourseGrade = () => {
-    if (!categories || categories.length === 0) {
-      return 0;
+  const updateCourseGrade = async () => {
+    if (!categories || categories.length === 0 || !course?.id) {
+      setCourseGrade(0);
+      return;
     }
 
     try {
@@ -310,9 +340,24 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       );
 
       if (!hasAnyGrades) {
-        return 0;
+        setCourseGrade(0);
+        return;
       }
 
+      // Try to use database calculation first
+      try {
+        const { calculateCourseGrade } = await import('../../../services/databaseCalculationService');
+        const dbGrade = await calculateCourseGrade(course.id);
+        
+        if (dbGrade > 0) {
+          setCourseGrade(dbGrade);
+          return;
+        }
+      } catch (error) {
+        console.warn('Database calculation failed, falling back to JavaScript calculation:', error);
+      }
+
+      // Fallback to JavaScript calculation
       const courseWithCategories = { ...course, categories };
       const result = GradeService.calculateCourseGrade(
         courseWithCategories,
@@ -320,12 +365,13 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       );
 
       if (result.success) {
-        return result.courseGrade;
+        setCourseGrade(result.courseGrade);
       } else {
-        return 0;
+        setCourseGrade(0);
       }
     } catch (error) {
-      return 0;
+      console.error('Error calculating course grade:', error);
+      setCourseGrade(0);
     }
   };
 
@@ -492,6 +538,48 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
     }
 
     try {
+      // Calculate percentage score
+      const percentageScore = (score / selectedGrade.maxScore) * 100;
+      
+      // Use the new database calculation API
+      const gradeData = {
+        assessmentId: selectedGrade.id, // Assuming the grade ID is the assessment ID
+        pointsEarned: score,
+        pointsPossible: selectedGrade.maxScore,
+        percentageScore: percentageScore,
+        scoreType: "PERCENTAGE",
+        notes: selectedGrade.note || "",
+        isExtraCredit: scoreExtraCredit || false
+      };
+
+      const dbResult = await addOrUpdateGrade(gradeData);
+      
+      if (!dbResult.success) {
+        throw new Error(dbResult.result || 'Failed to save grade');
+      }
+
+      // Update course grades using database procedure
+      if (course?.id) {
+        try {
+          await updateCourseGrades(course.id);
+        } catch (error) {
+          console.error('Failed to update course grades:', error);
+        }
+      }
+
+      // Award points and check achievements
+      if (userId) {
+        try {
+          await awardPoints(userId, 10, 'GRADE_ADDED');
+          await checkGoalProgress(userId);
+          await checkGradeAlerts(userId);
+          await checkUserAchievements(userId);
+        } catch (error) {
+          console.error('Failed to process achievements/points:', error);
+        }
+      }
+
+      // Also update via the old API for compatibility
       const updateGradeData = {
         name: selectedGrade.name,
         maxScore: selectedGrade.maxScore,
@@ -565,6 +653,9 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
       
       setLastSavedGrade(savedGradeData);
       setShowSuccessFeedback(true);
+
+      // Update course grade calculation
+      await updateCourseGrade();
 
       // Track score submission
       if (userId) {
@@ -806,22 +897,17 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
   // ========================================
   if (!course) return <div>No course selected</div>;
 
-  const courseGrade = getCourseGrade();
   const totalAssessments = getTotalAssessments();
   const progressPercentage = getProgressPercentage();
   const colorScheme = getCourseColorScheme(course.name, course.colorIndex || 0);
 
   return (
-    <div
-      className={`w-full h-full ${colorScheme.light} flex flex-col overflow-y-auto`}
-    >
+    <div className={`w-full h-full ${colorScheme.light} flex flex-col overflow-y-auto`}>
       <MainHeader
         course={course}
         colorScheme={colorScheme}
         onBack={onBack}
         onEditCourseClick={handleEditCourseClick}
-        courseGrade={courseGrade}
-        targetGrade={targetGrade}
         progressPercentage={progressPercentage}
         totalAssessments={totalAssessments}
         showDashboard={showDashboard}
@@ -848,6 +934,16 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse }) {
               colorScheme={colorScheme}
               userProgress={userProgress}
               userAnalytics={userAnalytics}
+              onSetGoal={() => {
+                // Clear the selected course and close course manager first, then navigate
+                if (onClearSelectedCourse) {
+                  onClearSelectedCourse();
+                }
+                if (onCloseCourseManager) {
+                  onCloseCourseManager();
+                }
+                navigate('/dashboard/goals');
+              }}
             />
           ) : (
             <AssessmentCategories

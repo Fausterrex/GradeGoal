@@ -6,13 +6,12 @@
 // course impact analysis, and progress tracking.
 
 import {
-  calculateCourseGrade,
-  calculateCategoryAverage,
   convertPercentageToGPA,
   convertGPAToPercentage,
   GPA_SCALES,
 } from "../utils/gradeCalculations";
 import { calculateCourseProgress } from "../utils/progressCalculations";
+import { calculateCourseGrade as calculateCourseGradeDB, calculateCategoryGrade as calculateCategoryGradeDB } from './databaseCalculationService';
 
 class GradeService {
   // Calculates the impact of a course on overall GPA
@@ -59,9 +58,9 @@ class GradeService {
     }
   }
 
-  // Calculates the final grade for a course based on category weights and grades
+  // Calculates the final grade for a course using database functions with fallback
   // Handles different grading scales (percentage, GPA, points)
-  static calculateCourseGrade(course, currentGrades) {
+  static async calculateCourseGrade(course, currentGrades) {
     try {
       if (
         !course.categories ||
@@ -76,27 +75,97 @@ class GradeService {
         };
       }
 
+      // Try to use database calculation first if course has an ID
+      if (course.id) {
+        try {
+          const dbCourseGrade = await calculateCourseGradeDB(course.id);
+          
+          // Check if there are actually any grades in the currentGrades object
+          const hasAnyGrades = Object.values(currentGrades).some(
+            (categoryGrades) =>
+              Array.isArray(categoryGrades) && categoryGrades.length > 0
+          );
+          
+          if (dbCourseGrade > 0 && hasAnyGrades) {
+            
+            // For database calculation, we'll still calculate category averages with JavaScript
+            // as the database function returns the overall course grade
+            const categoriesWithGrades = course.categories.map((cat) => ({
+              ...cat,
+              grades: currentGrades[cat.id] || [],
+            }));
+
+            // For database calculation, we'll calculate category averages using database functions
+            const categoryAverages = await Promise.all(categoriesWithGrades.map(async (cat) => {
+              let average = 0;
+              try {
+                average = await calculateCategoryGradeDB(cat.id);
+              } catch (error) {
+                console.warn('Database category calculation failed, using 0:', error);
+                average = 0;
+              }
+              
+              return {
+                categoryId: cat.id,
+                categoryName: cat.name || cat.categoryName,
+                average: average,
+                weight: cat.weight || cat.weightPercentage,
+              };
+            }));
+
+            return {
+              success: true,
+              courseGrade: dbCourseGrade,
+              categoryAverages,
+              message: "Course grade calculated successfully using database function",
+            };
+          }
+        } catch (error) {
+          console.warn('Database calculation failed, falling back to JavaScript:', error);
+        }
+      }
+
+      // Fallback to JavaScript calculation (simplified)
       const categoriesWithGrades = course.categories.map((cat) => ({
         ...cat,
         grades: currentGrades[cat.id] || [],
       }));
 
-      const courseGrade = calculateCourseGrade(
-        categoriesWithGrades,
-        course.gradingScale,
-        course.maxPoints,
-        course.handleMissing
-      );
+      // Simple fallback calculation without the removed functions
+      let courseGrade = 0;
+      let totalWeight = 0;
+      let weightedSum = 0;
+
+      categoriesWithGrades.forEach((category) => {
+        const categoryWeight = category.weight || category.weightPercentage || 0;
+        
+        if (categoryWeight > 0 && category.grades && category.grades.length > 0) {
+          // Simple average calculation for fallback
+          const validGrades = category.grades.filter(grade => 
+            grade.score !== null && grade.score !== undefined && grade.score !== ""
+          );
+          
+          if (validGrades.length > 0) {
+            const categoryAverage = validGrades.reduce((sum, grade) => {
+              let adjustedScore = grade.score || 0;
+              if (grade.isExtraCredit && grade.extraCreditPoints) {
+                adjustedScore += grade.extraCreditPoints;
+              }
+              return sum + (adjustedScore / grade.maxScore) * 100;
+            }, 0) / validGrades.length;
+
+            weightedSum += categoryAverage * categoryWeight;
+            totalWeight += categoryWeight;
+          }
+        }
+      });
+
+      courseGrade = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
       const categoryAverages = categoriesWithGrades.map((cat) => ({
         categoryId: cat.id,
         categoryName: cat.name || cat.categoryName,
-        average: calculateCategoryAverage(
-          cat.grades,
-          course.gradingScale,
-          course.maxPoints,
-          course.handleMissing
-        ),
+        average: 0, // Simplified fallback - no individual category calculation
         weight: cat.weight || cat.weightPercentage,
       }));
 
@@ -104,7 +173,7 @@ class GradeService {
         success: true,
         courseGrade,
         categoryAverages,
-        message: "Course grade calculated successfully",
+        message: "Course grade calculated successfully using JavaScript calculation",
       };
     } catch (error) {
       return {

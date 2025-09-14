@@ -12,7 +12,7 @@ import GradeService from "../services/gradeService";
  * @param {Object} grades - Grades object containing all course grades
  * @returns {number} Cumulative GPA (0-4.0 scale)
  */
-export const calculateCumulativeGPA = (courses, grades) => {
+export const calculateCumulativeGPA = async (courses, grades) => {
   if (!courses || !Array.isArray(courses) || !grades) {
     return 0;
   }
@@ -21,10 +21,10 @@ export const calculateCumulativeGPA = (courses, grades) => {
     let totalWeightedGPA = 0;
     let totalWeight = 0;
 
-    courses.forEach((course) => {
+    for (const course of courses) {
       try {
         // Pass the entire grades object - GradeService will filter by course categories
-        const courseResult = GradeService.calculateCourseGrade(course, grades);
+        const courseResult = await GradeService.calculateCourseGrade(course, grades);
 
         if (courseResult.success) {
           let courseGPA = courseResult.courseGrade;
@@ -48,7 +48,7 @@ export const calculateCumulativeGPA = (courses, grades) => {
           error
         );
       }
-    });
+    }
 
     return totalWeight > 0 ? totalWeightedGPA / totalWeight : 0;
   } catch (error) {

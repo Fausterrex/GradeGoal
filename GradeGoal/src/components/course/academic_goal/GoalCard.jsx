@@ -3,7 +3,7 @@
 // ========================================
 // This component displays individual goal cards with progress information
 
-import React from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { FaEdit, FaTimes, FaBullseye, FaCalendarAlt } from "react-icons/fa";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "./goalProgress";
 import { getGoalTypeLabel, getPriorityColor, getCourseName, formatGoalDate } from "./goalUtils";
@@ -17,8 +17,72 @@ const GoalCard = ({
   isCompact = false,
   allGoals = []
 }) => {
-  // Calculate goal progress
-  const progressData = calculateGoalProgress(goal, courses, grades, {}, allGoals);
+  const [progressData, setProgressData] = useState({
+    progress: 0,
+    currentValue: 0,
+    targetValue: 0,
+    isAchieved: false,
+    isOnTrack: false,
+    achievementProbability: 0,
+    remainingValue: 0,
+    progressPercentage: 0,
+    status: 'not_started',
+    isCourseCompleted: false,
+    courseCompletionStatus: 'ongoing'
+  });
+
+  // Memoize the goal progress calculation to prevent infinite loops
+  const memoizedGoalProgress = useMemo(() => {
+    if (!goal) return Promise.resolve({
+      progress: 0,
+      currentValue: 0,
+      targetValue: 0,
+      isAchieved: false,
+      isOnTrack: false,
+      achievementProbability: 0,
+      remainingValue: 0,
+      progressPercentage: 0,
+      status: 'not_started',
+      isCourseCompleted: false,
+      courseCompletionStatus: 'ongoing'
+    });
+    
+    return calculateGoalProgress(goal, courses, grades, {}, allGoals);
+  }, [
+    goal?.goalId, 
+    goal?.targetValue, 
+    goal?.goalType, 
+    goal?.courseId, 
+    goal?.semester, 
+    goal?.academicYear,
+    // Only depend on course IDs and grade keys, not the full objects
+    courses.map(c => c.id || c.courseId).join(','),
+    Object.keys(grades).join(','),
+    allGoals.length
+  ]);
+
+  // Calculate goal progress asynchronously with proper caching
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadProgress = async () => {
+      try {
+        const data = await memoizedGoalProgress;
+        if (isMounted) {
+          setProgressData(data);
+        }
+      } catch (error) {
+        console.error('Error calculating goal progress:', error);
+      }
+    };
+
+    loadProgress();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [memoizedGoalProgress]);
+
   const statusInfo = getProgressStatusInfo(progressData.status);
   const progressBarColor = getProgressBarColor(progressData.status, progressData.progress);
 

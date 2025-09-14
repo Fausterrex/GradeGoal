@@ -17,8 +17,28 @@ const API_BASE_URL =
  * @returns {Promise<Object>} User progress data
  */
 export const getUserProgress = async (userId) => {
-  // Skip backend call and return default progress data to avoid 404 errors
-  return {
+  try {
+    // Try database first
+    const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}`);
+    if (response.ok) {
+      const progress = await response.json();
+      return progress;
+    }
+  } catch (error) {
+    console.warn('Database unavailable, using localStorage fallback:', error.message);
+  }
+
+  // Fallback to localStorage
+  const storageKey = `user_progress_${userId}`;
+  const savedProgress = localStorage.getItem(storageKey);
+  
+  if (savedProgress) {
+    const progress = JSON.parse(savedProgress);
+    return progress;
+  }
+
+  // Return default progress data if no saved data
+  const defaultProgress = {
     user_id: userId,
     total_points: 0,
     current_level: 1,
@@ -28,8 +48,19 @@ export const getUserProgress = async (userId) => {
     semester_gpa: 0.00,
     cumulative_gpa: 0.00,
     updated_at: new Date().toISOString(),
-    calculated_locally: true
+    calculated_locally: true,
+    level_info: {
+      level: 1,
+      levelName: "Beginner Scholar",
+      totalPoints: 0,
+      pointsToNextLevel: 100,
+      isMaxLevel: false
+    }
   };
+  
+  // Save default to localStorage as backup
+  localStorage.setItem(storageKey, JSON.stringify(defaultProgress));
+  return defaultProgress;
 };
 
 /**
@@ -39,13 +70,42 @@ export const getUserProgress = async (userId) => {
  * @returns {Promise<Object>} Updated progress data
  */
 export const updateUserProgress = async (userId, progressData) => {
-  // Skip backend call and return the data as if it was updated locally to avoid 404 errors
-  return {
+  try {
+    // Try to save to database first
+    const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(progressData),
+    });
+
+    if (response.ok) {
+      const updatedProgress = await response.json();
+      
+      // Also save to localStorage as backup
+      const storageKey = `user_progress_${userId}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedProgress));
+      
+      return updatedProgress;
+    }
+  } catch (error) {
+    console.warn('Database unavailable, using localStorage fallback:', error.message);
+  }
+
+  // Fallback to localStorage only
+  const updatedProgress = {
     ...progressData,
     user_id: userId,
     updated_at: new Date().toISOString(),
     calculated_locally: true
   };
+  
+  // Save to localStorage
+  const storageKey = `user_progress_${userId}`;
+  localStorage.setItem(storageKey, JSON.stringify(updatedProgress));
+  
+  return updatedProgress;
 };
 
 /**
@@ -56,14 +116,51 @@ export const updateUserProgress = async (userId, progressData) => {
  * @returns {Promise<Object>} Updated progress data
  */
 export const awardPoints = async (userId, points, action) => {
-  // Skip backend call and simulate points award locally to avoid 404 errors
-  return {
+  try {
+    // Try to award points via database
+    const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}/award-points`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(points),
+    });
+
+    if (response.ok) {
+      const updatedProgress = await response.json();
+      
+      // Also save to localStorage as backup
+      const storageKey = `user_progress_${userId}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedProgress));
+      
+      return updatedProgress;
+    }
+  } catch (error) {
+    console.warn('Database unavailable for points award, using localStorage fallback:', error.message);
+  }
+
+  // Fallback to localStorage simulation
+  const storageKey = `user_progress_${userId}`;
+  const savedProgress = localStorage.getItem(storageKey);
+  let currentProgress = savedProgress ? JSON.parse(savedProgress) : {
     user_id: userId,
-    total_points: points,
-    action,
-    awarded_at: new Date().toISOString(),
-    calculated_locally: true
+    total_points: 0,
+    current_level: 1,
+    points_to_next_level: 100,
+    streak_days: 0,
+    last_activity_date: new Date().toISOString().split('T')[0],
+    semester_gpa: 0.00,
+    cumulative_gpa: 0.00
   };
+
+  // Update points
+  currentProgress.total_points += points;
+  currentProgress.last_activity_date = new Date().toISOString().split('T')[0];
+  
+  // Save updated progress
+  localStorage.setItem(storageKey, JSON.stringify(currentProgress));
+  
+  return currentProgress;
 };
 
 /**
@@ -74,14 +171,55 @@ export const awardPoints = async (userId, points, action) => {
  * @returns {Promise<Object>} Updated progress data
  */
 export const updateUserGPA = async (userId, semesterGPA, cumulativeGPA) => {
-  // Skip backend call and go directly to local simulation to avoid 404 errors
-  return {
+  try {
+    // Try to update GPA via database
+    const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}/gpa`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        semesterGpa: semesterGPA,
+        cumulativeGpa: cumulativeGPA
+      }),
+    });
+
+    if (response.ok) {
+      const updatedProgress = await response.json();
+      
+      // Also save to localStorage as backup
+      const storageKey = `user_progress_${userId}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedProgress));
+      
+      return updatedProgress;
+    }
+  } catch (error) {
+    console.warn('Database unavailable for GPA update, using localStorage fallback:', error.message);
+  }
+
+  // Fallback to localStorage simulation
+  const storageKey = `user_progress_${userId}`;
+  const savedProgress = localStorage.getItem(storageKey);
+  let currentProgress = savedProgress ? JSON.parse(savedProgress) : {
     user_id: userId,
-    semester_gpa: semesterGPA,
-    cumulative_gpa: cumulativeGPA,
-    updated_at: new Date().toISOString(),
-    calculated_locally: true
+    total_points: 0,
+    current_level: 1,
+    points_to_next_level: 100,
+    streak_days: 0,
+    last_activity_date: new Date().toISOString().split('T')[0],
+    semester_gpa: 0.00,
+    cumulative_gpa: 0.00
   };
+
+  // Update GPA
+  currentProgress.semester_gpa = semesterGPA;
+  currentProgress.cumulative_gpa = cumulativeGPA;
+  currentProgress.last_activity_date = new Date().toISOString().split('T')[0];
+  
+  // Save updated progress
+  localStorage.setItem(storageKey, JSON.stringify(currentProgress));
+  
+  return currentProgress;
 };
 
 // ========================================
@@ -134,23 +272,60 @@ export const getLatestUserAnalytics = async (userId, courseId = null) => {
  * @returns {Promise<Object>} Calculated analytics
  */
 export const calculateAndStoreAnalytics = async (userId, courseId, courseData) => {
-  // Skip backend call and go directly to local calculation to avoid 404 errors
   try {
+    
     const analyticsService = (await import('../services/analyticsService')).default;
-    const analytics = analyticsService.calculateCourseAnalytics(
+    const analytics = await analyticsService.calculateCourseAnalytics(
       courseData.course,
       courseData.grades,
       courseData.categories,
       courseData.targetGrade
     );
     
+    // Prepare analytics data for database storage (convert to camelCase for Java backend)
+    const analyticsData = {
+      userId,
+      courseId,
+      analyticsDate: new Date().toISOString().split('T')[0],
+      currentGrade: analytics.current_grade,
+      gradeTrend: analytics.grade_trend,
+      assignmentsCompleted: analytics.assignments_completed,
+      assignmentsPending: analytics.assignments_pending,
+      studyHoursLogged: analytics.study_hours_logged || 0,
+      performanceMetrics: JSON.stringify(analytics.performance_metrics)
+    };
+    
+    try {
+      // Try to save to database
+      const response = await fetch(`${API_BASE_URL}/api/user-analytics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(analyticsData),
+      });
+
+      if (response.ok) {
+        const savedAnalytics = await response.json();
+        return {
+          success: true,
+          analytics,
+          saved_to_database: true,
+          message: 'Analytics calculated and saved to database'
+        };
+      }
+    } catch (dbError) {
+      console.warn('Database unavailable for analytics storage:', dbError.message);
+    }
+    
     return {
       success: true,
       analytics,
       calculated_locally: true,
-      message: 'Analytics calculated locally (backend not available)'
+      message: 'Analytics calculated locally (database not available)'
     };
   } catch (fallbackError) {
+    console.error('❌ Error in calculateAndStoreAnalytics:', fallbackError);
     throw fallbackError;
   }
 };
