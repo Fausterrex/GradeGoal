@@ -6,13 +6,13 @@
 import React, { useMemo } from "react";
 import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
 
-function UnifiedAnalytics({ 
-  userAnalytics, 
-  course, 
-  grades, 
-  categories, 
-  targetGrade, 
-  currentGrade 
+function UnifiedAnalytics({
+  userAnalytics,
+  course,
+  grades,
+  categories,
+  targetGrade,
+  currentGrade
 }) {
   // Calculate key metrics
   const metrics = useMemo(() => {
@@ -22,7 +22,7 @@ function UnifiedAnalytics({
     const twoWeeksFromNow = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
 
     // Pending assessments
-    const pendingAssessments = allGrades.filter(grade => 
+    const pendingAssessments = allGrades.filter(grade =>
       !grade.score || grade.score === null || grade.score === undefined || grade.score === ""
     );
 
@@ -61,15 +61,18 @@ function UnifiedAnalytics({
   const performance_metrics = userAnalytics?.performance_metrics || {};
   const statistics = performance_metrics?.statistics || {};
 
-  const MetricCard = ({ title, value, subtitle, icon, urgent = false }) => (
-    <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-4 ${urgent ? 'border-red-300' : ''}`}>
-      <div className="flex items-center gap-2 mb-2">
+  const MetricCard = ({ colorScheme,title, value, subtitle, icon, urgent = false }) => (
+    <div className={`bg-white border border-gray-200 rounded-lg shadow-sm  ${urgent ? 'border-red-300' : ''}`}>
+      <div className={`${colorScheme} flex items-center gap-2 p-4 rounded-t-2xl`}>
         <span className="text-lg">{icon}</span>
-        <h4 className="font-medium text-gray-900">{title}</h4>
+        <h4 className="font-medium text-xl text-white">{title}</h4>
         {urgent && <span className="ml-auto text-red-600 text-sm font-medium">URGENT</span>}
       </div>
-      <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
-      <div className="text-sm text-gray-600">{subtitle}</div>
+
+      <div className="p-6">
+      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+      <div className="text-m text-gray-600">{subtitle}</div>
+      </div>
     </div>
   );
 
@@ -79,6 +82,7 @@ function UnifiedAnalytics({
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
+          colorScheme='bg-orange-400'
           title="Pending"
           value={metrics.pendingAssessments.length}
           subtitle="Assessments to complete"
@@ -87,6 +91,7 @@ function UnifiedAnalytics({
         />
 
         <MetricCard
+          colorScheme='bg-blue-500'
           title="Upcoming"
           value={metrics.upcomingDeadlines.length}
           subtitle="Deadlines in next 2 weeks"
@@ -98,6 +103,7 @@ function UnifiedAnalytics({
         />
 
         <MetricCard
+          colorScheme='bg-red-800'
           title="Overdue"
           value={metrics.overdueAssessments.length}
           subtitle="Past due assessments"
@@ -106,6 +112,7 @@ function UnifiedAnalytics({
         />
 
         <MetricCard
+          colorScheme='bg-green-800'
           title="Recent"
           value={metrics.recentCompletions.length}
           subtitle="Completed this week"
@@ -117,7 +124,7 @@ function UnifiedAnalytics({
       {(performance_metrics?.study_efficiency || performance_metrics?.assignment_completion_rate) && (
         <div className="bg-white rounded border border-gray-200 p-6">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h4>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Study Efficiency */}
             <div className="p-4 bg-gray-50 rounded border">
@@ -160,7 +167,7 @@ function UnifiedAnalytics({
       {statistics && Object.keys(statistics).length > 0 && (
         <div className="bg-white rounded border border-gray-200 p-6">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Performance Statistics</h4>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Average */}
             <div className="text-center p-4 bg-blue-50 rounded border border-blue-200">
@@ -198,14 +205,14 @@ function UnifiedAnalytics({
               const dueDate = new Date(grade.date);
               const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
               const isUrgent = daysUntilDue <= 3;
-              
+
               return (
                 <div key={index} className={`flex items-center justify-between p-3 rounded border ${isUrgent ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
                   <div>
                     <div className="font-medium text-gray-900">{grade.name}</div>
                     <div className="text-sm text-gray-600">
-                      {dueDate.toLocaleDateString('en-US', { 
-                        month: 'short', 
+                      {dueDate.toLocaleDateString('en-US', {
+                        month: 'short',
                         day: 'numeric',
                         year: 'numeric'
                       })}
@@ -213,8 +220,8 @@ function UnifiedAnalytics({
                   </div>
                   <div className={`text-sm font-medium ${isUrgent ? 'text-red-600' : 'text-gray-600'}`}>
                     {daysUntilDue === 0 ? 'Due Today' :
-                     daysUntilDue === 1 ? 'Due Tomorrow' :
-                     `${daysUntilDue} days`}
+                      daysUntilDue === 1 ? 'Due Tomorrow' :
+                        `${daysUntilDue} days`}
                   </div>
                 </div>
               );

@@ -19,19 +19,19 @@ function UserProgress({ userProgress, course }) {
   }
 
   const { level_info } = userProgress;
-  const progressPercentage = level_info.isMaxLevel 
-    ? 100 
+  const progressPercentage = level_info.isMaxLevel
+    ? 100
     : ((level_info.totalPoints - (level_info.totalPoints - level_info.pointsToNextLevel)) / (level_info.totalPoints + level_info.pointsToNextLevel)) * 100;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       {/* Main Progress Card */}
-      <div className="bg-white rounded border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-300 p-6 shadow ">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Your Progress</h3>
           <div className="text-sm text-gray-600">Level {level_info.level}</div>
         </div>
-        
+
         {/* Level Progress Bar */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
@@ -55,19 +55,19 @@ function UserProgress({ userProgress, course }) {
 
         {/* Progress Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-gray-50 rounded border">
+          <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
             <div className="text-xl font-bold text-gray-900">{level_info.level}</div>
             <div className="text-xs text-gray-600">Level</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded border">
+          <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
             <div className="text-xl font-bold text-gray-900">{userProgress.streak_days}</div>
             <div className="text-xs text-gray-600">Day Streak</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded border">
+          <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
             <div className="text-xl font-bold text-gray-900">{userProgress.semester_gpa?.toFixed(2) || '0.00'}</div>
             <div className="text-xs text-gray-600">Semester GPA</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded border">
+          <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
             <div className="text-xl font-bold text-gray-900">{userProgress.cumulative_gpa?.toFixed(2) || '0.00'}</div>
             <div className="text-xs text-gray-600">Cumulative GPA</div>
           </div>
@@ -75,7 +75,7 @@ function UserProgress({ userProgress, course }) {
       </div>
 
       {/* Achievements */}
-      <div className="bg-white rounded border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-300 p-6 shadow">
         <h4 className="text-lg font-semibold text-gray-900 mb-4">Recent Achievements</h4>
         <div className="space-y-3">
           {/* Level Achievement */}
@@ -123,7 +123,7 @@ function UserProgress({ userProgress, course }) {
 
       {/* Next Milestone */}
       {!level_info.isMaxLevel && (
-        <div className="bg-white rounded border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-300 p-6 shadow">
           <h4 className="text-lg font-semibold text-gray-900 mb-3">Next Milestone</h4>
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 mb-2">
