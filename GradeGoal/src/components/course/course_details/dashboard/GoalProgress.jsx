@@ -6,12 +6,12 @@
 import React from "react";
 import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
 
-function GoalProgress({ 
-  currentGrade, 
-  targetGrade, 
-  course, 
+function GoalProgress({
+  currentGrade,
+  targetGrade,
+  course,
   colorScheme,
-  onSetGoal = () => {} // Callback for when user wants to set a goal
+  onSetGoal = () => { } // Callback for when user wants to set a goal
 }) {
   // If no target grade is set, show a prompt to set a goal
   if (!targetGrade) {
@@ -32,7 +32,7 @@ function GoalProgress({
           <p className="text-gray-500 mb-6">
             Set a target GPA to track your progress and stay motivated
           </p>
-          <button 
+          <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -65,7 +65,7 @@ function GoalProgress({
 
   const currentGPA = convertPercentageToGPA(currentGrade, course.gpaScale || "4.0");
   const targetGPA = parseFloat(targetGrade);
-  const progressPercentage = targetGPA && currentGPA 
+  const progressPercentage = targetGPA && currentGPA
     ? Math.min((currentGPA / targetGPA) * 100, 100)
     : 0;
 
@@ -84,43 +84,49 @@ function GoalProgress({
   };
 
   return (
-    <div className="bg-white rounded-[3%] shadow-xl border border-gray-300 p-6 flex flex-col ">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-black">Goal Progress</h3>
-        <span className="text-m font-medium text-black">
-          {progressPercentage.toFixed(1)}%
-        </span>
-      </div>
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 w-full mx-auto flex flex-col items-center">
+      <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+        Goal Progress
+      </h3>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-200 rounded-full h-3 mb-4 border border-gray-300 shadow">
-        <div
-          className={`h-3 rounded-full transition-all duration-500 ${getProgressColor()}`}
-          style={{ width: `${progressPercentage}%` }}
-        />
-      </div>
-
-      {/* Current vs Target */}
-      <div className="flex justify-between items-center text-sm">
-        <div className="text-center">
-          <div className="text-xl font-bold text-gray-900">
-            {currentGPA.toFixed(2)}
-          </div>
-          <div className="text-gray-600">Current GPA</div>
-        </div>
-        
-        <div className="text-center">
-          <div className="text-xl font-bold text-blue-600">
-            {targetGPA.toFixed(2)}
-          </div>
-          <div className="text-gray-600">Target GPA</div>
+      <div className="relative w-45 h-45 mb-4">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle
+            cx="90"
+            cy="90"
+            r="70"
+            stroke="#E5E7EB"
+            strokeWidth="20"
+            fill="none"
+          />
+          <circle
+            cx="90"
+            cy="90"
+            r="70"
+            stroke="#3B82F6"
+            strokeWidth="20"
+            fill="none"
+            strokeDasharray={2 * Math.PI * 58}
+            strokeDashoffset={
+              2 * Math.PI * 58 - (progressPercentage / 100) * 2 * Math.PI * 58
+            }
+            strokeLinecap="round"
+            className="transition-all duration-500"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-gray-900">
+            {progressPercentage.toFixed(0)}%
+          </span>
+          <span className="text-sm text-gray-500">Progress</span>
         </div>
       </div>
 
       {/* Status */}
-      <div className="mt-4 text-center">
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-          progressPercentage >= 90 ? "bg-green-100 text-green-800" :
+      <div className="mb-4">
+        <span
+          className={`inline-flex items-center px-3 py-1 rounded-full text-m font-medium ${
+              progressPercentage >= 90 ? "bg-green-100 text-green-800" :
           progressPercentage >= 70 ? "bg-yellow-100 text-yellow-800" :
           progressPercentage >= 50 ? "bg-orange-100 text-orange-800" :
           "bg-red-100 text-red-800"
@@ -129,20 +135,34 @@ function GoalProgress({
         </span>
       </div>
 
+      <div className="flex justify-between w-full">
+        <div className="flex-1 text-center bg-gray-50 rounded-3xl border border-gray-300 p-3 mx-1 shadow-xl">
+          <div className="text-2xl font-bold text-gray-900">
+            {currentGPA.toFixed(2)}
+          </div>
+          <div className="text-gray-600 text-sm">Current GPA</div>
+        </div>
+        <div className="flex-1 text-center bg-gray-50 rounded-3xl border border-gray-300 p-3 mx-1 shadow-xl">
+          <div className="text-2xl font-bold text-blue-600">
+            {targetGPA.toFixed(2)}
+          </div>
+          <div className="text-gray-600 text-sm">Target GPA</div>
+        </div>
+      </div>
+   
+
       {/* Gap Analysis */}
       {currentGPA < targetGPA && (
-        <div className="mt-4 p-3 bg-gradient-to-r from-blue-300 to-indigo-200 rounded-lg border border-blue-200">
+        <div className="w-[98%] h-[13%] mt-7 p-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg border border-blue-200 flex justify-center items-center ">
           <div className="text-center">
-            <div className="text-sm font-semibold text-gray-700 mb-1">
-              Need {(targetGPA - currentGPA).toFixed(2)} more points
+            <div className="text-lg font-semibold text-white">
+              Need {(targetGPA - currentGPA).toFixed(2)} more points to reach your target GPA
             </div>
-            <div className="text-xs text-gray-600">
-              to reach your target GPA
-            </div>
+           
           </div>
         </div>
       )}
-      
+
       {currentGPA >= targetGPA && (
         <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
           <div className="text-center">

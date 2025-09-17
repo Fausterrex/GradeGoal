@@ -297,7 +297,7 @@ function UnifiedProgress({
 
       {/* No Data State */}
       {chartData.length === 0 && (
-        <div className="bg-white rounded border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow shadow">
           <div className="bg-gray-100 px-6 py-4">
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <span className="text-xl">📈</span>
