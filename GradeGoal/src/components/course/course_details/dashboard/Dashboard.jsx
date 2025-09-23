@@ -28,7 +28,7 @@ function Dashboard({
   return (
     <div className="space-y-8">
       {/* Top Row - Goal Progress and User Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-gray-100 p-5 border border-gray-200 rounded-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
         <GoalProgress
           currentGrade={currentGrade}
           targetGrade={targetGrade}

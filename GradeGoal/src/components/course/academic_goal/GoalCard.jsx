@@ -88,7 +88,7 @@ const GoalCard = ({
 
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -96,7 +96,11 @@ const GoalCard = ({
             <h3 className="text-lg font-semibold text-gray-800">
               {goal.goalTitle}
             </h3>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(goal.priority)}`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                goal.priority
+              )}`}
+            >
               {goal.priority}
             </span>
           </div>
@@ -128,20 +132,44 @@ const GoalCard = ({
             </div>
           </div>
         </div>
-        
+        <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <div className="flex items-center space-x-1">
+            <FaBullseye className="w-3 h-3" />
+            <span>Target: {progressData.targetValue}%</span>
+          </div>
+          {goal.courseId && (
+            <span className="text-gray-400">• {getCourseName(goal.courseId, courses)}</span>
+          )}
+          {goal.goalType === "SEMESTER_GPA" &&
+            goal.semester &&
+            goal.academicYear && (
+              <span className="text-gray-400">
+                •{" "}
+                {goal.semester === "FIRST"
+                  ? "1st"
+                  : goal.semester === "SECOND"
+                  ? "2nd"
+                  : "3rd"}{" "}
+                Sem {goal.academicYear}
+              </span>
+            )}
+          <div className="flex items-center space-x-1">
+            <FaCalendarAlt className="w-3 h-3" />
+            <span>{formatGoalDate(goal.targetDate)}</span>
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
           <button
             onClick={() => onEdit(goal)}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-            title="Edit Goal"
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
             <FaEdit className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(goal)}
-            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-            title="Delete Goal"
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <FaTimes className="w-4 h-4" />
           </button>
@@ -192,26 +220,81 @@ const GoalCard = ({
         </div>
       )}
 
-      {/* Progress Bar */}
-      <div className="flex items-center space-x-3 mb-4">
-        <span className="text-sm font-medium text-gray-600 min-w-0 flex-shrink-0">
-          {progressData.isCourseCompleted ? 'Course Progress:' : 'Progress:'}
+    {/* Progress Bar */}
+    <div className="flex items-center space-x-3 mb-4">
+      <span className="text-sm font-medium text-gray-600">
+        {progressData.isCourseCompleted ? "Course Progress:" : "Progress:"}
+      </span>
+      <div className="flex-1 bg-red-100 rounded-full h-2">
+        <div
+          className="h-2 rounded-full bg-red-400 transition-all duration-300"
+          style={{ width: `${progressData.progress}%` }}
+        ></div>
+      </div>
+      <span className="text-sm font-semibold text-gray-800">
+        {progressData.progress}%
+      </span>
+      <span
+        className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.textColor}`}
+      >
+        {statusInfo.text}
+      </span>
+    </div>
+
+    {/* Current vs Target */}
+    <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+      <div>
+        Current:{" "}
+        <span className="font-semibold text-gray-800">
+          {progressData.currentValue}%
         </span>
-        <div className="flex-1 bg-gray-200 rounded-full h-2">
+      </div>
+      <div>
+        Target:{" "}
+        <span className="font-semibold text-gray-800">
+          {progressData.targetValue}%
+        </span>
+      </div>
+    </div>
+
+    {/* Motivational Message */}
+    {!progressData.isCourseCompleted && (
+      <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 mb-4">
+        <span className="text-sm text-gray-700">
+          🚀 You’ve got this! Every journey starts with a single step!
+        </span>
+      </div>
+    )}
+
+    {/* Achievement Probability */}
+    {!progressData.isCourseCompleted && !isCompact && (
+      <div className="flex items-center space-x-2 text-sm mb-4">
+        <span className="text-gray-600">Achievement Probability:</span>
+        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${progressBarColor}`}
-            style={{ width: `${progressData.progress}%` }}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              progressData.achievementProbability >= 70
+                ? "bg-green-500"
+                : progressData.achievementProbability >= 40
+                ? "bg-yellow-500"
+                : "bg-red-500"
+            }`}
+            style={{ width: `${progressData.achievementProbability}%` }}
           ></div>
         </div>
-        <div className="flex items-center space-x-2 min-w-0 flex-shrink-0">
-          <span className="text-sm font-semibold text-gray-800">
-            {progressData.progress}%
-          </span>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.textColor}`}>
-            {statusInfo.text}
-          </div>
-        </div>
+        <span
+          className={`font-semibold ${
+            progressData.achievementProbability >= 70
+              ? "text-green-600"
+              : progressData.achievementProbability >= 40
+              ? "text-yellow-600"
+              : "text-red-600"
+          }`}
+        >
+          {progressData.achievementProbability}%
+        </span>
       </div>
+    )}
 
       {/* Current vs Target Performance */}
       <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
