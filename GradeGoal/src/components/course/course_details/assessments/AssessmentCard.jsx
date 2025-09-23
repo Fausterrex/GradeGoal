@@ -4,8 +4,16 @@
 // Individual assessment card within a category
 
 import React from "react";
-import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
-import { getGradeColor } from "../../../../utils/gradeCalculations";
+import { calculateGPAFromPercentage } from "../../../../backend/api";
+
+// Simple grade color function to replace the deleted one
+const getGradeColor = (percentage) => {
+  if (percentage >= 90) return "text-green-600";
+  if (percentage >= 80) return "text-blue-600";
+  if (percentage >= 70) return "text-yellow-600";
+  if (percentage >= 60) return "text-orange-600";
+  return "text-red-600";
+};
 import { getStatusColor, determineAssessmentStatus } from "./AssessmentUtils";
 
 function AssessmentCard({
@@ -16,6 +24,8 @@ function AssessmentCard({
   onEditAssessment,
   onDeleteAssessment
 }) {
+  const [gpa, setGpa] = React.useState("0.00");
+  
   const hasScore =
     grade.score !== null &&
     grade.score !== undefined &&
@@ -23,19 +33,24 @@ function AssessmentCard({
     grade.score !== 0 &&
     !isNaN(parseFloat(grade.score));
     
-  const percentage = hasScore
-    ? (() => {
-        let adjustedScore = grade.score;
-        if (
-          grade.isExtraCredit &&
-          grade.extraCreditPoints &&
-          grade.extraCreditPoints > 0
-        ) {
-          adjustedScore += grade.extraCreditPoints;
-        }
-        return (adjustedScore / grade.maxScore) * 100;
-      })()
-    : null;
+  const percentage = hasScore ? ((parseFloat(grade.score) / parseFloat(grade.maxScore)) * 100) : null;
+
+  // Calculate GPA when percentage changes
+  React.useEffect(() => {
+    if (percentage !== null) {
+      calculateGPAFromPercentage(percentage)
+        .then(result => {
+          if (result.success) {
+            setGpa(parseFloat(result.gpa).toFixed(2));
+          }
+        })
+        .catch(() => {
+          setGpa("0.00");
+        });
+    } else {
+      setGpa("0.00");
+    }
+  }, [percentage]);
 
   return (
     <div
@@ -131,23 +146,10 @@ function AssessmentCard({
                     percentage
                   )}`}
                 >
-                  {(() => {
-                    let adjustedScore = grade.score;
-                    if (
-                      grade.isExtraCredit &&
-                      grade.extraCreditPoints &&
-                      grade.extraCreditPoints > 0
-                    ) {
-                      adjustedScore += grade.extraCreditPoints;
-                    }
-                    return adjustedScore;
-                  })()}
+                  {grade.score}
                   /{grade.maxScore} (
                   {percentage.toFixed(1)}% |{" "}
-                  {convertPercentageToGPA(
-                    percentage,
-                    course.gpaScale || "4.0"
-                  ).toFixed(2)}{" "}
+                  {gpa}{" "}
                   GPA)
                   {grade.isExtraCredit &&
                     grade.extraCreditPoints &&

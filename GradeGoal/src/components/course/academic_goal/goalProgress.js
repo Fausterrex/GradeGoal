@@ -4,10 +4,7 @@
 // This utility calculates goal progress, achievement probability,
 // and provides visual progress indicators for academic goals.
 
-import { calculateCumulativeGPA } from '../../../utils/cgpa';
-import GradeService from '../../../services/gradeService';
-import { calculateCourseGrade as calculateCourseGradeDB, checkGoalProgress } from '../../../services/databaseCalculationService';
-import { convertGPAToPercentage } from '../../../utils/gradeCalculations';
+// Removed all calculation imports
 
 // Cache for database calculations to prevent infinite loops
 const calculationCache = new Map();
@@ -43,9 +40,15 @@ const getCachedCourseGrade = async (courseId) => {
     }
   }
   
-  // Make the database call
+  // Make the database call to get course GPA
   try {
-    const result = await calculateCourseGradeDB(courseId);
+    // Import the API function
+    const { getCourseById } = await import('../../../backend/api');
+    
+    // Get course data including the calculated GPA
+    const courseData = await getCourseById(courseId);
+    const result = courseData?.courseGpa || 0;
+    
     calculationCache.set(cacheKey, {
       data: result,
       timestamp: now
@@ -103,10 +106,10 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
         courseCompletionStatus = courseResult.courseCompletionStatus;
         break;
       case 'SEMESTER_GPA':
-        currentValue = calculateSemesterGPAProgress(goal, courses, grades, userStats, allGoals);
+        currentValue = await calculateSemesterGPAProgress(goal, courses, grades, userStats, allGoals);
         break;
       case 'CUMMULATIVE_GPA':
-        currentValue = calculateCumulativeGPAProgress(goal, courses, grades, userStats);
+        currentValue = await calculateCumulativeGPAProgress(goal, courses, grades, userStats);
         break;
       default:
         return getDefaultProgress(targetValue);
@@ -119,20 +122,33 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
     // Calculate progress percentage
     if (targetValue > 0) {
       
-      if (goal.goalType === 'SEMESTER_GPA' || goal.goalType === 'CUMMULATIVE_GPA') {
-        // For semester GPA goals, we now use completion progress (0-100%)
-        // So both current and target should be in percentage format
+      if (goal.goalType === 'COURSE_GRADE') {
+        // For course grade goals, ensure both values are in GPA format
+        const { convertToGPA } = await import('./gpaConversionUtils');
+        
+        normalizedCurrentValue = currentValue; // Already GPA from course_gpa column
+        normalizedTargetValue = convertToGPA(targetValue, 4.0); // Convert target to GPA if needed
+        
+      } else if (goal.goalType === 'SEMESTER_GPA' || goal.goalType === 'CUMMULATIVE_GPA') {
+        // For semester and cumulative GPA goals, convert target from percentage to GPA
         if (goal.goalType === 'SEMESTER_GPA') {
-          // Current value is already completion progress (0-100%)
-          normalizedCurrentValue = currentValue; // Already in percentage
-          normalizedTargetValue = targetValue; // Already in percentage
+          // For semester GPA goals, convert target from percentage to GPA
+          if (targetValue > 4.0) {
+            // Target is in percentage format, convert to GPA
+            normalizedTargetValue = (targetValue / 100) * 4.0; // Convert percentage to GPA
+            normalizedCurrentValue = currentValue; // Current value is already in GPA format
+          } else {
+            // Both are GPA values
+            normalizedCurrentValue = currentValue;
+            normalizedTargetValue = targetValue;
+          }
           
         } else if (goal.goalType === 'CUMMULATIVE_GPA') {
-          // For cumulative GPA, still use GPA values
+          // For cumulative GPA goals, convert target from percentage to GPA
           if (targetValue > 4.0) {
-            // Convert GPA to percentage (assuming 4.0 scale)
-            normalizedCurrentValue = (currentValue / 4.0) * 100;
-            normalizedTargetValue = targetValue; // Already in percentage
+            // Target is in percentage format, convert to GPA
+            normalizedTargetValue = (targetValue / 100) * 4.0; // Convert percentage to GPA
+            normalizedCurrentValue = currentValue; // Current value is already in GPA format
           } else {
             // Both are GPA values
             normalizedCurrentValue = currentValue;
@@ -217,6 +233,7 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
  * Calculate progress for course-specific goals using database calculations
  */
 const calculateCourseGradeProgress = async (goal, courses, grades) => {
+  // Removed calculation logic - return default
   if (!goal.courseId) return { currentValue: 0, isCourseCompleted: false, courseCompletionStatus: 'ongoing' };
 
   const course = courses.find(c => c.courseId === goal.courseId);
@@ -237,97 +254,108 @@ const calculateCourseGradeProgress = async (goal, courses, grades) => {
       } catch (error) {
         console.warn('⚠️ GoalProgress - Database calculation failed, falling back to JavaScript:', error);
         // Fallback to JavaScript calculation
-        const gradeResult = GradeService.calculateCourseGrade(course, grades);
+        const gradeResult = { success: false, courseGrade: 0 }; // Removed calculation
         if (gradeResult.success) {
           courseGrade = gradeResult.courseGrade;
         }
       }
     } else {
       // Fallback to JavaScript calculation
-      const gradeResult = GradeService.calculateCourseGrade(course, grades);
+        const gradeResult = { success: false, courseGrade: 0 }; // Removed calculation
       if (gradeResult.success) {
         courseGrade = gradeResult.courseGrade;
       }
     }
     
-    if (courseGrade > 0) {
-      // Convert to percentage if needed for comparison
-      if (course.gradingScale === 'gpa') {
-        // If it's a GPA scale, convert GPA to percentage
-        courseGrade = convertGPAToPercentage(courseGrade, course.gpaScale || '4.0');
-      } else if (course.gradingScale === 'points') {
-        // If it's a points scale, convert to percentage
-        courseGrade = (courseGrade / course.maxPoints) * 100;
-      }
-      // If it's already percentage, use as-is
-      
-      return { 
-        currentValue: courseGrade, 
-        isCourseCompleted,
-        courseCompletionStatus: isCourseCompleted ? 'completed' : 'ongoing'
-      };
-    } else {
-    }
+    // courseGrade is now the GPA value from course_gpa column
+    return { 
+      currentValue: courseGrade, // This is GPA (0-4.0)
+      isCourseCompleted, 
+      courseCompletionStatus: isCourseCompleted ? 'completed' : 'ongoing' 
+    };
   } catch (error) {
     console.error('Error calculating course grade progress:', error);
+    return { currentValue: 0, isCourseCompleted: false, courseCompletionStatus: 'ongoing' };
   }
-  
-  return { currentValue: 0, isCourseCompleted: false, courseCompletionStatus: 'ongoing' };
 };
 
 /**
  * Calculate progress for semester GPA goals
  */
-const calculateSemesterGPAProgress = (goal, courses, grades, userStats, goals) => {
+const calculateSemesterGPAProgress = async (goal, courses, grades, userStats, goals) => {
   try {
+    // Try to get semester GPA from userStats first
+    if (userStats && userStats.semesterGPA) {
+      return userStats.semesterGPA;
+    }
 
-    // Get courses for the specific semester and academic year
-    const currentSemesterCourses = courses.filter(course => 
+    // Skip API call to avoid undefined email errors - use fallback calculation instead
+
+    // Fallback: Calculate from courses for the specific semester
+    let currentSemesterCourses = courses.filter(course => 
       course.isActive !== false &&
       course.semester === goal.semester &&
       course.academicYear === goal.academicYear
     );
 
-    
-
+    // If no courses found with specific semester/year, try fallback logic
+    if (currentSemesterCourses.length === 0) {
+      // If goal has specific semester, only fallback to FIRST semester if goal is for FIRST semester
+      if (goal.semester === 'FIRST') {
+        // Try to find courses from the FIRST semester as fallback for FIRST semester goals
+        currentSemesterCourses = courses.filter(course => 
+          course.isActive !== false &&
+          (course.semester === 'FIRST' || course.semester === 'FIRST_SEMESTER' || course.semester === 1)
+        );
+      } else if (!goal.semester || !goal.academicYear) {
+        // If goal doesn't have specific semester/year (legacy goals), fallback to FIRST semester courses
+        currentSemesterCourses = courses.filter(course => 
+          course.isActive !== false &&
+          (course.semester === 'FIRST' || course.semester === 'FIRST_SEMESTER' || course.semester === 1)
+        );
+      }
+      // For SECOND/THIRD semester goals with specific values but no matching courses, return 0 (no fallback)
+    }
 
     if (currentSemesterCourses.length === 0) {
       return 0;
     }
 
-    // Calculate progress based on course completion status
-    let totalCompletionProgress = 0;
-    let completedCourses = 0;
+    // Calculate semester GPA based on course GPAs
+    let totalWeightedGPA = 0;
+    let totalCredits = 0;
     
     for (const course of currentSemesterCourses) {
-      // Use the pre-calculated progress from MainDashboard
-      const courseProgress = course.progress || 0;
+      const courseGPA = course.courseGpa || course.course_gpa || 0;
+      const credits = course.credits || 3; // Default to 3 credits if not specified
       
-      totalCompletionProgress += courseProgress;
-      
-      if (courseProgress === 100) {
-        completedCourses++;
+      if (courseGPA > 0) {
+        totalWeightedGPA += courseGPA * credits;
+        totalCredits += credits;
       }
     }
     
-    // Calculate average completion progress
-    const averageCompletionProgress = totalCompletionProgress / currentSemesterCourses.length;
-    
-    
-    
-    return averageCompletionProgress || 0;
+    const semesterGPA = totalCredits > 0 ? totalWeightedGPA / totalCredits : 0;
+    return semesterGPA || 0;
   } catch (error) {
     console.error('Error calculating semester GPA progress:', error);
-  return userStats.currentSemesterGPA || 0;
+    return userStats?.currentSemesterGPA || 0;
   }
 };
 
 /**
  * Calculate progress for cumulative GPA goals
  */
-const calculateCumulativeGPAProgress = (goal, courses, grades, userStats) => {
+const calculateCumulativeGPAProgress = async (goal, courses, grades, userStats) => {
   try {
-    // Get all completed courses across all semesters
+    // Try to get cumulative GPA from userStats first
+    if (userStats && userStats.cumulativeGPA) {
+      return userStats.cumulativeGPA;
+    }
+
+    // Skip API call to avoid undefined email errors - use fallback calculation instead
+
+    // Fallback: Calculate from courses if available
     const allCourses = courses.filter(course => 
       course.isActive !== false && 
       course.semester && 
@@ -339,12 +367,24 @@ const calculateCumulativeGPAProgress = (goal, courses, grades, userStats) => {
     }
 
     // Calculate cumulative GPA based on all completed courses
-    const cumulativeGPA = calculateCumulativeGPA(allCourses, grades);
+    let totalWeightedGPA = 0;
+    let totalCredits = 0;
     
+    for (const course of allCourses) {
+      const courseGPA = course.courseGpa || course.course_gpa || 0;
+      const credits = course.credits || 3; // Default to 3 credits if not specified
+      
+      if (courseGPA > 0) {
+        totalWeightedGPA += courseGPA * credits;
+        totalCredits += credits;
+      }
+    }
+    
+    const cumulativeGPA = totalCredits > 0 ? totalWeightedGPA / totalCredits : 0;
     return cumulativeGPA || 0;
   } catch (error) {
     console.error('Error calculating cumulative GPA progress:', error);
-  return userStats.currentCGPA || 0;
+    return userStats?.currentCGPA || 0;
   }
 };
 

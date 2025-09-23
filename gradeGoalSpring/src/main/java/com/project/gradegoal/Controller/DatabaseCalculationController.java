@@ -2,13 +2,17 @@ package com.project.gradegoal.Controller;
 
 import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Service.DatabaseCalculationService;
+import com.project.gradegoal.Service.CourseService;
+import com.project.gradegoal.Repository.UserAnalyticsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller for database-backed grade calculations
@@ -21,6 +25,12 @@ public class DatabaseCalculationController {
 
     @Autowired
     private DatabaseCalculationService databaseCalculationService;
+    
+    @Autowired
+    private CourseService courseService;
+    
+    @Autowired
+    private UserAnalyticsRepository userAnalyticsRepository;
 
     /**
      * Calculate course grade using database function
@@ -41,6 +51,29 @@ public class DatabaseCalculationController {
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to calculate course grade: " + e.getMessage());
+            errorResponse.put("success", false);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * Calculate course GPA using database function
+     */
+    @GetMapping("/course/{courseId}/gpa")
+    public ResponseEntity<Map<String, Object>> calculateCourseGPA(@PathVariable Long courseId) {
+        try {
+            BigDecimal courseGrade = databaseCalculationService.calculateCourseGrade(courseId);
+            BigDecimal gpa = databaseCalculationService.calculateGPA(courseGrade);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("courseId", courseId);
+            response.put("courseGPA", gpa);
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to calculate course GPA: " + e.getMessage());
             errorResponse.put("success", false);
             return ResponseEntity.badRequest().body(errorResponse);
         }
@@ -123,10 +156,14 @@ public class DatabaseCalculationController {
     /**
      * Add or update grade using database procedure
      */
+
     @PostMapping("/grade/add-update")
     public ResponseEntity<Map<String, Object>> addOrUpdateGrade(@RequestBody Map<String, Object> request) {
         try {
+            System.out.println("🔍 Received grade data: " + request);
+            
             if (request == null) {
+                System.err.println("❌ Request body is null");
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Request body is required");
                 errorResponse.put("success", false);
@@ -136,6 +173,10 @@ public class DatabaseCalculationController {
             // Validate required fields
             if (request.get("assessmentId") == null || request.get("pointsEarned") == null || 
                 request.get("pointsPossible") == null || request.get("percentageScore") == null) {
+                System.err.println("❌ Missing required fields - assessmentId: " + request.get("assessmentId") + 
+                                 ", pointsEarned: " + request.get("pointsEarned") + 
+                                 ", pointsPossible: " + request.get("pointsPossible") + 
+                                 ", percentageScore: " + request.get("percentageScore"));
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Required fields: assessmentId, pointsEarned, pointsPossible, percentageScore");
                 errorResponse.put("success", false);
@@ -149,14 +190,52 @@ public class DatabaseCalculationController {
             String scoreType = request.get("scoreType") != null ? request.get("scoreType").toString() : "PERCENTAGE";
             String notes = request.get("notes") != null ? request.get("notes").toString() : "";
             Boolean isExtraCredit = request.get("isExtraCredit") != null ? Boolean.valueOf(request.get("isExtraCredit").toString()) : false;
+            BigDecimal extraCreditPoints = request.get("extraCreditPoints") != null ? 
+                new BigDecimal(request.get("extraCreditPoints").toString()) : null;
+
 
             String result = databaseCalculationService.addOrUpdateGrade(
                 assessmentId, pointsEarned, pointsPossible, percentageScore,
-                scoreType, notes, isExtraCredit
+                scoreType, notes, isExtraCredit, extraCreditPoints
             );
 
+            // Check if result contains course ID for analytics update
+            System.out.println("🔍 Grade add/update result: " + result);
+            String[] resultParts = result.split("\\|");
+            String message = resultParts[0];
+            Long courseId = null;
+            
+            if (resultParts.length > 1 && !resultParts[1].isEmpty()) {
+                try {
+                    courseId = Long.valueOf(resultParts[1]);
+                    System.out.println("🎯 Extracted course ID: " + courseId);
+                    // Update course grades in a separate transaction to avoid rollback issues
+                    databaseCalculationService.updateCourseGrades(courseId);
+                    System.out.println("✅ Course grades updated for course " + courseId);
+                    
+                    // Update user progress GPAs after course grades are updated
+                    try {
+                        // Get the user ID from the course
+                        Long userId = databaseCalculationService.getUserIdFromCourse(courseId);
+                        if (userId != null) {
+                            databaseCalculationService.updateUserProgressGPAs(userId);
+                            System.out.println("✅ User progress GPAs updated for user " + userId);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to update user progress GPAs: " + e.getMessage());
+                        // Don't fail the entire operation if GPA update fails
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("❌ Failed to parse course ID from result: " + result);
+                    e.printStackTrace();
+                }
+            } else {
+                System.err.println("❌ No course ID found in result: " + result);
+            }
+
             Map<String, Object> response = new HashMap<>();
-            response.put("result", result);
+            response.put("result", message);
+            response.put("courseId", courseId);
             response.put("success", true);
             
             return ResponseEntity.ok(response);
@@ -276,27 +355,6 @@ public class DatabaseCalculationController {
         }
     }
 
-    /**
-     * Check user achievements using database procedure
-     */
-    @PostMapping("/user/{userId}/check-achievements")
-    public ResponseEntity<Map<String, Object>> checkUserAchievements(@PathVariable Long userId) {
-        try {
-            databaseCalculationService.checkUserAchievements(userId);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("userId", userId);
-            response.put("message", "User achievements checked successfully");
-            response.put("success", true);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to check user achievements: " + e.getMessage());
-            errorResponse.put("success", false);
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
-    }
 
     /**
      * Update all course grades for a user
@@ -365,6 +423,187 @@ public class DatabaseCalculationController {
             errorResponse.put("error", "Failed to initialize sample achievements: " + e.getMessage());
             errorResponse.put("success", false);
             return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+    
+    /**
+     * Calculate and save course grade and GPA to database
+     */
+    @PostMapping("/course/{courseId}/calculate-and-save")
+    public ResponseEntity<Map<String, Object>> calculateAndSaveCourseGrade(@PathVariable Long courseId) {
+        try {
+            System.out.println("🔢 Starting calculation and save for course ID: " + courseId);
+            
+            // Calculate the course grade using database function
+            BigDecimal courseGrade = databaseCalculationService.calculateCourseGrade(courseId);
+            BigDecimal gpa = databaseCalculationService.calculateGPA(courseGrade);
+            
+            System.out.println("📊 Calculated values - Grade: " + courseGrade + "%, GPA: " + gpa);
+            
+            // Save the calculated values to the courses table in a single transaction
+            Course updatedCourse = courseService.updateCalculatedGradeAndGpa(courseId, courseGrade, gpa);
+            
+            System.out.println("💾 Save result: " + (updatedCourse != null ? "SUCCESS" : "FAILED"));
+            
+            // Verify the values were actually saved by reading them back
+            Optional<Course> verificationCourse = courseService.getCourseById(courseId);
+            if (verificationCourse.isPresent()) {
+                Course course = verificationCourse.get();
+                System.out.println("✅ Verification - Stored Grade: " + course.getCalculatedCourseGrade() + 
+                                 ", Stored GPA: " + course.getCourseGpa());
+                                 
+            // Check for goal achievements after GPA update
+            // Note: Analytics are already updated by UpdateCourseGrades stored procedure
+            try {
+                Long userId = course.getUserId();
+                if (userId != null) {
+                    databaseCalculationService.checkGoalProgress(userId);
+                    System.out.println("🎯 Goal progress checked for user " + userId);
+                }
+            } catch (Exception goalError) {
+                System.err.println("Failed to check goal progress after course calculation: " + goalError.getMessage());
+            }
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("courseId", courseId);
+            response.put("courseGrade", courseGrade);
+            response.put("gpa", gpa);
+            response.put("message", "Course grade and GPA calculated and saved successfully");
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("❌ Error in calculateAndSaveCourseGrade: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to calculate and save course grade: " + e.getMessage());
+            errorResponse.put("success", false);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+    
+    /**
+     * Update course handle missing setting and recalculate grades
+     */
+    @PostMapping("/course/{courseId}/handle-missing")
+    public ResponseEntity<Map<String, Object>> updateHandleMissingSetting(
+            @PathVariable Long courseId, 
+            @RequestBody Map<String, Object> request) {
+        try {
+            if (request == null || request.get("handleMissing") == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "handleMissing setting is required");
+                errorResponse.put("success", false);
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            String handleMissing = request.get("handleMissing").toString();
+            
+            // Validate the setting value
+            if (!handleMissing.equals("exclude") && !handleMissing.equals("treat_as_zero")) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "handleMissing must be 'exclude' or 'treat_as_zero'");
+                errorResponse.put("success", false);
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // Update the course setting using stored procedure
+            databaseCalculationService.updateCourseHandleMissing(courseId, handleMissing);
+            
+            // Get the updated course grade
+            BigDecimal courseGrade = databaseCalculationService.calculateCourseGrade(courseId);
+            BigDecimal gpa = databaseCalculationService.calculateGPA(courseGrade);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("courseId", courseId);
+            response.put("handleMissing", handleMissing);
+            response.put("courseGrade", courseGrade);
+            response.put("gpa", gpa);
+            response.put("message", "Handle missing setting updated and grades recalculated successfully");
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update handle missing setting: " + e.getMessage());
+            errorResponse.put("success", false);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+    
+    /**
+     * Debug endpoint to test database functions and storage
+     */
+    @GetMapping("/course/{courseId}/debug")
+    public ResponseEntity<Map<String, Object>> debugCourseCalculations(@PathVariable Long courseId) {
+        try {
+            Map<String, Object> debugInfo = new HashMap<>();
+            
+            // Test database function calls
+            BigDecimal courseGrade = databaseCalculationService.calculateCourseGrade(courseId);
+            BigDecimal gpa = databaseCalculationService.calculateGPA(courseGrade);
+            
+            // Get current stored values
+            Optional<Course> courseOpt = courseService.getCourseById(courseId);
+            if (courseOpt.isPresent()) {
+                Course course = courseOpt.get();
+                debugInfo.put("currentStoredGrade", course.getCalculatedCourseGrade());
+                debugInfo.put("currentStoredGPA", course.getCourseGpa());
+                debugInfo.put("handleMissing", course.getHandleMissing());
+                debugInfo.put("courseName", course.getCourseName());
+            }
+            
+            debugInfo.put("calculatedGrade", courseGrade);
+            debugInfo.put("calculatedGPA", gpa);
+            debugInfo.put("courseId", courseId);
+            debugInfo.put("success", true);
+            
+            return ResponseEntity.ok(debugInfo);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Debug failed: " + e.getMessage());
+            errorResponse.put("success", false);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * Get user analytics for a specific course
+     * Returns all analytics records for the user and course, ordered by date
+     */
+    @GetMapping("/user/{userId}/analytics/{courseId}")
+    public ResponseEntity<?> getUserAnalytics(@PathVariable Long userId, @PathVariable Long courseId) {
+        try {
+            System.out.println("🔍 [DatabaseCalculationController] Fetching analytics for user: " + userId + ", course: " + courseId);
+            
+            // Get all analytics records for this user and course, ordered by date
+            var analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
+            
+            System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records");
+            
+            if (analyticsList.isEmpty()) {
+                System.out.println("⚠️ [DatabaseCalculationController] No analytics found, returning empty array");
+                return ResponseEntity.ok(new java.util.ArrayList<>());
+            }
+            
+            // Log the analytics data for debugging
+            analyticsList.forEach(analytics -> {
+                System.out.println("📊 [DatabaseCalculationController] Analytics: " + 
+                    "id=" + analytics.getAnalyticsId() + 
+                    ", date=" + analytics.getAnalyticsDate() + 
+                    ", current_grade=" + analytics.getCurrentGrade() + 
+                    ", grade_trend=" + analytics.getGradeTrend() + 
+                    ", assignments_completed=" + analytics.getAssignmentsCompleted());
+            });
+            
+            return ResponseEntity.ok(analyticsList);
+            
+        } catch (Exception e) {
+            System.err.println("❌ [DatabaseCalculationController] Error fetching analytics: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch analytics: " + e.getMessage());
         }
     }
 }

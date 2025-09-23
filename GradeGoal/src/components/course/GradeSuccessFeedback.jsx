@@ -5,9 +5,8 @@
 // Features: Grade summary, course information, action buttons
 
 import React from "react";
-import { calculateCourseProgress } from "../../utils/progressCalculations";
-import GradeService from "../../services/gradeService";
 import { getCourseColorScheme } from "../../utils/courseColors";
+import { calculateCourseProgress } from "./course_details/utils/gradeEntryCourse";
 
 function GradeSuccessFeedback({
   gradeData,
@@ -20,10 +19,28 @@ function GradeSuccessFeedback({
 }) {
   // Calculate updated course statistics
   const progress = calculateCourseProgress(categories, grades);
-  const gradeResult = GradeService.calculateCourseGrade(course, grades);
-  const currentGrade = gradeResult.success
-    ? gradeResult.courseGrade
-    : "Ongoing";
+  
+  // Get current course grade from database (most efficient approach)
+  let currentGrade = 0.00;
+  let hasGrades = false;
+
+  // Use the course_gpa from the database (most efficient)
+  if (course.courseGpa && course.courseGpa > 0) {
+    currentGrade = course.courseGpa;
+    hasGrades = true;
+  } else if (course.course_gpa && course.course_gpa > 0) {
+    // Fallback to snake_case version
+    currentGrade = course.course_gpa;
+    hasGrades = true;
+  } else if (course.currentGrade && typeof course.currentGrade === 'number' && course.currentGrade > 0) {
+    // Fallback to currentGrade
+    currentGrade = course.currentGrade;
+    hasGrades = true;
+  } else if (course.current_grade && typeof course.current_grade === 'number' && course.current_grade > 0) {
+    // Fallback to snake_case version
+    currentGrade = course.current_grade;
+    hasGrades = true;
+  }
 
   // Get category name for the saved grade
   const category = categories.find((cat) => cat.id === gradeData.categoryId);
@@ -209,7 +226,7 @@ function GradeSuccessFeedback({
                     ></div>
                   </div>
                   <span className="font-semibold text-gray-800">
-                    {Math.round(progress)}%
+                    {isNaN(progress) || !isFinite(progress) ? "0%" : `${Math.round(progress)}%`}
                   </span>
                 </div>
               </div>
@@ -217,7 +234,7 @@ function GradeSuccessFeedback({
                 <p className="text-sm text-gray-600">Current Grade</p>
                 <p className="font-semibold text-gray-800">
                   {typeof currentGrade === "number"
-                    ? currentGrade.toFixed(1)
+                    ? currentGrade.toFixed(2)
                     : currentGrade}
                 </p>
               </div>

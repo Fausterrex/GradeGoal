@@ -1,9 +1,11 @@
 // ========================================
 // GOAL MODAL UTILITY FUNCTIONS
 // ========================================
+
+import { percentageToGPA, gpaToPercentage, detectValueFormat } from './gpaConversionUtils';
 // This file contains utility functions specific to goal modal operations
 
-import { convertPercentageToGPA, convertGPAToPercentage } from "../../../utils/gradeCalculations";
+// Removed grade calculation imports
 import { hasExistingGoal, getAvailableCourses } from "./goalUtils";
 
 /**
@@ -49,6 +51,33 @@ export const validateGoalForm = (formData, courses, existingGoals, editingGoal) 
     }
     if (!formData.academicYear?.trim()) {
       errors.push('Academic year is required for semester GPA goals');
+    }
+    
+    // Check for duplicate semester GPA goals
+    const existingSemesterGoal = existingGoals.find(goal => 
+      goal.goalType === 'SEMESTER_GPA' && 
+      goal.semester === formData.semester && 
+      goal.academicYear === formData.academicYear &&
+      goal.goalId !== editingGoal?.goalId
+    );
+    
+    if (existingSemesterGoal) {
+      const semesterName = formData.semester === 'FIRST' ? '1st' : 
+                          formData.semester === 'SECOND' ? '2nd' : 
+                          formData.semester === 'THIRD' ? '3rd' : formData.semester;
+      errors.push(`A goal already exists for ${semesterName} Semester ${formData.academicYear}`);
+    }
+  }
+  
+  // Cumulative GPA goal validation
+  if (formData.goalType === 'CUMMULATIVE_GPA') {
+    const existingCumulativeGoal = existingGoals.find(goal => 
+      goal.goalType === 'CUMMULATIVE_GPA' && 
+      goal.goalId !== editingGoal?.goalId
+    );
+    
+    if (existingCumulativeGoal) {
+      errors.push('A cumulative GPA goal already exists');
     }
   }
 
@@ -105,14 +134,20 @@ export const getInputConstraints = (goalType, courseId, courses) => {
 export const getConversionDisplay = (goalType, courseId, targetValue, courses) => {
   if (goalType === 'COURSE_GRADE' && courseId && targetValue) {
     const course = courses.find(c => c.courseId === parseInt(courseId));
-    if (course && course.gradingScale === 'gpa') {
-      const gpa = parseFloat(targetValue);
-      const percentage = convertGPAToPercentage(gpa, course.gpaScale || '4.0');
-      return `(${percentage}%)`;
-    } else if (course && course.gradingScale === 'percentage') {
-      const percentage = parseFloat(targetValue);
-      const gpa = convertPercentageToGPA(percentage, course.gpaScale || '4.0');
-      return `(GPA: ${gpa})`;
+    if (course && targetValue) {
+      const numValue = parseFloat(targetValue);
+      const gpaScale = course.gpaScale === '5.0' ? 5.0 : 4.0;
+      const format = detectValueFormat(numValue, gpaScale);
+      
+      if (format === 'gpa') {
+        // Input is GPA, show percentage conversion
+        const percentage = gpaToPercentage(numValue, gpaScale);
+        return `(${percentage.toFixed(1)}%)`;
+      } else if (format === 'percentage') {
+        // Input is percentage, show GPA conversion
+        const gpa = percentageToGPA(numValue, gpaScale);
+        return `(${gpa.toFixed(2)} GPA)`;
+      }
     }
   }
   return '';

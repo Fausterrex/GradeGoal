@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Target, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { calculateGoalProgress } from './goalProgress';
-import AnalyticsService from '../../../services/analyticsService';
+// Removed AnalyticsService import
 import { getProgressStatusInfo, getProgressBarColor } from './goalProgress';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserProfile } from '../../../backend/api';
@@ -59,10 +59,8 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
         const userProfile = await getUserProfile(currentUser.email);
         
         // Load analytics data
-        const analyticsData = await AnalyticsService.getUserAnalytics(
-          userProfile.userId, 
-          goal.courseId || null
-        );
+        // Removed analytics - set default
+        const analyticsData = null;
         
         setAnalytics(analyticsData);
         
@@ -70,14 +68,14 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
         const progress = await memoizedGoalProgress;
         const enhancedProgress = {
           ...progress,
-          achievementProbability: AnalyticsService.calculateTrendBasedProbability(
+          achievementProbability: 0 /* Removed calculation */(
             progress.currentValue,
             progress.targetValue,
             analyticsData.gradeTrend,
             goal.goalType,
             goal.targetDate
           ),
-          status: AnalyticsService.getTrendBasedStatus(
+          status: 'on_track' /* Removed calculation */(
             progress.currentValue,
             progress.targetValue,
             analyticsData.gradeTrend,
@@ -112,8 +110,8 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
   }
 
   const statusInfo = getProgressStatusInfo(progressData.status);
-  const trendInfo = analytics ? AnalyticsService.getTrendColorScheme(analytics.gradeTrend) : null;
-  const recommendations = analytics ? AnalyticsService.getTrendBasedRecommendations(
+  const trendInfo = analytics ? null /* Removed calculation */(analytics.gradeTrend) : null;
+  const recommendations = analytics ? [] /* Removed recommendations */(
     analytics.gradeTrend, 
     progressData.status
   ) : [];

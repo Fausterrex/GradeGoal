@@ -4,7 +4,7 @@
 // Consolidated component that combines analytics, statistics, status badges, and key metrics
 
 import React, { useMemo } from "react";
-import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
+// Removed grade calculations import
 
 function UnifiedAnalytics({
   userAnalytics,
@@ -26,9 +26,9 @@ function UnifiedAnalytics({
       !grade.score || grade.score === null || grade.score === undefined || grade.score === ""
     );
 
-    // Upcoming deadlines
+    // Upcoming deadlines (only for assessments without scores)
     const upcomingDeadlines = allGrades.filter(grade => {
-      if (!grade.date) return false;
+      if (!grade.date || grade.score) return false; // Exclude if no date or already has a score
       const dueDate = new Date(grade.date);
       return dueDate >= today && dueDate <= twoWeeksFromNow;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));

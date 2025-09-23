@@ -4,7 +4,7 @@
 // This component displays the main dashboard overview
 // Features: Course overview cards, GPA display, grade trends, course progress
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -16,7 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Search, Bell, User } from "lucide-react";
-import GradeService from "../../services/gradeService";
+// Removed GradeService import
 import EnhancedGradeTrends from "./EnhancedGradeTrends";
 import ProfileEdit from "../auth/ProfileEdit";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
@@ -32,11 +32,17 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
   const [showProfileEdit, setShowProfileEdit] = React.useState(false);
   const [targetGrades, setTargetGrades] = useState({});
   const [userId, setUserId] = useState(null);
+  const [gpaData, setGpaData] = useState({
+    semesterGPA: 0,
+    cumulativeGPA: 0,
+    courseGPAs: {}
+  });
 
-  // Load user ID and target grades when component mounts
+  // Load user ID, target grades, and GPA data when component mounts
   useEffect(() => {
     if (currentUser && courses.length > 0) {
       loadUserAndTargetGrades();
+      loadGpaData();
     }
   }, [currentUser, courses]);
 
@@ -76,6 +82,41 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
     }
   };
 
+  const loadGpaData = async () => {
+    try {
+      // Get user profile to get userId
+      const userProfile = await getUserProfile(currentUser.email);
+      const userId = userProfile.userId;
+
+      // Fetch GPA data from the API
+      const response = await fetch(`/api/user-progress/${userId}/with-gpas`);
+      if (response.ok) {
+        const userProgress = await response.json();
+        
+        // Extract GPA data
+        const semesterGPA = userProgress.semesterGpa || userProgress.semester_gpa || 0;
+        const cumulativeGPA = userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0;
+        
+        // Get course GPAs from the courses data
+        const courseGPAs = {};
+        courses.forEach(course => {
+          const courseId = course.id || course.courseId;
+          courseGPAs[courseId] = course.courseGpa || course.course_gpa || 0;
+        });
+
+        setGpaData({
+          semesterGPA,
+          cumulativeGPA,
+          courseGPAs
+        });
+      } else {
+        console.error("Failed to fetch GPA data");
+      }
+    } catch (error) {
+      console.error("Error loading GPA data:", error);
+    }
+  };
+
   const generateGradeTrends = () => {
     if (courses.length === 0) return [];
 
@@ -91,185 +132,28 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       totalCourses: activeCourses.length,
     });
 
-    const coursesWithGrades = activeCourses.filter((course) => {
-      if (!course.categories || !grades) return false;
-      const categoriesWithScores = course.categories.filter((category) => {
-        const categoryGrades = grades[category.id] || [];
-        return categoryGrades.some(
-          (grade) =>
-            grade.score !== undefined &&
-            grade.score !== null &&
-            grade.score !== "" &&
-            !isNaN(parseFloat(grade.score))
-        );
-      });
-      return categoriesWithScores.length > 0;
+    progressionData.push({
+      stage: "Current",
+      grade: parseFloat(overallGPA.toFixed(2)),
+      completedCourses: 0,
+      totalCourses: activeCourses.length,
     });
-
-    if (coursesWithGrades.length > 0) {
-      let totalGrade = 0;
-      let validGrades = 0;
-
-      coursesWithGrades.forEach((course) => {
-        try {
-          const gradeResult = GradeService.calculateCourseGrade(course, grades);
-          if (gradeResult.success) {
-            let courseGrade = gradeResult.courseGrade;
-            // Always convert to GPA if the grade is greater than 4.0 (indicating it's a percentage)
-            if (courseGrade > 4.0) {
-              courseGrade = GradeService.convertPercentageToGPA(
-                courseGrade,
-                course.gpaScale || "4.0"
-              );
-            }
-            if (courseGrade >= 1.0 && courseGrade <= 4.0) {
-              totalGrade += courseGrade;
-              validGrades++;
-            }
-          }
-        } catch (error) {}
-      });
-
-      if (validGrades > 0) {
-        const averageGrade = totalGrade / validGrades;
-        progressionData.push({
-          stage: "In Progress",
-          grade: parseFloat(averageGrade.toFixed(2)),
-          completedCourses: coursesWithGrades.length,
-          totalCourses: activeCourses.length,
-        });
-      }
-    }
-
-    const fullyCompletedCourses = activeCourses.filter((course) => {
-      if (!course.categories || !grades) return false;
-      const totalAssessments = course.categories.length;
-      const completedAssessments = course.categories.filter((category) => {
-        const categoryGrades = grades[category.id] || [];
-        return categoryGrades.some(
-          (grade) =>
-            grade.score !== undefined &&
-            grade.score !== null &&
-            grade.score !== "" &&
-            !isNaN(parseFloat(grade.score))
-        );
-      }).length;
-      return totalAssessments > 0 && completedAssessments === totalAssessments;
-    });
-
-    if (
-      fullyCompletedCourses.length > 0 &&
-      fullyCompletedCourses.length === activeCourses.length
-    ) {
-      let totalGrade = 0;
-      let validGrades = 0;
-
-      fullyCompletedCourses.forEach((course) => {
-        try {
-          const gradeResult = GradeService.calculateCourseGrade(course, grades);
-          if (gradeResult.success) {
-            let courseGrade = gradeResult.courseGrade;
-            // Always convert to GPA if the grade is greater than 4.0 (indicating it's a percentage)
-            if (courseGrade > 4.0) {
-              courseGrade = GradeService.convertPercentageToGPA(
-                courseGrade,
-                course.gpaScale || "4.0"
-              );
-            }
-            if (courseGrade >= 1.0 && courseGrade <= 4.0) {
-              totalGrade += courseGrade;
-              validGrades++;
-            }
-          }
-        } catch (error) {}
-      });
-
-      if (validGrades > 0) {
-        const finalGrade = totalGrade / validGrades;
-        progressionData.push({
-          stage: "Completed",
-          grade: parseFloat(finalGrade.toFixed(2)),
-          completedCourses: fullyCompletedCourses.length,
-          totalCourses: activeCourses.length,
-        });
-      }
-    }
-
-    if (progressionData.length === 1) {
-      progressionData.push({
-        stage: "Current",
-        grade: parseFloat(overallGPA.toFixed(2)),
-        completedCourses: coursesWithGrades.length,
-        totalCourses: activeCourses.length,
-      });
-    }
 
     return progressionData;
   };
 
   const gradeTrendsData = generateGradeTrends();
 
-  const generateCourseBreakdown = () => {
+  const generateCourseBreakdown = useMemo(() => {
     if (courses.length === 0) return [];
 
     return courses.map((course) => {
-      let currentGrade = 0;
-      let hasGrades = false;
-      let isOngoing = true;
-
-      try {
-        if (course.categories && grades) {
-          const categoriesWithScores = course.categories.filter((category) => {
-            const categoryGrades = grades[category.id] || [];
-            return categoryGrades.some(
-              (grade) =>
-                grade.score !== undefined &&
-                grade.score !== null &&
-                grade.score !== "" &&
-                !isNaN(parseFloat(grade.score))
-            );
-          });
-
-          if (categoriesWithScores.length > 0) {
-            const gradeResult = GradeService.calculateCourseGrade(
-              course,
-              grades
-            );
-            if (gradeResult.success) {
-              hasGrades = true;
-              currentGrade = gradeResult.courseGrade;
-              isOngoing = false;
-
-              // Always convert to GPA if the grade is greater than 4.0 (indicating it's a percentage)
-              if (currentGrade > 4.0) {
-                currentGrade = GradeService.convertPercentageToGPA(
-                  currentGrade,
-                  course.gpaScale || "4.0"
-                );
-              }
-            }
-          }
-        }
-      } catch (error) {}
-
       let status = "ON TRACK";
 
       if (course.isActive === false) {
         status = "ARCHIVED";
       } else {
-        const progressPercentage = course.progress || 0;
-
-        if (progressPercentage === 100) {
-          if (currentGrade >= 3.0) {
-            status = "EXCELLENT";
-          } else if (currentGrade >= 2.5) {
-            status = "ON TRACK";
-          } else {
-            status = "AT RISK";
-          }
-        } else {
-          status = "ON TRACK";
-        }
+        status = "ON TRACK";
       }
 
       // Get target grade from academic goals
@@ -277,16 +161,20 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       const targetGrade = targetGrades[courseId];
       let targetGradeDisplay = targetGrade ? targetGrade.toString() : "Not Set";
 
+      // Get actual course GPA from gpaData
+      const courseGPA = gpaData.courseGPAs[courseId] || 0;
+      const gradeDisplay = courseGPA > 0 ? courseGPA.toFixed(2) : "N/A";
+
       return {
         course: course.name,
-        grade: isOngoing ? "Ongoing" : currentGrade.toFixed(2),
+        grade: gradeDisplay,
         targetGrade: targetGradeDisplay,
         status,
       };
     });
-  };
+  }, [courses, targetGrades, gpaData]);
 
-  const courseBreakdown = generateCourseBreakdown();
+  const courseBreakdown = generateCourseBreakdown;
 
   const getFilteredCourseBreakdown = () => {
     switch (activeTab) {
@@ -396,6 +284,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
           courses={courses}
           grades={grades}
           overallGPA={overallGPA}
+          gpaData={gpaData}
         />
       </div>
 

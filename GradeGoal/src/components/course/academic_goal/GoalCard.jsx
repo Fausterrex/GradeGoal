@@ -103,7 +103,7 @@ const GoalCard = ({
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <div className="flex items-center space-x-1">
               <FaBullseye className="w-3 h-3" />
-              <span>Target: {progressData.targetValue}%</span>
+              <span>Target: {progressData.targetValue}</span>
             </div>
             {goal.courseId && (
             <div className="flex items-center space-x-1">
@@ -111,10 +111,15 @@ const GoalCard = ({
               <span>{getCourseName(goal.courseId, courses)}</span>
             </div>
             )}
-            {goal.goalType === 'SEMESTER_GPA' && goal.semester && goal.academicYear && (
+            {goal.goalType === 'SEMESTER_GPA' && (
               <div className="flex items-center space-x-1">
                 <span>•</span>
-                <span>{goal.semester === 'FIRST' ? '1st' : goal.semester === 'SECOND' ? '2nd' : '3rd'} Sem {goal.academicYear}</span>
+                <span>
+                  {goal.semester 
+                    ? `${goal.semester === 'FIRST' ? '1st' : goal.semester === 'SECOND' ? '2nd' : goal.semester === 'THIRD' ? '3rd' : goal.semester} Sem${goal.academicYear ? ` ${goal.academicYear}` : ''}`
+                    : 'First Semester' // Default to First Semester when not specified
+                  }
+                </span>
               </div>
             )}
             <div className="flex items-center space-x-1">
@@ -178,10 +183,10 @@ const GoalCard = ({
               : 'text-orange-700'
           }`}>
             {progressData.status === 'achieved' 
-              ? `🎉 Amazing work! You crushed your target of ${progressData.targetValue}% with an outstanding ${progressData.currentValue}%! You're on fire! 🔥`
+              ? `🎉 Amazing work! You crushed your target of ${progressData.targetValue} GPA with an outstanding ${progressData.currentValue} GPA! You're on fire! 🔥`
               : progressData.status === 'close_to_goal'
-              ? `✨ So close! You got ${progressData.currentValue}% (Target: ${progressData.targetValue}%) - just ${Math.round(progressData.targetValue - progressData.currentValue)}% away! You're almost there! 💪`
-              : `💪 Great effort! You finished with ${progressData.currentValue}% (Target: ${progressData.targetValue}%). Every step counts - keep pushing forward! You've got this! 🚀`
+              ? `✨ So close! You got ${progressData.currentValue} GPA (Target: ${progressData.targetValue} GPA) - just ${(progressData.targetValue - progressData.currentValue).toFixed(2)} GPA points away! You're almost there! 💪`
+              : `💪 Great effort! You finished with ${progressData.currentValue} GPA (Target: ${progressData.targetValue} GPA). Every step counts - keep pushing forward! You've got this! 🚀`
             }
           </div>
         </div>
@@ -211,10 +216,10 @@ const GoalCard = ({
       {/* Current vs Target Performance */}
       <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
         <div>
-          Current: <span className="font-semibold text-gray-800">{progressData.currentValue}%</span>
+          Current: <span className="font-semibold text-gray-800">{progressData.currentValue}</span>
         </div>
         <div>
-          Target: <span className="font-semibold text-gray-800">{progressData.targetValue}%</span>
+          Target: <span className="font-semibold text-gray-800">{progressData.targetValue}</span>
         </div>
       </div>
 
@@ -244,7 +249,7 @@ const GoalCard = ({
                 : 'text-gray-700'
             }`}>
               {progressData.status === 'close_to_goal'
-                ? `✨ So close! You're at ${progressData.currentValue}% (Target: ${progressData.targetValue}%) - just ${Math.round(progressData.targetValue - progressData.currentValue)}% away! You're almost there! 💪`
+                ? `✨ So close! You're at ${progressData.currentValue} GPA (Target: ${progressData.targetValue} GPA) - just ${(progressData.targetValue - progressData.currentValue).toFixed(2)} GPA points away! You're almost there! 💪`
                 : progressData.progress >= 80 
                 ? '🔥 You\'re crushing it! Keep up the momentum!'
                 : progressData.progress >= 60
@@ -291,7 +296,7 @@ const GoalCard = ({
       {/* Remaining Value - Only show for ongoing courses */}
       {!progressData.isCourseCompleted && progressData.remainingValue > 0 && (
         <div className="text-sm text-gray-600">
-          <span className="font-medium">Remaining:</span> {progressData.remainingValue}% to reach target
+          <span className="font-medium">Remaining:</span> {progressData.remainingValue.toFixed(2)} GPA points to reach target
         </div>
       )}
     </div>

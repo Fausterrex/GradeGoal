@@ -84,4 +84,13 @@ public interface UserAnalyticsRepository extends JpaRepository<UserAnalytics, Lo
      */
     @Query("SELECT ua FROM UserAnalytics ua WHERE ua.userId = :userId ORDER BY ua.analyticsDate DESC, ua.calculatedAt DESC")
     List<UserAnalytics> findByUserIdOrderByAnalyticsDateDesc(@Param("userId") Long userId);
+
+    /**
+     * Find all analytics entries for a specific user and course ordered by date
+     * @param userId User ID
+     * @param courseId Course ID
+     * @return List of analytics entries ordered by date descending
+     */
+    @Query("SELECT ua FROM UserAnalytics ua WHERE ua.userId = :userId AND ua.courseId = :courseId ORDER BY ua.analyticsDate DESC, ua.calculatedAt DESC")
+    List<UserAnalytics> findByUserIdAndCourseIdOrderByAnalyticsDateDesc(@Param("userId") Long userId, @Param("courseId") Long courseId);
 }

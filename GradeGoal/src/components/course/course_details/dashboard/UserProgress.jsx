@@ -18,10 +18,20 @@ function UserProgress({ userProgress, course }) {
     );
   }
 
-  const { level_info } = userProgress;
-  const progressPercentage = level_info.isMaxLevel
-    ? 100
-    : ((level_info.totalPoints - (level_info.totalPoints - level_info.pointsToNextLevel)) / (level_info.totalPoints + level_info.pointsToNextLevel)) * 100;
+  // Set default values for level_info if userProgress is undefined or incomplete
+  const level_info = userProgress?.level_info || {
+    level: userProgress?.currentLevel || 1,
+    levelName: "Beginner Scholar", 
+    totalPoints: userProgress?.totalPoints || 0,
+    pointsToNextLevel: userProgress?.pointsToNextLevel || 100,
+    isMaxLevel: false
+  };
+  
+  // Calculate actual progress percentage based on points to next level
+  const currentPoints = userProgress?.totalPoints || 0;
+  const pointsToNext = userProgress?.pointsToNextLevel || 100;
+  const pointsInCurrentLevel = currentPoints % 100; // Points within current level (0-99)
+  const progressPercentage = Math.min((pointsInCurrentLevel / 100) * 100, 100);
 
   return (
     <div className="space-y-6 ">
@@ -37,7 +47,7 @@ function UserProgress({ userProgress, course }) {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-600">{level_info.levelName}</span>
             <span className="text-sm font-bold text-gray-900">
-              {level_info.totalPoints} pts
+              {currentPoints} pts
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
@@ -48,7 +58,7 @@ function UserProgress({ userProgress, course }) {
           </div>
           {!level_info.isMaxLevel && (
             <div className="text-xs text-gray-500 mt-1">
-              {level_info.pointsToNextLevel} points to next level
+              {pointsToNext} points to next level
             </div>
           )}
         </div>
@@ -64,11 +74,11 @@ function UserProgress({ userProgress, course }) {
             <div className="text-xs text-gray-600">Day Streak</div>
           </div>
           <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
-            <div className="text-xl font-bold text-gray-900">{userProgress.semester_gpa?.toFixed(2) || '0.00'}</div>
+            <div className="text-xl font-bold text-gray-900">{(userProgress.semesterGpa || userProgress.semester_gpa || 0).toFixed(2)}</div>
             <div className="text-xs text-gray-600">Semester GPA</div>
           </div>
           <div className="flex flex-col items-center justify-center w-28 h-28 bg-gray-50 rounded-full border text-center mx-auto">
-            <div className="text-xl font-bold text-gray-900">{userProgress.cumulative_gpa?.toFixed(2) || '0.00'}</div>
+            <div className="text-xl font-bold text-gray-900">{(userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0).toFixed(2)}</div>
             <div className="text-xs text-gray-600">Cumulative GPA</div>
           </div>
         </div>
@@ -101,18 +111,18 @@ function UserProgress({ userProgress, course }) {
           )}
 
           {/* GPA Achievement */}
-          {userProgress.semester_gpa >= 3.5 && (
+          {(userProgress.semesterGpa || userProgress.semester_gpa || 0) >= 3.5 && (
             <div className="flex items-center gap-3 p-3 bg-green-50 rounded border border-green-200">
               <span className="text-2xl">🎓</span>
               <div>
                 <div className="font-medium text-gray-900">Honor Roll</div>
-                <div className="text-sm text-gray-600">{userProgress.semester_gpa.toFixed(2)} GPA</div>
+                <div className="text-sm text-gray-600">{(userProgress.semesterGpa || userProgress.semester_gpa || 0).toFixed(2)} GPA</div>
               </div>
             </div>
           )}
 
           {/* Default message if no achievements */}
-          {level_info.level < 5 && userProgress.streak_days < 7 && userProgress.semester_gpa < 3.5 && (
+          {level_info.level < 5 && userProgress.streak_days < 7 && (userProgress.semesterGpa || userProgress.semester_gpa || 0) < 3.5 && (
             <div className="text-center py-4 text-gray-500">
               <span className="text-2xl">🎯</span>
               <p className="mt-2">Keep going to unlock achievements!</p>

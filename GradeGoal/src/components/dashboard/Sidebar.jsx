@@ -13,7 +13,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 
-const Sidebar = ({ activeTab, setActiveTab }) => {
+const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
   // Navigation items configuration
   const navItems = [
     { icon: <FaTachometerAlt />, label: "Dashboard", tab: "overview" },
@@ -46,7 +46,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               icon={item.icon}
               label={item.label}
               isActive={activeTab === item.tab}
-              onClick={() => setActiveTab(item.tab)}
+              onClick={() => onTabClick(item.tab)}
             />
           ))}
         </div>

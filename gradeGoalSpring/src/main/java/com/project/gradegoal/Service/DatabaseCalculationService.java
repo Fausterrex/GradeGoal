@@ -15,7 +15,9 @@ import jakarta.persistence.PersistenceContext;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,6 +35,7 @@ public class DatabaseCalculationService {
 
     @Autowired
     private UserProgressRepository userProgressRepository;
+    
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -89,11 +92,11 @@ public class DatabaseCalculationService {
     }
 
     /**
-     * Calculate cumulative GPA using database function
+     * Calculate cumulative GPA for a user using database function
      * @param userId User ID
      * @return Calculated cumulative GPA
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public BigDecimal calculateCumulativeGPA(Long userId) {
         try {
             // Call the database function CalculateCumulativeGPA
@@ -104,6 +107,132 @@ public class DatabaseCalculationService {
             return BigDecimal.ZERO;
         }
     }
+
+    /**
+     * Calculate semester GPA using database function
+     * @param userId User ID
+     * @param semester Semester (FIRST, SECOND, THIRD)
+     * @param academicYear Academic year
+     * @return Calculated semester GPA
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateSemesterGPA(Long userId, String semester, String academicYear) {
+        try {
+            // First try the database function with collation handling
+            try {
+                String query = "SELECT CalculateSemesterGPA(?, CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci, CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci)";
+                
+                Object result = entityManager.createNativeQuery(query)
+                        .setParameter(1, userId)
+                        .setParameter(2, semester)
+                        .setParameter(3, academicYear)
+                        .getSingleResult();
+                
+                if (result != null) {
+                    BigDecimal gpa = new BigDecimal(result.toString());
+                    return gpa.setScale(2, RoundingMode.HALF_UP);
+                }
+            } catch (Exception e) {
+                System.err.println("Database function failed, trying manual calculation: " + e.getMessage());
+            }
+            
+            // Fallback: Calculate manually using JPA
+            List<Course> courses = courseRepository.findByUserIdAndSemesterAndAcademicYear(userId, 
+                Course.Semester.valueOf(semester), academicYear);
+            
+            if (courses.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            
+            BigDecimal totalGradePoints = BigDecimal.ZERO;
+            int totalCreditHours = 0;
+            
+            for (Course course : courses) {
+                if (course.getCourseGpa() != null && course.getCreditHours() != null && course.getIsActive()) {
+                    totalGradePoints = totalGradePoints.add(course.getCourseGpa().multiply(new BigDecimal(course.getCreditHours())));
+                    totalCreditHours += course.getCreditHours();
+                }
+            }
+            
+            if (totalCreditHours > 0) {
+                return totalGradePoints.divide(new BigDecimal(totalCreditHours), 2, RoundingMode.HALF_UP);
+            }
+            
+            return BigDecimal.ZERO;
+        } catch (Exception e) {
+            System.err.println("Error calculating semester GPA for user " + userId + ": " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Update user progress with accurate GPA values
+     * @param userId User ID
+     * @return Updated UserProgress entity
+     */
+    @Transactional
+    public UserProgress updateUserProgressGPAs(Long userId) {
+        try {
+            System.out.println("🔄 [DatabaseCalculationService] Updating user progress GPAs for user: " + userId);
+            
+            // Get or create user progress
+            UserProgress userProgress = userProgressRepository.findByUserId(userId);
+            if (userProgress == null) {
+                userProgress = new UserProgress(userId);
+                userProgressRepository.save(userProgress);
+                System.out.println("✅ [DatabaseCalculationService] Created new user progress for user: " + userId);
+            }
+
+            // Initialize GPA values
+            BigDecimal cumulativeGPA = BigDecimal.ZERO;
+            BigDecimal semesterGPA = BigDecimal.ZERO;
+
+            try {
+                // Calculate cumulative GPA
+                cumulativeGPA = calculateCumulativeGPA(userId);
+                System.out.println("📊 [DatabaseCalculationService] Calculated cumulative GPA: " + cumulativeGPA);
+            } catch (Exception e) {
+                System.err.println("⚠️ [DatabaseCalculationService] Error calculating cumulative GPA: " + e.getMessage());
+                cumulativeGPA = BigDecimal.ZERO;
+            }
+
+            try {
+                // Get user's current semester and academic year from their active courses
+                List<Course> activeCourses = courseRepository.findByUserIdAndIsActiveTrue(userId);
+                
+                if (!activeCourses.isEmpty()) {
+                    Course firstCourse = activeCourses.get(0);
+                    String currentSemester = firstCourse.getSemester().toString();
+                    String currentAcademicYear = firstCourse.getAcademicYear();
+                    System.out.println("📅 [DatabaseCalculationService] Found current semester: " + currentSemester + ", academic year: " + currentAcademicYear);
+                    
+                    // Calculate semester GPA
+                    semesterGPA = calculateSemesterGPA(userId, currentSemester, currentAcademicYear);
+                    System.out.println("📊 [DatabaseCalculationService] Calculated semester GPA: " + semesterGPA);
+                } else {
+                    System.out.println("⚠️ [DatabaseCalculationService] No active courses found for user: " + userId);
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ [DatabaseCalculationService] Error calculating semester GPA: " + e.getMessage());
+                semesterGPA = BigDecimal.ZERO;
+            }
+
+            // Update user progress
+            userProgress.setCumulativeGpa(cumulativeGPA.doubleValue());
+            userProgress.setSemesterGpa(semesterGPA.doubleValue());
+            
+            UserProgress savedProgress = userProgressRepository.save(userProgress);
+            System.out.println("✅ [DatabaseCalculationService] Updated user progress - Cumulative: " + cumulativeGPA + ", Semester: " + semesterGPA);
+            
+            return savedProgress;
+            
+        } catch (Exception e) {
+            System.err.println("❌ [DatabaseCalculationService] Error updating user progress GPAs: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     /**
      * Add or update grade using database procedure
@@ -118,7 +247,8 @@ public class DatabaseCalculationService {
      */
     @Transactional
     public String addOrUpdateGrade(Long assessmentId, BigDecimal pointsEarned, BigDecimal pointsPossible,
-                                   BigDecimal percentageScore, String scoreType, String notes, Boolean isExtraCredit) {
+                                   BigDecimal percentageScore, String scoreType, String notes, Boolean isExtraCredit,
+                                   BigDecimal extraCreditPoints) {
         try {
             // Get the user_id associated with the assessment
             String userQuery = "SELECT c.user_id FROM courses c " +
@@ -146,8 +276,9 @@ public class DatabaseCalculationService {
                 // Update existing grade
                 String updateQuery = "UPDATE grades SET " +
                                    "points_earned = ?, points_possible = ?, percentage_score = ?, " +
-                                   "score_type = ?, notes = ?, is_extra_credit = ?, updated_at = CURRENT_TIMESTAMP " +
-                                   "WHERE grade_id = ?";
+                                   "score_type = ?, notes = ?, is_extra_credit = ?, extra_credit_points = ?, " +
+                                   "updated_at = CURRENT_TIMESTAMP WHERE grade_id = ?";
+                
                 
                 entityManager.createNativeQuery(updateQuery)
                     .setParameter(1, pointsEarned)
@@ -156,15 +287,20 @@ public class DatabaseCalculationService {
                     .setParameter(4, scoreType)
                     .setParameter(5, notes)
                     .setParameter(6, isExtraCredit)
-                    .setParameter(7, existingGrade.get(0))
+                    .setParameter(7, extraCreditPoints)
+                    .setParameter(8, existingGrade.get(0))
                     .executeUpdate();
                 
-                return "Grade updated successfully";
+                // Get course ID for later course grades update (outside this transaction)
+                Long courseId = getCourseIdFromAssessment(assessmentId);
+                
+                return "Grade updated successfully|" + (courseId != null ? courseId.toString() : "");
             } else {
                 // Insert new grade
                 String insertQuery = "INSERT INTO grades (assessment_id, points_earned, points_possible, " +
-                                   "percentage_score, score_type, notes, is_extra_credit, user_id) " +
-                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                                   "percentage_score, score_type, notes, is_extra_credit, extra_credit_points, user_id) " +
+                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
                 
                 entityManager.createNativeQuery(insertQuery)
                     .setParameter(1, assessmentId)
@@ -174,10 +310,23 @@ public class DatabaseCalculationService {
                     .setParameter(5, scoreType)
                     .setParameter(6, notes)
                     .setParameter(7, isExtraCredit)
-                    .setParameter(8, userId)
+                    .setParameter(8, extraCreditPoints)
+                    .setParameter(9, userId)
                     .executeUpdate();
                 
-                return "Grade added successfully";
+                // Award points for adding a new grade
+                try {
+                    awardPoints(userId, 10, "GRADE_ADDED");
+                    System.out.println("✅ Awarded 10 points to user " + userId + " for adding a grade");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to award points for grade addition: " + e.getMessage());
+                    // Don't fail the entire operation if point awarding fails
+                }
+                
+                // Get course ID for later course grades update (outside this transaction)
+                Long courseId = getCourseIdFromAssessment(assessmentId);
+                
+                return "Grade added successfully|" + (courseId != null ? courseId.toString() : "");
             }
         } catch (Exception e) {
             System.err.println("Error adding/updating grade for assessment " + assessmentId + ": " + e.getMessage());
@@ -189,28 +338,33 @@ public class DatabaseCalculationService {
      * Update course grades using database procedure
      * @param courseId Course ID
      */
+    @Transactional
     public void updateCourseGrades(Long courseId) {
         try {
-            // Call the database procedure UpdateCourseGrades
-            courseRepository.updateCourseGrades(courseId);
+            System.out.println("🔄 Calling UpdateCourseGrades for course: " + courseId);
+            // Call the database procedure UpdateCourseGrades using entityManager
+            entityManager.createNativeQuery("CALL UpdateCourseGrades(:courseId)")
+                .setParameter("courseId", courseId)
+                .executeUpdate();
+            System.out.println("✅ UpdateCourseGrades completed successfully for course: " + courseId);
         } catch (Exception e) {
-            System.err.println("Error updating course grades for course " + courseId + ": " + e.getMessage());
+            System.err.println("❌ Error updating course grades for course " + courseId + ": " + e.getMessage());
+            e.printStackTrace();
             // Don't rethrow the exception to avoid transaction rollback issues
         }
     }
 
     /**
      * Update user analytics using database procedure
+     * NOTE: This method is deprecated - UpdateCourseGrades already calls UpdateUserAnalytics
      * @param userId User ID
      * @param courseId Course ID
      */
+    @Deprecated
     public void updateUserAnalytics(Long userId, Long courseId) {
-        try {
-            // Call the database procedure UpdateUserAnalytics
-            courseRepository.updateUserAnalytics(userId, courseId);
-        } catch (Exception e) {
-            System.err.println("Error updating user analytics for user " + userId + " course " + courseId + ": " + e.getMessage());
-        }
+        System.out.println("⚠️ WARNING: updateUserAnalytics is deprecated. UpdateCourseGrades already handles analytics.");
+        // Method intentionally left empty to prevent duplicate analytics
+        // UpdateCourseGrades stored procedure already calls UpdateUserAnalytics
     }
 
     /**
@@ -219,54 +373,37 @@ public class DatabaseCalculationService {
      * @param points Points to award
      * @param activityType Activity type
      */
+    @Transactional
     public void awardPoints(Long userId, Integer points, String activityType) {
         try {
-            // Call the database procedure AwardPoints
-            userProgressRepository.awardPoints(userId, points, activityType);
+            // Call the database procedure AwardPoints using entityManager
+            entityManager.createNativeQuery("CALL AwardPoints(:userId, :points, :activityType)")
+                .setParameter("userId", userId)
+                .setParameter("points", points)
+                .setParameter("activityType", activityType)
+                .executeUpdate();
         } catch (Exception e) {
             System.err.println("Error awarding points to user " + userId + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Check goal progress using database procedure
-     * @param userId User ID
-     */
-    public void checkGoalProgress(Long userId) {
-        try {
-            // Call the database procedure CheckGoalProgress
-            courseRepository.checkGoalProgress(userId);
-        } catch (Exception e) {
-            System.err.println("Error checking goal progress for user " + userId + ": " + e.getMessage());
-            // Don't rethrow the exception to avoid transaction rollback issues
-        }
-    }
 
     /**
      * Check grade alerts using database procedure
      * @param userId User ID
      */
+    @Transactional
     public void checkGradeAlerts(Long userId) {
         try {
-            // Call the database procedure CheckGradeAlerts
-            courseRepository.checkGradeAlerts(userId);
+            // Call the database procedure CheckGradeAlerts using entityManager
+            entityManager.createNativeQuery("CALL CheckGradeAlerts(:userId)")
+                .setParameter("userId", userId)
+                .executeUpdate();
         } catch (Exception e) {
             System.err.println("Error checking grade alerts for user " + userId + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Check user achievements using database procedure
-     * @param userId User ID
-     */
-    public void checkUserAchievements(Long userId) {
-        try {
-            // Call the database procedure CheckUserAchievements
-            userProgressRepository.checkUserAchievements(userId);
-        } catch (Exception e) {
-            System.err.println("Error checking user achievements for user " + userId + ": " + e.getMessage());
-        }
-    }
 
     /**
      * Initialize sample achievements using database procedure
@@ -330,4 +467,92 @@ public class DatabaseCalculationService {
             return null;
         }
     }
+    
+    /**
+     * Update course handle missing setting using stored procedure
+     * @param courseId Course ID
+     * @param handleMissing Handle missing setting ("exclude" or "treat_as_zero")
+     */
+    @Transactional
+    public void updateCourseHandleMissing(Long courseId, String handleMissing) {
+        try {
+            // Call the stored procedure to update handle missing setting
+            entityManager.createNativeQuery("CALL UpdateCourseHandleMissing(?, ?)")
+                    .setParameter(1, courseId)
+                    .setParameter(2, handleMissing)
+                    .executeUpdate();
+                    
+            System.out.println("Updated handle missing setting for course " + courseId + " to: " + handleMissing);
+        } catch (Exception e) {
+            System.err.println("Error updating course handle missing setting: " + e.getMessage());
+            throw new RuntimeException("Failed to update handle missing setting", e);
+        }
+    }
+    
+    /**
+     * Get course ID from assessment ID
+     */
+    private Long getCourseIdFromAssessment(Long assessmentId) {
+        try {
+            String query = "SELECT ac.course_id FROM assessments a " +
+                          "INNER JOIN assessment_categories ac ON a.category_id = ac.category_id " +
+                          "WHERE a.assessment_id = ?";
+            
+            Object result = entityManager.createNativeQuery(query)
+                    .setParameter(1, assessmentId)
+                    .getSingleResult();
+            
+            return ((Number) result).longValue();
+        } catch (Exception e) {
+            System.err.println("Error getting course ID from assessment: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get user ID from course ID
+     */
+    public Long getUserIdFromCourse(Long courseId) {
+        try {
+            String query = "SELECT user_id FROM courses WHERE course_id = ?";
+            
+            Object result = entityManager.createNativeQuery(query)
+                    .setParameter(1, courseId)
+                    .getSingleResult();
+            
+            return ((Number) result).longValue();
+        } catch (Exception e) {
+            System.err.println("Error getting user ID from course: " + e.getMessage());
+            return null;
+        }
+    }
+    
+        /**
+         * Create analytics entry for grade update using stored procedure
+         * NOTE: This method is deprecated - UpdateCourseGrades already calls UpdateUserAnalytics
+         */
+        @Deprecated
+        public void createAnalyticsForGradeUpdate(Long userId, Long courseId) {
+            System.out.println("⚠️ WARNING: createAnalyticsForGradeUpdate is deprecated. UpdateCourseGrades already handles analytics.");
+            // Method intentionally left empty to prevent duplicate analytics
+            // UpdateCourseGrades stored procedure already calls UpdateUserAnalytics
+        }
+
+        /**
+         * Check goal progress and mark achievements using stored procedure
+         */
+        @Transactional
+        public void checkGoalProgress(Long userId) {
+            try {
+                String procedureCall = "CALL CheckGoalProgress(?)";
+                entityManager.createNativeQuery(procedureCall)
+                        .setParameter(1, userId)
+                        .executeUpdate();
+            } catch (Exception e) {
+                System.err.println("Error calling CheckGoalProgress stored procedure: " + e.getMessage());
+            }
+        }
+
+
+
 }

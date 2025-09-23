@@ -6,14 +6,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import GradeService from "../../services/gradeService";
+// Removed GradeService import
 import {
   deleteCourse as deleteCourseApi,
   archiveCourse as archiveCourseApi,
   unarchiveCourse as unarchiveCourseApi,
 } from "../../backend/api";
 import { getCourseColorScheme } from "../../utils/courseColors";
-import { convertPercentageToGPA } from "../../utils/gradeCalculations";
+// Removed grade calculations import
 import AddCourse from "./AddCourse";
 import ConfirmationModal from "../common/ConfirmationModal";
 
@@ -435,16 +435,11 @@ function CourseManager({
                               : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white"
                           }`}
                         >
-                          {hasGrades
-                            ? typeof courseGrade === "number"
-                              ? courseGrade > 4.0
-                                ? convertPercentageToGPA(
-                                    courseGrade,
-                                    course.gpaScale || "4.0"
-                                  ).toFixed(2)
-                                : courseGrade.toFixed(2)
-                              : courseGrade
-                            : "Ongoing"}
+                          {typeof courseGrade === "number"
+                            ? courseGrade > 4.0
+                              ? "0.00" // Removed GPA conversion
+                              : courseGrade.toFixed(2)
+                            : courseGrade}
                         </span>
                       </div>
                     </div>
@@ -458,15 +453,8 @@ function CourseManager({
                             Progress
                           </span>
                           <span className="text-sm font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">
-                            {isOngoing && progress === 0
-                              ? "Ongoing"
-                              : isNaN(progress) || !isFinite(progress)
-                              ? "Ongoing"
-                              : progress === 0 &&
-                                course.categories &&
-                                course.categories.length > 0 &&
-                                (!grades || Object.keys(grades).length === 0)
-                              ? "Ongoing"
+                            {isNaN(progress) || !isFinite(progress)
+                              ? "0%"
                               : `${Math.round(progress)}%`}
                           </span>
                         </div>

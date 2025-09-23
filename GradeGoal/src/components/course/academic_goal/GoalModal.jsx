@@ -69,10 +69,44 @@ const GoalModal = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // If academic year changes and we have a semester selected, check if it should be reset
+    if (name === 'academicYear' && formData.semester) {
+      const newAcademicYear = value;
+      const hasExistingGoal = existingGoals.some(goal => 
+        goal.goalType === 'SEMESTER_GPA' && 
+        goal.semester === formData.semester && 
+        goal.academicYear === newAcademicYear &&
+        goal.goalId !== editingGoal?.goalId
+      );
+      
+      // If the selected semester already has a goal for the new academic year, reset semester
+      if (hasExistingGoal) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          semester: '' // Reset semester selection
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    } else if (name === 'goalType') {
+      // If goal type changes, reset related fields
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        semester: '', // Reset semester for semester GPA goals
+        courseId: '' // Reset course for course grade goals
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Clear validation error when user starts typing
     if (name === 'targetValue' && validationError) {
@@ -94,6 +128,24 @@ const GoalModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check for disabled goal types and prevent submission
+    if (!editingGoal) {
+      if (formData.goalType === 'CUMMULATIVE_GPA' && hasExistingCumulativeGoal) {
+        setValidationError('A cumulative GPA goal already exists');
+        return;
+      }
+      
+      if (formData.goalType === 'SEMESTER_GPA' && formData.semester) {
+        const hasSpecificSemester = hasExistingSemesterGoal(formData.semester, formData.academicYear);
+        if (hasSpecificSemester) {
+          const semesterName = formData.semester === 'FIRST' ? '1st' : 
+                             formData.semester === 'SECOND' ? '2nd' : '3rd';
+          setValidationError(`A goal already exists for ${semesterName} Semester ${formData.academicYear}`);
+          return;
+        }
+      }
+    }
     
     if (!validateForm()) {
       return;
@@ -125,6 +177,35 @@ const GoalModal = ({
     existingGoals, 
     editingGoal?.goalId
   );
+
+  // Check for existing goals to disable certain options
+  const hasExistingCumulativeGoal = existingGoals.some(goal => 
+    goal.goalType === 'CUMMULATIVE_GPA' && goal.goalId !== editingGoal?.goalId
+  );
+  
+  const hasExistingSemesterGoal = (semester, academicYear) => {
+    return existingGoals.some(goal => 
+      goal.goalType === 'SEMESTER_GPA' && 
+      goal.semester === semester && 
+      goal.academicYear === academicYear &&
+      goal.goalId !== editingGoal?.goalId
+    );
+  };
+
+  // Check if all semesters (1st, 2nd, 3rd) have goals for the current academic year
+  const areAllSemestersTaken = (goals) => {
+    const currentYear = formData.academicYear || new Date().getFullYear().toString();
+    const semesters = ['FIRST', 'SECOND', 'THIRD'];
+    
+    return semesters.every(semester => 
+      goals.some(goal => 
+        goal.goalType === 'SEMESTER_GPA' && 
+        goal.semester === semester && 
+        goal.academicYear === currentYear &&
+        goal.goalId !== editingGoal?.goalId
+      )
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -187,9 +268,28 @@ const GoalModal = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="COURSE_GRADE">Course Grade</option>
-                <option value="SEMESTER_GPA">Semester GPA</option>
-                <option value="CUMMULATIVE_GPA">Cumulative GPA</option>
+                <option 
+                  value="SEMESTER_GPA"
+                  disabled={!editingGoal && areAllSemestersTaken(existingGoals)}
+                >
+                  Semester GPA {!editingGoal && areAllSemestersTaken(existingGoals) ? '(All semesters taken)' : ''}
+                </option>
+                <option 
+                  value="CUMMULATIVE_GPA"
+                  disabled={!editingGoal && hasExistingCumulativeGoal}
+                >
+                  Cumulative GPA {!editingGoal && hasExistingCumulativeGoal ? '(Already exists)' : ''}
+                </option>
               </select>
+              {/* Help text for disabled options */}
+              {!editingGoal && (hasExistingCumulativeGoal || areAllSemestersTaken(existingGoals)) && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-700">
+                    <span className="font-medium">Note:</span> Some goal types are disabled because you already have existing goals for them. 
+                    You can only have one cumulative GPA goal and one goal per semester per academic year.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Semester Selection (for Semester GPA goals) */}
@@ -207,10 +307,43 @@ const GoalModal = ({
                     required
                   >
                     <option value="">Select semester</option>
-                    <option value="FIRST">1st Semester</option>
-                    <option value="SECOND">2nd Semester</option>
-                    <option value="THIRD">3rd Semester</option>
+                    <option 
+                      value="FIRST"
+                      disabled={!editingGoal && hasExistingSemesterGoal('FIRST', formData.academicYear)}
+                    >
+                      1st Semester {!editingGoal && hasExistingSemesterGoal('FIRST', formData.academicYear) ? '(Already exists)' : ''}
+                    </option>
+                    <option 
+                      value="SECOND"
+                      disabled={!editingGoal && hasExistingSemesterGoal('SECOND', formData.academicYear)}
+                    >
+                      2nd Semester {!editingGoal && hasExistingSemesterGoal('SECOND', formData.academicYear) ? '(Already exists)' : ''}
+                    </option>
+                    <option 
+                      value="THIRD"
+                      disabled={!editingGoal && hasExistingSemesterGoal('THIRD', formData.academicYear)}
+                    >
+                      3rd Semester {!editingGoal && hasExistingSemesterGoal('THIRD', formData.academicYear) ? '(Already exists)' : ''}
+                    </option>
                   </select>
+                  {/* Help text for disabled semester options */}
+                  {!editingGoal && formData.academicYear && (
+                    <div className="mt-2">
+                      {['FIRST', 'SECOND', 'THIRD'].map(semester => {
+                        const hasExisting = hasExistingSemesterGoal(semester, formData.academicYear);
+                        const semesterName = semester === 'FIRST' ? '1st' : semester === 'SECOND' ? '2nd' : '3rd';
+                        return hasExisting ? (
+                          <div key={semester} className="text-xs text-orange-600 mb-1">
+                            • {semesterName} Semester {formData.academicYear} already has a goal
+                          </div>
+                        ) : (
+                          <div key={semester} className="text-xs text-green-600 mb-1">
+                            ✓ {semesterName} Semester {formData.academicYear} is available
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div>

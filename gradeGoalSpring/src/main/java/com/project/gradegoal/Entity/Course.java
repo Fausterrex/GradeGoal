@@ -81,6 +81,12 @@ public class Course {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<AcademicGoal> academicGoals;
 
+    // Cascade relationships for course deletion
+    @OneToMany(mappedBy = "courseId", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnoreProperties("course")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<AssessmentCategory> assessmentCategories;
+
     public Course() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -167,6 +173,10 @@ public class Course {
 
     public List<AcademicGoal> getAcademicGoals() { return academicGoals; }
     public void setAcademicGoals(List<AcademicGoal> academicGoals) { this.academicGoals = academicGoals; }
+
+    // Getter and setter for assessment categories
+    public List<AssessmentCategory> getAssessmentCategories() { return assessmentCategories; }
+    public void setAssessmentCategories(List<AssessmentCategory> assessmentCategories) { this.assessmentCategories = assessmentCategories; }
 
     @PreUpdate
     public void preUpdate() {

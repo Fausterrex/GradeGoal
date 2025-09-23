@@ -688,3 +688,250 @@ export async function getAcademicGoalsByCourse(userId, courseId) {
   }
   return response.json();
 }
+
+// Database Calculation API functions
+
+export async function calculateCourseGrade(courseId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/grade`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to calculate course grade with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function calculateCourseGPA(courseId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/gpa`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to calculate course GPA with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function calculateCategoryGrade(categoryId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/category/${categoryId}/grade`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to calculate category grade with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function addOrUpdateGradeWithCalculation(gradeData) {
+  
+  // Validate required fields before sending
+  const requiredFields = ['assessmentId', 'pointsEarned', 'pointsPossible', 'percentageScore'];
+  const missingFields = requiredFields.filter(field => gradeData[field] === null || gradeData[field] === undefined);
+  
+  if (missingFields.length > 0) {
+    console.error("Missing required fields:", missingFields);
+    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+  }
+  
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/grade/add-update`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(gradeData),
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error("API Error Response:", text);
+    throw new Error(
+      text || `Failed to add/update grade with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function updateCourseGrades(courseId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/update-grades`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to update course grades with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function calculateGPAFromPercentage(percentage) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/gpa/calculate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ percentage }),
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to calculate GPA with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function awardPoints(userId, points, activityType) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/user/${userId}/award-points`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ points, activityType }),
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to award points with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function checkGoalProgress(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/user/${userId}/check-goal-progress`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to check goal progress with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function checkGradeAlerts(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/user/${userId}/check-grade-alerts`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to check grade alerts with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+
+export async function calculateAndSaveCourseGrade(courseId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/calculate-and-save`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to calculate and save course grade with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function updateCourseHandleMissing(courseId, handleMissing) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/handle-missing`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ handleMissing }),
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to update handle missing setting with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+export async function debugCourseCalculations(courseId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/database-calculations/course/${courseId}/debug`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to debug course calculations with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+

@@ -4,7 +4,8 @@
 // Consolidated component that combines enhanced grade breakdown and goal achievement likelihood
 
 import React, { useMemo } from "react";
-import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
+import { calculateCategoryAverage, calculateGPAForPercentage, calculateAssessmentPercentage, hasValidScore } from "../utils/gradeEntryCalculations";
+import { percentageToGPA } from "../../academic_goal/gpaConversionUtils";
 
 function UnifiedGradeBreakdown({ 
   categories, 
@@ -14,37 +15,26 @@ function UnifiedGradeBreakdown({
   targetGrade,
   currentGrade
 }) {
-  // Calculate category analysis
+  // Get category analysis with proper calculations
   const getCategoryAnalysis = (category) => {
     const categoryGrades = grades[category.id] || [];
-    const completedGrades = categoryGrades.filter(grade => 
-      grade.score !== null && 
-      grade.score !== undefined && 
-      grade.score !== "" && 
-      !isNaN(parseFloat(grade.score))
-    );
+    const completedGrades = categoryGrades.filter(grade => hasValidScore(grade));
 
-    if (completedGrades.length === 0) {
-      return {
-        average: null,
-        count: categoryGrades.length,
-        completed: 0,
-        pending: categoryGrades.length,
-        weight: category.weight || 0,
-        contribution: 0
-      };
+    // Calculate category average
+    let average = null;
+    if (completedGrades.length > 0) {
+      const totalPercentage = completedGrades.reduce((sum, grade) => {
+        const percentage = calculateAssessmentPercentage(grade.score, grade.maxScore);
+        return sum + (percentage || 0);
+      }, 0);
+      average = totalPercentage / completedGrades.length;
     }
 
-    const percentages = completedGrades.map(grade => {
-      let adjustedScore = grade.score;
-      if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-        adjustedScore += grade.extraCreditPoints;
-      }
-      return (adjustedScore / grade.maxScore) * 100;
-    });
-
-    const average = percentages.reduce((sum, p) => sum + p, 0) / percentages.length;
-    const contribution = (average * category.weight) / 100;
+    // Calculate contribution to overall grade
+    let contribution = 0;
+    if (average !== null && category.weight) {
+      contribution = (average * category.weight) / 100;
+    }
 
     return {
       average,
@@ -57,25 +47,21 @@ function UnifiedGradeBreakdown({
   };
 
   const getOverallContribution = () => {
-    return categories.reduce((total, category) => {
+    let totalContribution = 0;
+    categories.forEach(category => {
       const analysis = getCategoryAnalysis(category);
-      return total + analysis.contribution;
-    }, 0);
+      totalContribution += analysis.contribution;
+    });
+    return totalContribution;
   };
 
-  // Calculate goal achievement likelihood
-  const likelihoodAnalysis = useMemo(() => {
-    const allGrades = Object.values(grades).flat();
-    const completedGrades = allGrades.filter(grade => 
-      grade.score !== null && 
-      grade.score !== undefined && 
-      grade.score !== "" && 
-      !isNaN(parseFloat(grade.score))
-    );
+  // Calculate current GPA (already in GPA format, no need to convert)
+  const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
 
-    const currentPercentage = currentGrade || 0;
-    const currentGPA = convertPercentageToGPA(currentPercentage, course.gpaScale || "4.0");
-    const targetGPA = targetGrade ? parseFloat(targetGrade) : null;
+  // Goal achievement likelihood analysis with proper calculations
+  const likelihoodAnalysis = useMemo(() => {
+    const targetGPA = targetGrade ? percentageToGPA(parseFloat(targetGrade), course?.gpaScale === '5.0' ? 5.0 : 4.0) : null;
+    const overallContribution = getOverallContribution();
 
     if (!targetGPA) {
       return {
@@ -83,123 +69,79 @@ function UnifiedGradeBreakdown({
         status: 'No Goal Set',
         color: 'from-gray-400 to-gray-500',
         description: 'Set a target GPA to calculate achievement likelihood',
-        factors: []
+        factors: [],
+        metrics: {
+          currentGPA: currentGPA,
+          targetGPA: 0,
+          gpaGap: 0,
+          completionRate: 0,
+          remainingAssessments: 0,
+          totalAssessments: 0
+        }
       };
     }
 
-    const factors = [];
-    let likelihood = 50; // Base likelihood
+    // Calculate completion rate
+    let totalAssessments = 0;
+    let completedAssessments = 0;
+    categories.forEach(category => {
+      const analysis = getCategoryAnalysis(category);
+      totalAssessments += analysis.count;
+      completedAssessments += analysis.completed;
+    });
 
-    // Factor 1: Current Performance vs Target
+    const completionRate = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
+    const remainingAssessments = totalAssessments - completedAssessments;
     const gpaGap = targetGPA - currentGPA;
+
+    // Calculate likelihood based on current progress and gap
+    let likelihood = 50; // Default
+    let status = 'Unknown';
+    let description = 'Goal achievement analysis in progress';
+    const factors = [];
+
     if (currentGPA >= targetGPA) {
-      factors.push({ name: 'Current Performance', impact: 25, description: 'Already meeting target', positive: true });
-      likelihood += 25;
-    } else if (gpaGap <= 0.2) {
-      factors.push({ name: 'Current Performance', impact: 15, description: 'Close to target', positive: true });
-      likelihood += 15;
-    } else if (gpaGap <= 0.5) {
-      factors.push({ name: 'Current Performance', impact: 0, description: 'Moderate gap to close', positive: false });
-      likelihood += 0;
-    } else {
-      factors.push({ name: 'Current Performance', impact: -20, description: 'Significant gap to close', positive: false });
-      likelihood -= 20;
-    }
-
-    // Factor 2: Completion Rate
-    const completionRate = allGrades.length > 0 ? (completedGrades.length / allGrades.length) * 100 : 0;
-    if (completionRate >= 80) {
-      factors.push({ name: 'Assessment Completion', impact: 15, description: 'High completion rate', positive: true });
-      likelihood += 15;
-    } else if (completionRate >= 60) {
-      factors.push({ name: 'Assessment Completion', impact: 5, description: 'Good completion rate', positive: true });
-      likelihood += 5;
-    } else if (completionRate >= 40) {
-      factors.push({ name: 'Assessment Completion', impact: -5, description: 'Moderate completion rate', positive: false });
-      likelihood -= 5;
-    } else {
-      factors.push({ name: 'Assessment Completion', impact: -15, description: 'Low completion rate', positive: false });
-      likelihood -= 15;
-    }
-
-    // Factor 3: Recent Performance Trend
-    const recentGrades = completedGrades.slice(-3);
-    const previousGrades = completedGrades.slice(-6, -3);
-    if (recentGrades.length >= 2 && previousGrades.length >= 2) {
-      const recentAvg = recentGrades.reduce((sum, grade) => {
-        let adjustedScore = grade.score;
-        if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-          adjustedScore += grade.extraCreditPoints;
-        }
-        return sum + (adjustedScore / grade.maxScore) * 100;
-      }, 0) / recentGrades.length;
-
-      const previousAvg = previousGrades.reduce((sum, grade) => {
-        let adjustedScore = grade.score;
-        if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-          adjustedScore += grade.extraCreditPoints;
-        }
-        return sum + (adjustedScore / grade.maxScore) * 100;
-      }, 0) / previousGrades.length;
-
-      const trend = recentAvg - previousAvg;
-      if (trend > 5) {
-        factors.push({ name: 'Recent Trend', impact: 10, description: 'Improving performance', positive: true });
-        likelihood += 10;
-      } else if (trend < -5) {
-        factors.push({ name: 'Recent Trend', impact: -10, description: 'Declining performance', positive: false });
-        likelihood -= 10;
-      } else {
-        factors.push({ name: 'Recent Trend', impact: 0, description: 'Stable performance', positive: false });
-      }
-    }
-
-    // Factor 4: Remaining Assessments
-    const remainingAssessments = allGrades.filter(grade => !grade.score).length;
-    const totalAssessments = allGrades.length;
-    const remainingPercentage = totalAssessments > 0 ? (remainingAssessments / totalAssessments) * 100 : 0;
-    
-    if (remainingPercentage <= 20) {
-      factors.push({ name: 'Remaining Work', impact: 10, description: 'Minimal work remaining', positive: true });
-      likelihood += 10;
-    } else if (remainingPercentage <= 40) {
-      factors.push({ name: 'Remaining Work', impact: 5, description: 'Moderate work remaining', positive: true });
-      likelihood += 5;
-    } else if (remainingPercentage <= 60) {
-      factors.push({ name: 'Remaining Work', impact: -5, description: 'Significant work remaining', positive: false });
-      likelihood -= 5;
-    } else {
-      factors.push({ name: 'Remaining Work', impact: -10, description: 'Most work still pending', positive: false });
-      likelihood -= 10;
-    }
-
-    // Ensure likelihood is between 0 and 100
-    likelihood = Math.max(0, Math.min(100, likelihood));
-
-    // Determine status and color
-    let status, color;
-    if (likelihood >= 80) {
+      likelihood = 100;
+      status = 'Achieved';
+      description = 'Goal already achieved!';
+    } else if (completionRate >= 100) {
+      likelihood = 0;
+      status = 'Not Achievable';
+      description = 'Course completed but goal not reached';
+    } else if (gpaGap <= 0.5 && completionRate >= 75) {
+      likelihood = 85;
       status = 'Very Likely';
-      color = 'from-green-500 to-emerald-500';
-    } else if (likelihood >= 60) {
+      description = 'Strong progress toward goal';
+      factors.push({ name: 'Small Gap', description: 'Close to target GPA', impact: 20, positive: true });
+      factors.push({ name: 'High Completion', description: 'Most assessments completed', impact: 15, positive: true });
+    } else if (gpaGap <= 1.0 && completionRate >= 50) {
+      likelihood = 65;
       status = 'Likely';
-      color = 'from-blue-500 to-cyan-500';
-    } else if (likelihood >= 40) {
+      description = 'Good progress toward goal';
+      factors.push({ name: 'Moderate Gap', description: 'Manageable GPA difference', impact: 10, positive: true });
+      factors.push({ name: 'Steady Progress', description: 'Halfway through assessments', impact: 10, positive: true });
+    } else if (gpaGap <= 2.0 && completionRate >= 25) {
+      likelihood = 40;
       status = 'Possible';
-      color = 'from-yellow-500 to-orange-500';
-    } else if (likelihood >= 20) {
-      status = 'Unlikely';
-      color = 'from-orange-500 to-red-500';
+      description = 'Challenging but achievable';
+      factors.push({ name: 'Large Gap', description: 'Significant GPA improvement needed', impact: -15, positive: false });
+      factors.push({ name: 'Early Stage', description: 'Many assessments remaining', impact: 10, positive: true });
     } else {
-      status = 'Very Unlikely';
-      color = 'from-red-500 to-pink-500';
+      likelihood = 20;
+      status = 'Unlikely';
+      description = 'Very challenging to achieve goal';
+      factors.push({ name: 'Large Gap', description: 'Significant GPA improvement needed', impact: -25, positive: false });
+      factors.push({ name: 'Low Completion', description: 'Few assessments completed', impact: -10, positive: false });
     }
 
     return {
       likelihood,
       status,
-      color,
-      description: `Based on current performance and trends, you have a ${likelihood}% chance of achieving your target GPA of ${targetGPA.toFixed(2)}.`,
+      color: likelihood >= 80 ? 'from-green-400 to-green-500' :
+             likelihood >= 60 ? 'from-blue-400 to-blue-500' :
+             likelihood >= 40 ? 'from-yellow-400 to-yellow-500' :
+             'from-red-400 to-red-500',
+      description,
       factors,
       metrics: {
         currentGPA,
@@ -210,7 +152,7 @@ function UnifiedGradeBreakdown({
         totalAssessments
       }
     };
-  }, [grades, categories, targetGrade, currentGrade, course.gpaScale]);
+  }, [targetGrade, currentGPA, categories, grades]);
 
   const CategoryBreakdownCard = ({ category, analysis, index }) => {
     const progressPercentage = analysis.count > 0 ? (analysis.completed / analysis.count) * 100 : 0;
@@ -257,7 +199,7 @@ function UnifiedGradeBreakdown({
             
             <div className="text-center p-4 bg-gray-50 rounded border">
               <div className="text-2xl font-bold text-gray-900">
-                {analysis.average ? convertPercentageToGPA(analysis.average, course.gpaScale || "4.0").toFixed(2) : '--'}
+                {analysis.average ? percentageToGPA(analysis.average, course?.gpaScale === '5.0' ? 5.0 : 4.0).toFixed(2) : '--'}
               </div>
               <div className="text-sm text-gray-500">
                 {analysis.average ? `(${Math.round(analysis.average)}%)` : ''}
@@ -314,7 +256,7 @@ function UnifiedGradeBreakdown({
         <div className="bg-gray-100 px-6 py-4">
           <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <span className="text-xl">📊</span>
-            Grade Breakdown & Goal Analysis
+            Grade Breakdown
           </h3>
         </div>
         <div className="p-8 text-center">
@@ -333,7 +275,7 @@ function UnifiedGradeBreakdown({
         <div className="bg-gray-100 px-6 py-4">
           <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <span className="text-xl">📊</span>
-            Grade Breakdown & Goal Analysis
+            Grade Breakdown
           </h3>
         </div>
       </div>
@@ -348,7 +290,7 @@ function UnifiedGradeBreakdown({
           </div>
           <div className="text-center p-4 bg-white rounded border">
             <div className="text-3xl font-bold text-gray-900">
-              {convertPercentageToGPA(getOverallContribution(), course.gpaScale || "4.0").toFixed(2)}
+              {currentGPA.toFixed(2)}
             </div>
             <div className="text-sm text-gray-500">
               ({Math.round(getOverallContribution())}%)

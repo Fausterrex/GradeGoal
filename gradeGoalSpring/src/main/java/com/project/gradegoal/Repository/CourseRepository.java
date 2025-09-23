@@ -22,6 +22,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByUserIdAndAcademicYear(Long userId, String academicYear);
 
+    List<Course> findByUserIdAndSemesterAndAcademicYear(Long userId, Course.Semester semester, String academicYear);
+
     Optional<Course> findByCourseCodeAndUserId(String courseCode, Long userId);
 
     boolean existsByCourseCodeAndUserId(String courseCode, Long userId);
@@ -58,25 +60,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query(value = "SELECT CalculateCumulativeGPA(:userId)", nativeQuery = true)
     BigDecimal calculateCumulativeGPA(@Param("userId") Long userId);
 
+
     // ========================================
     // DATABASE PROCEDURE CALLS
     // ========================================
 
-    @Modifying
-    @Query(value = "CALL UpdateCourseGrades(:courseId)", nativeQuery = true)
-    void updateCourseGrades(@Param("courseId") Long courseId);
-
-    @Modifying
-    @Query(value = "CALL UpdateUserAnalytics(:userId, :courseId)", nativeQuery = true)
-    void updateUserAnalytics(@Param("userId") Long userId, @Param("courseId") Long courseId);
-
-    @Modifying
-    @Query(value = "CALL CheckGoalProgress(:userId)", nativeQuery = true)
-    void checkGoalProgress(@Param("userId") Long userId);
-
-    @Modifying
-    @Query(value = "CALL CheckGradeAlerts(:userId)", nativeQuery = true)
-    void checkGradeAlerts(@Param("userId") Long userId);
+    // Note: These methods are now handled directly in the service layer using entityManager
+    // to avoid ResultSet navigation issues with stored procedures
 
     @Modifying
     @Query(value = "CALL InitializeSampleAchievements()", nativeQuery = true)

@@ -127,6 +127,8 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
         targetDate: formData.targetDate || null,
         description: formData.description || '',
         courseId: formData.courseId ? parseInt(formData.courseId) : null,
+        semester: formData.semester || null,
+        academicYear: formData.academicYear || null,
         status: 'active',
         priority: formData.priority || 'medium'
       };

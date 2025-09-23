@@ -4,8 +4,16 @@
 // Individual assessment category with its assessments
 
 import React from "react";
-import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
-import { getGradeColor } from "../../../../utils/gradeCalculations";
+// Removed grade calculation imports
+
+// Simple grade color function to replace the deleted one
+const getGradeColor = (percentage) => {
+  if (percentage >= 90) return "text-green-600";
+  if (percentage >= 80) return "text-blue-600";
+  if (percentage >= 70) return "text-yellow-600";
+  if (percentage >= 60) return "text-orange-600";
+  return "text-red-600";
+};
 import AssessmentCard from "./AssessmentCard";
 
 function AssessmentCategory({
@@ -46,7 +54,7 @@ function AssessmentCategory({
       <div className="p-4 sm:p-6">
         {/* Category Average Display */}
         <div className="flex justify-between items-center mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-xl">
-          {categoryAverage !== null ? (
+          {categoryAverage !== null && !isNaN(categoryAverage) ? (
             <div className="text-right">
               <span className="text-sm text-gray-600">Average: </span>
               <span
@@ -54,10 +62,7 @@ function AssessmentCategory({
                   categoryAverage
                 )}`}
               >
-                {convertPercentageToGPA(
-                  categoryAverage,
-                  category.gpaScale || "4.0"
-                ).toFixed(2)}
+                {categoryAverage.toFixed(1)}%
               </span>
             </div>
           ) : (

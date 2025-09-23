@@ -1,8 +1,10 @@
 package com.project.gradegoal.Entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "assessment_categories")
@@ -27,6 +29,12 @@ public class AssessmentCategory {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    // Cascade relationship for category deletion
+    @OneToMany(mappedBy = "categoryId", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnoreProperties("category")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<Assessment> assessments;
 
     public AssessmentCategory() {
         this.createdAt = LocalDateTime.now();
@@ -59,6 +67,10 @@ public class AssessmentCategory {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // Getter and setter for assessments
+    public List<Assessment> getAssessments() { return assessments; }
+    public void setAssessments(List<Assessment> assessments) { this.assessments = assessments; }
 
     @Override
     public String toString() {

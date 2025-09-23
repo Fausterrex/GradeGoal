@@ -6,7 +6,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { GRADING_SCALES } from "../../utils/gradeCalculations";
+// Define grading scales locally since we removed the import
+const GRADING_SCALES = {
+  PERCENTAGE: "percentage",
+  GPA: "gpa",
+  POINTS: "points"
+};
 import {
   createCourse,
   updateCourse,

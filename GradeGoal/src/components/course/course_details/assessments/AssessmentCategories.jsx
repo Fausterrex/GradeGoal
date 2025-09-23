@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import AssessmentCategory from "./AssessmentCategory";
+import { calculateCategoryGrade } from "../../../../backend/api";
 
 function AssessmentCategories({
   categories,
@@ -19,7 +20,7 @@ function AssessmentCategories({
 }) {
   const [categoryAverages, setCategoryAverages] = useState({});
 
-  // Calculate category averages asynchronously
+  // Calculate category averages using database calculations
   useEffect(() => {
     const loadCategoryAverages = async () => {
       if (!categories || categories.length === 0) return;
@@ -27,11 +28,23 @@ function AssessmentCategories({
       const averages = {};
       for (const category of categories) {
         try {
-          const average = await getCategoryAverage(category.id);
-          averages[category.id] = average;
+          // Use database calculation for category grade
+          const result = await calculateCategoryGrade(category.id);
+          if (result.success) {
+            averages[category.id] = parseFloat(result.categoryGrade);
+          } else {
+            // Fallback to provided function if database calculation fails
+            const average = await getCategoryAverage(category.id);
+            averages[category.id] = average;
+          }
         } catch (error) {
-          console.error('Error calculating category average:', error);
-          averages[category.id] = null;
+          // Fallback to provided function
+          try {
+            const average = await getCategoryAverage(category.id);
+            averages[category.id] = average;
+          } catch (fallbackError) {
+            averages[category.id] = null;
+          }
         }
       }
       setCategoryAverages(averages);

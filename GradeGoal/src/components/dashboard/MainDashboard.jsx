@@ -13,8 +13,6 @@ import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
-import { calculateCourseProgress } from "../../utils/progressCalculations";
-import GradeService from "../../services/gradeService";
 import {
   getGradesByCourseId,
   getCoursesByUid,
@@ -28,6 +26,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { getCourseColorScheme } from "../../utils/courseColors";
+import { calculateCourseProgress } from "../course/course_details/utils/gradeEntryCourse";
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -201,40 +200,75 @@ function MainDashboard({ initialTab = "overview" }) {
 
         const coursesWithProgressPromises = coursesData.map(async (course) => {
           try {
-            const progress = calculateCourseProgress(
-              course.categories,
-              allGrades
-            );
-
-            let courseGrade = "Ongoing";
+            // Use existing progress calculation from GradeEntry
+            let progress = 0;
+            let courseGrade = 0.00; // Default to 0.00 instead of "Ongoing"
             let hasGrades = false;
 
             if (course.categories && course.categories.length > 0) {
+              // Calculate progress using the same logic as GradeEntry
+              progress = calculateCourseProgress(course.categories, allGrades);
+              
+              // Check if course has any grades to determine hasGrades
+              hasGrades = course.categories.some(category => 
+                category.assessments && category.assessments.some(assessment =>
+                  assessment.grades && assessment.grades.length > 0 &&
+                  assessment.grades.some(grade => 
+                    grade.percentageScore !== null && grade.percentageScore !== undefined
+                  )
+                )
+              );
+
+              // Always try to get course grade, even if no grades yet
               try {
-                console.log('📊 MainDashboard - Calculating grade for course:', course.id);
-                const gradeResult = await GradeService.calculateCourseGrade(
-                  course,
-                  allGrades
-                );
-                if (gradeResult.success) {
-                  courseGrade = gradeResult.courseGrade;
-                  hasGrades = true;
+                // Try to get course grade from the course data first
+                if (course.courseGpa && course.courseGpa > 0) {
+                  courseGrade = course.courseGpa;
+                } else if (course.currentGrade && typeof course.currentGrade === 'number') {
+                  courseGrade = course.currentGrade;
+                } else if (hasGrades) {
+                  // Calculate from assessments only if there are actual grades
+                  let totalWeightedGrade = 0;
+                  let totalWeight = 0;
 
-                  const gradingScale = course.gradingScale || "percentage";
-                  const gpaScale = course.gpaScale || "4.0";
+                  for (const category of course.categories) {
+                    if (category.assessments && category.assessments.length > 0) {
+                      for (const assessment of category.assessments) {
+                        if (assessment.grades && assessment.grades.length > 0) {
+                          const categoryWeight = category.weight || 0;
+                          
+                          let assessmentTotal = 0;
+                          let assessmentCount = 0;
+                          
+                          for (const grade of assessment.grades) {
+                            if (grade.percentageScore !== null && grade.percentageScore !== undefined) {
+                              assessmentTotal += grade.percentageScore;
+                              assessmentCount++;
+                            }
+                          }
+                          
+                          if (assessmentCount > 0) {
+                            const assessmentAverage = assessmentTotal / assessmentCount;
+                            totalWeightedGrade += (assessmentAverage * categoryWeight);
+                            totalWeight += categoryWeight;
+                          }
+                        }
+                      }
+                    }
+                  }
 
-                  if (
-                    gradingScale === "gpa" ||
-                    (gradingScale === "percentage" && courseGrade > 100)
-                  ) {
-                    courseGrade = GradeService.convertPercentageToGPA(
-                      courseGrade,
-                      gpaScale
-                    );
+                  if (totalWeight > 0) {
+                    courseGrade = totalWeightedGrade / totalWeight;
+                    
+                    const gradingScale = course.gradingScale || "percentage";
+                    if (gradingScale === "gpa" || (gradingScale === "percentage" && courseGrade > 4.0)) {
+                      courseGrade = gradingScale === "percentage" ? (courseGrade / 100) * 4.0 : courseGrade;
+                    }
                   }
                 }
+                // If no grades yet, courseGrade remains 0.00
               } catch (error) {
-                console.error('Error calculating course grade:', error);
+                console.error('Error getting course grade:', error);
               }
             }
 
@@ -248,7 +282,7 @@ function MainDashboard({ initialTab = "overview" }) {
             return {
               ...course,
               progress: 0,
-              currentGrade: "Ongoing",
+              currentGrade: 0.00,
               hasGrades: false,
             };
           }
@@ -410,20 +444,15 @@ function MainDashboard({ initialTab = "overview" }) {
           // Process courses asynchronously but return current state immediately
           Promise.all(currentCourses.map(async (course) => {
             try {
-              const progress = calculateCourseProgress(
-                course.categories,
-                mergedGrades
-              );
+              const progress = 0; // Removed calculation
 
               let courseGrade = "Ongoing";
               let hasGrades = false;
 
               if (course.categories && course.categories.length > 0) {
                 try {
-                  const gradeResult = await GradeService.calculateCourseGrade(
-                    course,
-                    mergedGrades
-                  );
+                  // Removed grade calculation
+                  const gradeResult = { success: false, courseGrade: 0 };
                   if (gradeResult.success) {
                     courseGrade = gradeResult.courseGrade;
                     hasGrades = true;
@@ -435,10 +464,7 @@ function MainDashboard({ initialTab = "overview" }) {
                       gradingScale === "gpa" ||
                       (gradingScale === "percentage" && courseGrade > 100)
                     ) {
-                      courseGrade = GradeService.convertPercentageToGPA(
-                        courseGrade,
-                        gpaScale
-                      );
+                      courseGrade = 0; // Removed conversion
                     }
                   }
                 } catch (error) {
@@ -553,33 +579,8 @@ function MainDashboard({ initialTab = "overview" }) {
   };
 
   const calculateOverallGPA = () => {
-    // Safety check: ensure courses is an array
-    if (!Array.isArray(courses)) {
-      console.warn('Courses is not an array:', courses);
-      return 0;
-    }
-    
-    if (courses.length === 0) return 0;
-
-    const hasGrades = Object.keys(grades).length > 0;
-    if (!hasGrades) {
-      return 0;
-    }
-
-    const transformedGrades = {};
-    courses.forEach((course) => {
-      transformedGrades[course.id] = {};
-
-      if (course.categories && Array.isArray(course.categories)) {
-        course.categories.forEach((category) => {
-          transformedGrades[course.id][category.id] = grades[category.id] || [];
-        });
-      }
-    });
-
-    const result = GradeService.updateCGPA(courses, transformedGrades);
-
-    return result.success ? parseFloat(result.overallGPA) : 0;
+    // UI-only stub: calculations removed during cleanup
+    return 0;
   };
 
   const overallGPA = isLoading ? 0 : calculateOverallGPA();
@@ -646,7 +647,21 @@ function MainDashboard({ initialTab = "overview" }) {
       <div className="flex min-h-screen bg-gray-100">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block flex-shrink-0 fixed left-0 top-0 h-screen z-20">
-          <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+          <Sidebar 
+            activeTab={activeTab} 
+            onTabClick={handleTabChange}
+            onLogout={handleLogout}
+            displayName={displayName}
+            tabs={[
+              { id: "overview", label: "Overview", icon: FaTachometerAlt },
+              { id: "courses", label: "Courses", icon: FaBook },
+              { id: "goals", label: "Goals", icon: FaBullseye },
+              { id: "reports", label: "Reports", icon: FaClipboardList },
+              { id: "calendar", label: "Calendar", icon: FaCalendarAlt },
+            ]}
+            isMobileSidebarOpen={isMobileSidebarOpen}
+            setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+          />
         </div>
 
         {/* Mobile Sidebar Overlay */}
@@ -846,9 +861,11 @@ function MainDashboard({ initialTab = "overview" }) {
             <SideCourseList
               courses={courses}
               selectedCourse={selectedCourse}
-              onCourseSelect={handleCourseNavigation}
+              onCourseClick={handleCourseNavigation}
               showArchivedCourses={showArchivedCourses}
-              onToggleArchived={handleToggleArchived}
+              setShowArchivedCourses={setShowArchivedCourses}
+              isMobileCourseListOpen={isMobileCourseListOpen}
+              setIsMobileCourseListOpen={setIsMobileCourseListOpen}
               isExpanded={isCourseManagerExpanded}
               onToggleExpanded={() => {
                 if (!isCourseManagerExpanded) {

@@ -24,6 +24,7 @@ function Dashboard({
   userAnalytics,
   onSetGoal = () => {} // Callback for setting goals
 }) {
+
   return (
     <div className="space-y-8">
       {/* Top Row - Goal Progress and User Progress */}
@@ -33,6 +34,8 @@ function Dashboard({
           targetGrade={targetGrade}
           course={course}
           colorScheme={colorScheme}
+          grades={grades}
+          categories={categories}
           onSetGoal={onSetGoal}
         />
         <UserProgress 
@@ -60,6 +63,7 @@ function Dashboard({
         grades={grades}
         categories={categories}
         colorScheme={colorScheme}
+        userAnalytics={userAnalytics}
       />
 
       {/* Unified Grade Breakdown */}

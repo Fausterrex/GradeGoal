@@ -10,9 +10,11 @@ import { getCourseColorScheme } from "../../utils/courseColors";
 const SideCourseList = ({
   courses = [],
   selectedCourse,
-  onCourseSelect,
+  onCourseClick,
   showArchivedCourses,
-  onToggleArchived,
+  setShowArchivedCourses,
+  isMobileCourseListOpen,
+  setIsMobileCourseListOpen,
   isExpanded = false,
   onToggleExpanded,
 }) => {
@@ -51,7 +53,7 @@ const SideCourseList = ({
           <input
             type="checkbox"
             checked={showArchivedCourses}
-            onChange={(e) => onToggleArchived(e.target.checked)}
+            onChange={(e) => setShowArchivedCourses(e.target.checked)}
             className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
           />
           <span className="text-sm text-gray-300 font-medium">
@@ -112,32 +114,32 @@ const SideCourseList = ({
                   key={course.id}
                   className={`relative overflow-hidden bg-gradient-to-br ${
                     colorScheme.gradient
-                  } text-white p-4 mx-3 rounded-2xl shadow-lg cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
+                  } text-white p-4 mx-3 rounded-2xl shadow-lg cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-white/20 backdrop-blur-sm ${
                     selectedCourse && selectedCourse.id === course.id
-                      ? `ring-2 ring-white ring-opacity-50`
+                      ? `ring-2 ring-white ring-opacity-70 shadow-white/20`
                       : ""
                   }`}
-                  onClick={() => onCourseSelect(course)}
+                  onClick={() => onCourseClick(course)}
                 >
                   {/* Course Code */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white/80">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-white/90 bg-black/20 px-2 py-1 rounded-full">
                       {course.courseCode ||
                         course.name.substring(0, 8).toUpperCase()}
                     </span>
                     {course.isActive === false && (
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg">
                         ARCHIVED
                       </span>
                     )}
                   </div>
 
                   {/* Course Name */}
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-medium text-white">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-white drop-shadow-sm">
                       {course.name}
                     </h3>
-                    <div className="flex items-center gap-1 text-white/60 text-xs">
+                    <div className="flex items-center gap-1 text-white/70 text-xs bg-black/20 px-2 py-1 rounded-full">
                       <span>View</span>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -147,22 +149,24 @@ const SideCourseList = ({
 
                   {/* Progress Bar */}
                   <div className="flex items-center">
-                    <span className="text-sm text-white/80 mr-2">
+                    <span className="text-sm text-white/90 mr-2 font-medium">
                       Progress:
                     </span>
-                    <div className="flex-1 bg-white/20 rounded-full h-2.5 mr-2">
+                    <div className="flex-1 bg-black/30 rounded-full h-3 mr-2 shadow-inner border border-white/10">
                       <div
-                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                        className={`h-3 rounded-full transition-all duration-500 shadow-lg ${
                           course.isActive === false
-                            ? "bg-gradient-to-r from-orange-500 to-orange-600"
-                            : `bg-gradient-to-r ${colorScheme.progressGradient}`
+                            ? "bg-gradient-to-r from-orange-400 to-orange-500 shadow-orange-400/50"
+                            : totalProgress === 0
+                            ? "bg-gradient-to-r from-gray-400 to-gray-500 shadow-gray-400/50"
+                            : `bg-gradient-to-r from-white to-white/90 shadow-white/50`
                         }`}
                         style={{ width: `${totalProgress}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm font-bold text-white bg-black/20 px-2 py-1 rounded-full">
                       {totalProgress === 0
-                        ? "No Assessments Yet"
+                        ? "0%"
                         : `${Math.round(totalProgress)}%`}
                     </span>
                   </div>

@@ -33,6 +33,7 @@ public class GradeService {
     @Autowired
     private AssessmentService assessmentService;
     
+    
     @Autowired
     private DatabaseCalculationService databaseCalculationService;
     
@@ -48,16 +49,8 @@ public class GradeService {
             grade.setAssessment(assessment);
             Grade savedGrade = gradeRepository.save(grade);
             
-            // Update user analytics after creating grade
-            try {
-                Long userId = getUserIdFromAssessment(assessmentId);
-                Long courseId = getCourseIdFromAssessment(assessmentId);
-                if (userId != null && courseId != null) {
-                    databaseCalculationService.updateUserAnalytics(userId, courseId);
-                }
-            } catch (Exception e) {
-                System.err.println("Error updating user analytics after creating grade: " + e.getMessage());
-            }
+            // Analytics are automatically handled by UpdateCourseGrades stored procedure
+            // No need to call updateUserAnalytics separately
             
             return savedGrade;
         }
@@ -93,16 +86,8 @@ public class GradeService {
     public Grade updateGrade(Grade grade) {
         Grade savedGrade = gradeRepository.save(grade);
         
-        // Update user analytics after updating grade
-        try {
-            Long userId = getUserIdFromAssessment(grade.getAssessmentId());
-            Long courseId = getCourseIdFromAssessment(grade.getAssessmentId());
-            if (userId != null && courseId != null) {
-                databaseCalculationService.updateUserAnalytics(userId, courseId);
-            }
-        } catch (Exception e) {
-            System.err.println("Error updating user analytics after updating grade: " + e.getMessage());
-        }
+        // Analytics are automatically handled by UpdateCourseGrades stored procedure
+        // No need to call updateUserAnalytics separately
         
         return savedGrade;
     }
@@ -126,6 +111,7 @@ public class GradeService {
             Boolean isExtraCredit = getMapValue(gradeData, "isExtraCredit", Boolean.class);
             Double extraCreditPoints = getMapValue(gradeData, "extraCreditPoints", Double.class);
             Long categoryId = getMapValue(gradeData, "categoryId", Long.class);
+
 
             if (score != null) {
                 existingGrade.setPointsEarned(BigDecimal.valueOf(score));
@@ -175,6 +161,8 @@ public class GradeService {
             existingGrade.setUpdatedAt(LocalDateTime.now());
 
             Grade savedGrade = gradeRepository.save(existingGrade);
+            
+            // Analytics will be created after course GPA calculation in the frontend flow
 
             if (existingGrade.getAssessment() != null) {
                 boolean hasScore = savedGrade.getPointsEarned() != null &&
@@ -189,16 +177,8 @@ public class GradeService {
                 assessmentRepository.save(existingGrade.getAssessment());
             }
 
-            // Update user analytics after updating grade from frontend
-            try {
-                Long userId = getUserIdFromAssessment(existingGrade.getAssessmentId());
-                Long courseId = getCourseIdFromAssessment(existingGrade.getAssessmentId());
-                if (userId != null && courseId != null) {
-                    databaseCalculationService.updateUserAnalytics(userId, courseId);
-                }
-            } catch (Exception e) {
-                System.err.println("Error updating user analytics after updating grade from frontend: " + e.getMessage());
-            }
+            // Analytics are automatically handled by UpdateCourseGrades stored procedure
+            // No need to call updateUserAnalytics separately
 
             return savedGrade;
         } catch (Exception e) {
@@ -350,16 +330,8 @@ public class GradeService {
 
             Grade savedGrade = gradeRepository.save(grade);
             
-            // Update user analytics after creating assessment and grade
-            try {
-                Long userId = getUserIdFromAssessment(savedGrade.getAssessmentId());
-                Long courseId = getCourseIdFromAssessment(savedGrade.getAssessmentId());
-                if (userId != null && courseId != null) {
-                    databaseCalculationService.updateUserAnalytics(userId, courseId);
-                }
-            } catch (Exception e) {
-                System.err.println("Error updating user analytics after creating assessment and grade: " + e.getMessage());
-            }
+            // Analytics are automatically handled by UpdateCourseGrades stored procedure
+            // No need to call updateUserAnalytics separately
             
             return savedGrade;
         } catch (Exception e) {

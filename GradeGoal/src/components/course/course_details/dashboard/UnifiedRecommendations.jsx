@@ -4,7 +4,7 @@
 // Consolidated component that combines basic recommendations and smart analytics-based recommendations
 
 import React, { useState, useMemo } from "react";
-import AnalyticsService from "../../../../services/analyticsService";
+// Removed AnalyticsService import
 
 function UnifiedRecommendations({ 
   course, 
@@ -16,126 +16,27 @@ function UnifiedRecommendations({
 }) {
   const [dismissedRecommendations, setDismissedRecommendations] = useState(new Set());
 
-  // Generate basic recommendations based on course data
+  // Remove calculation functions - return basic recommendations
   const basicRecommendations = useMemo(() => {
     const recommendations = [];
-    const allGrades = Object.values(grades).flat();
-    const completedGrades = allGrades.filter(grade => 
-      grade.score !== null && 
-      grade.score !== undefined && 
-      grade.score !== "" && 
-      !isNaN(parseFloat(grade.score))
-    );
-
-    const currentGPA = currentGrade ? (currentGrade / 100) * 4 : 0;
-    const targetGPA = targetGrade ? parseFloat(targetGrade) : null;
-
-    // Goal-based recommendations
-    if (targetGPA && currentGPA < targetGPA) {
-      const gap = targetGPA - currentGPA;
-      if (gap > 0.5) {
-        recommendations.push({
-          id: 'goal-gap-large',
-          type: 'goal_achievement',
-          priority: 'high',
-          title: 'Significant Goal Gap',
-          message: `You need to improve by ${gap.toFixed(2)} GPA points to reach your target. Focus on upcoming high-weight assignments.`,
-          action: 'goal_review'
-        });
-      } else if (gap > 0.2) {
-        recommendations.push({
-          id: 'goal-gap-moderate',
-          type: 'goal_achievement',
-          priority: 'medium',
-          title: 'Moderate Goal Gap',
-          message: `You're ${gap.toFixed(2)} GPA points away from your target. Stay consistent with current performance.`,
-          action: 'goal_review'
-        });
-      }
-    }
-
-    // Completion-based recommendations
-    const completionRate = allGrades.length > 0 ? (completedGrades.length / allGrades.length) * 100 : 0;
-    if (completionRate < 70) {
-      recommendations.push({
-        id: 'completion-low',
-        type: 'time_management',
-        priority: 'high',
-        title: 'Low Completion Rate',
-        message: `Only ${completionRate.toFixed(0)}% of assignments completed. Focus on completing pending work.`,
-        action: 'deadline_management'
-      });
-    }
-
-    // Performance-based recommendations
-    if (completedGrades.length >= 3) {
-      const recentGrades = completedGrades.slice(-3);
-      const olderGrades = completedGrades.slice(-6, -3);
-      
-      if (recentGrades.length >= 2 && olderGrades.length >= 2) {
-        const recentAvg = recentGrades.reduce((sum, grade) => {
-          let adjustedScore = grade.score;
-          if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-            adjustedScore += grade.extraCreditPoints;
-          }
-          return sum + (adjustedScore / grade.maxScore) * 100;
-        }, 0) / recentGrades.length;
-
-        const olderAvg = olderGrades.reduce((sum, grade) => {
-          let adjustedScore = grade.score;
-          if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-            adjustedScore += grade.extraCreditPoints;
-          }
-          return sum + (adjustedScore / grade.maxScore) * 100;
-        }, 0) / olderGrades.length;
-
-        const trend = recentAvg - olderAvg;
-        if (trend < -5) {
-          recommendations.push({
-            id: 'performance-declining',
-            type: 'study_strategy',
-            priority: 'high',
-            title: 'Performance Declining',
-            message: 'Recent grades show a declining trend. Consider reviewing study methods.',
-            action: 'study_method_review'
-          });
-        }
-      }
-    }
-
-    // Category-based recommendations
-    categories.forEach(category => {
-      const categoryGrades = completedGrades.filter(grade => grade.categoryId === category.id);
-      if (categoryGrades.length >= 2) {
-        const categoryAvg = categoryGrades.reduce((sum, grade) => {
-          let adjustedScore = grade.score;
-          if (grade.isExtraCredit && grade.extraCreditPoints && grade.extraCreditPoints > 0) {
-            adjustedScore += grade.extraCreditPoints;
-          }
-          return sum + (adjustedScore / grade.maxScore) * 100;
-        }, 0) / categoryGrades.length;
-
-        if (categoryAvg < 70) {
-          recommendations.push({
-            id: `category-weak-${category.id}`,
-            type: 'study_strategy',
-            priority: 'medium',
-            title: `Weak in ${category.name}`,
-            message: `Your average in ${category.name} is ${categoryAvg.toFixed(1)}%. Focus more on this category.`,
-            action: 'study_focus',
-            categories: [category.name]
-          });
-        }
-      }
+    
+    // Simple static recommendation
+    recommendations.push({
+      id: 'general-study',
+      type: 'study_strategy',
+      priority: 'medium',
+      title: 'Keep Up the Good Work',
+      message: 'Continue with your current study routine and stay focused on your goals.',
+      action: 'study_focus'
     });
 
     return recommendations;
-  }, [course, grades, categories, targetGrade, currentGrade]);
+  }, []);
 
   // Get smart recommendations from analytics service
   const smartRecommendations = useMemo(() => {
     if (!userAnalytics || !course) return [];
-    return AnalyticsService.generateRecommendations(userAnalytics, course, categories);
+    return []; // Removed analytics recommendations
   }, [userAnalytics, course, categories]);
 
   // Combine and deduplicate recommendations
