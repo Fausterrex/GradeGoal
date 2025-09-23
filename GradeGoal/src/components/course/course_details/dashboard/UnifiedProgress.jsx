@@ -84,7 +84,7 @@ function UnifiedProgress({
           currentGPA: latestAnalytics?.currentGrade || 0
         };
 
-            return { weekly: weeklyData, statistics };
+        return { weekly: weeklyData, statistics };
       } else {
         // Handle single analytics object
         
@@ -220,9 +220,9 @@ function UnifiedProgress({
     const { weekly } = trajectoryData;
     
     if (weekly.length < 2) {
-    return {
-      direction: 'stable',
-      percentage: 0,
+      return {
+        direction: 'stable',
+        percentage: 0,
         description: 'Insufficient data for trend analysis',
         icon: '➡️',
         confidence: 'low'
@@ -348,7 +348,7 @@ function UnifiedProgress({
         <div className="h-96 bg-white rounded-xl p-4 border border-gray-200">
       <svg width={width} height={height} className="overflow-visible">
         <defs>
-                <pattern id="grid-weekly" width="40" height="40" patternUnits="userSpaceOnUse">
+          <pattern id="grid-weekly" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f3f4f6" strokeWidth="1"/>
           </pattern>
                 <linearGradient id="gradient-weekly" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -357,7 +357,7 @@ function UnifiedProgress({
                 </linearGradient>
         </defs>
               
-              <rect width="100%" height="100%" fill="url(#grid-weekly)" />
+        <rect width="100%" height="100%" fill="url(#grid-weekly)" />
 
         {/* Target GPA line */}
         {targetY && (
@@ -367,7 +367,7 @@ function UnifiedProgress({
             y1={targetY}
             x2={width - padding}
             y2={targetY}
-            stroke="#3b82f6"
+            stroke="#000000ff"
             strokeWidth="2"
             strokeDasharray="5,5"
               />
@@ -419,6 +419,14 @@ function UnifiedProgress({
           if (isNaN(cx) || isNaN(cy) || !isFinite(cx) || !isFinite(cy)) {
             return null;
           }
+
+          // Default to green; update based on previous point
+          let fill = "#10b981";
+          if (index > 0) {
+            const prevPoint = data[index - 1];
+            fill = point.percentage >= prevPoint.percentage ? "#10b981" : "#ef4444";
+          }
+
           return (
               <g key={index}>
             <circle

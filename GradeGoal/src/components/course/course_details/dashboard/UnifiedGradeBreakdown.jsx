@@ -171,13 +171,13 @@ function UnifiedGradeBreakdown({
     };
 
     return (
-      <div className="bg-white rounded border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-300 shadow-xl">
         {/* Header */}
         <div className="bg-gray-100 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {getStatusIcon()}
-              <h4 className="text-lg font-bold text-gray-900">{category.name}</h4>
+              <h4 className="text-xl font-bold text-gray-900">{category.name}</h4>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-600">Weight</div>
@@ -187,17 +187,17 @@ function UnifiedGradeBreakdown({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 ">
           {/* Performance Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-gray-50 rounded border">
+            <div className="text-center p-4 bg-orange-100 rounded-2xl border border-orange-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">
                 {analysis.average ? `${analysis.average.toFixed(1)}%` : '--'}
               </div>
               <div className="text-sm text-gray-600">Average</div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded border">
+            <div className="text-center p-4 bg-blue-100 rounded-2xl border border-blue-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">
                 {analysis.average ? percentageToGPA(analysis.average, course?.gpaScale === '5.0' ? 5.0 : 4.0).toFixed(2) : '--'}
               </div>
@@ -207,12 +207,12 @@ function UnifiedGradeBreakdown({
               <div className="text-sm text-gray-600">GPA</div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded border">
+            <div className="text-center p-4 bg-green-100 rounded-2xl border border-green-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">{analysis.completed}</div>
               <div className="text-sm text-gray-600">Completed</div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded border">
+            <div className="text-center p-4 bg-red-100 rounded-2xl border border-red-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">{analysis.pending}</div>
               <div className="text-sm text-gray-600">Pending</div>
             </div>
@@ -226,14 +226,20 @@ function UnifiedGradeBreakdown({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="h-full bg-gray-600"
+                className={`h-full ${progressPercentage < 40
+                    ? "bg-red-600"
+                    : progressPercentage < 80
+                      ? "bg-orange-500"
+                      : "bg-green-600"
+                  }`}
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
+
           </div>
 
           {/* Contribution to Overall Grade */}
-          <div className="bg-gray-50 rounded border border-gray-200 p-4">
+          <div className="bg-gray-100 rounded border border-blue-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium text-gray-700">Contribution to Course Grade</div>
@@ -282,13 +288,13 @@ function UnifiedGradeBreakdown({
 
       {/* Overall Summary */}
       <div className="bg-gray-50 rounded-xl border border-gray-300 p-6">
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">Overall Performance Summary</h4>
+        <h4 className="text-xl font-bold text-gray-900 ml-5 mb-4">Overall Performance Summary</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
-          <div className="text-center p-4 bg-white rounded-xl border border-gray-400 flex flex-col justify-center">
-            <div className="text-3xl font-bold text-gray-900">{getOverallContribution().toFixed(1)}%</div>
+          <div className="text-center p-9 bg-orange-100 rounded-xl border border-orange-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
+            <div className="text-3xl font-bold text-black">{getOverallContribution().toFixed(1)}%</div>
             <div className="text-sm text-gray-600">Weighted Average</div>
           </div>
-          <div className="text-center p-4 bg-white rounded-xl border border-gray-400 flex flex-col justify-center">
+          <div className="text-center p-4 bg-pink-100 rounded-xl border border-pink-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-gray-900">
               {currentGPA.toFixed(2)}
             </div>
@@ -297,7 +303,7 @@ function UnifiedGradeBreakdown({
             </div>
             <div className="text-sm text-gray-600">Overall GPA</div>
           </div>
-          <div className="text-center p-4 bg-white rounded-xl border border-gray-400 flex flex-col justify-center">
+          <div className="text-center p-4 bg-red-100 rounded-xl border border-red-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-gray-900">{categories.length}</div>
             <div className="text-sm text-gray-600">Categories</div>
           </div>
@@ -330,13 +336,19 @@ function UnifiedGradeBreakdown({
                   cx="100"
                   cy="100"
                   r="70"
-                  stroke={ 
-                    likelihoodAnalysis.likelihood < 50   ? "#EF4444"  : likelihoodAnalysis.likelihood < 70  ? "#F97316"  : "#10B981"
+                  stroke={
+                    likelihoodAnalysis.likelihood < 25
+                      ? "#EF4444"
+                      : likelihoodAnalysis.likelihood < 50
+                        ? "#F97316"
+                        : likelihoodAnalysis.likelihood < 80
+                          ? "#3B82F6"
+                          : "#22C55E"
                   }
                   strokeWidth="18"
-                  strokeDasharray={2 * Math.PI * 58}
+                  strokeDasharray={2 * Math.PI * 70}
                   strokeDashoffset={
-                    2 * Math.PI * 58 - (likelihoodAnalysis.likelihood / 100) * (2 * Math.PI * 58)
+                    2 * Math.PI * 70 - (likelihoodAnalysis.likelihood / 100) * (2 * Math.PI * 70)
                   }
                   strokeLinecap="round"
                   fill="none"
@@ -355,28 +367,28 @@ function UnifiedGradeBreakdown({
 
           {/* Key Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-[#BFDBFE] to-[#60A5FA] border border-gray-500 p-4 text-center shadow-xl">
+            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-blue-200 to-blue-300 border border-blue-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">📈</div>
               <div className="font-semibold text-lg text-gray-900">Current GPA</div>
               <div className="text-xl font-bold text-gray-900">
                 {likelihoodAnalysis.metrics.currentGPA.toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-[#BBF7D0] to-[#34D399] border border-gray-500 p-4 text-center shadow-xl">
+            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-green-200 to-green-300 border border-green-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">🎯</div>
               <div className="font-medium text-lg text-gray-900">Target GPA</div>
               <div className="text-xl font-bold text-gray-900">
                 {likelihoodAnalysis.metrics.targetGPA.toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-[#FDE68A] to-[#F59E0B] border border-gray-500 p-4 text-center shadow-xl">
+            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-orange-200 to-orange-300 border border-orange-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">📊</div>
               <div className="font-medium text-lg text-gray-900">Gap to Close</div>
               <div className="text-lg font-bold text-gray-900">
                 {Math.abs(likelihoodAnalysis.metrics.gpaGap).toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-[#DDD6FE] to-[#A78BFA] border border-gray-500 p-4 text-center shadow-xl">
+            <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-violet-200 to-violet-300 border border-violet-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">✔️</div>
               <div className="font-medium text-lg text-gray-900">Completion</div>
               <div className="text-lg font-bold text-gray-900">
@@ -395,7 +407,7 @@ function UnifiedGradeBreakdown({
                 <div className="flex items-center gap-3">
                   <span
                     className={`w-4 h-4 rounded-full ${factor.positive ? factor.impact > 0 ? "bg-green-500" : "bg-gray-400" : factor.impact < -10
-                        ? "bg-red-500": "bg-orange-500"
+                      ? "bg-red-500" : "bg-orange-500"
                       }`}
                   ></span>
                   <div>

@@ -163,7 +163,7 @@ function GoalProgress({
       <h3 className="text-2xl font-semibold text-gray-900 mb-4">
         Goal Progress
       </h3>
-
+      {/* Progress Circle */}
       <div className="relative w-45 h-45 mb-4">
         <svg className="w-full h-full transform -rotate-90">
           <circle
@@ -178,12 +178,20 @@ function GoalProgress({
             cx="90"
             cy="90"
             r="70"
-            stroke="#3B82F6"
+            stroke={
+              progressPercentage < 25
+                ? "#EF4444" 
+                : progressPercentage < 50
+                  ? "#F97316" 
+                  : progressPercentage < 80
+                    ? "#3B82F6" 
+                    : "#22C55E" 
+            }
             strokeWidth="20"
             fill="none"
-            strokeDasharray={2 * Math.PI * 58}
+            strokeDasharray={2 * Math.PI * 70}
             strokeDashoffset={
-              2 * Math.PI * 58 - (progressPercentage / 100) * 2 * Math.PI * 58
+              2 * Math.PI * 70 - (progressPercentage / 100) * 2 * Math.PI * 70
             }
             strokeLinecap="round"
             className="transition-all duration-500"
@@ -252,7 +260,7 @@ function GoalProgress({
             <div className="text-xs text-gray-600">
               to reach your target GPA
             </div>
-           
+
           </div>
         </div>
       )}
