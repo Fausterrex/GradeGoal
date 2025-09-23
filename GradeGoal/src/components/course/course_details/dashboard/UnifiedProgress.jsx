@@ -6,22 +6,22 @@
 import React, { useMemo } from "react";
 import { convertPercentageToGPA } from "../../../../utils/gradeCalculations";
 
-function UnifiedProgress({ 
-  currentGrade, 
-  targetGrade, 
-  course, 
-  grades, 
+function UnifiedProgress({
+  currentGrade,
+  targetGrade,
+  course,
+  grades,
   categories,
-  colorScheme 
+  colorScheme
 }) {
 
   // Process grades data for chart and trends
   const chartData = useMemo(() => {
     const allGrades = Object.values(grades).flat()
-      .filter(grade => 
-        grade.score !== null && 
-        grade.score !== undefined && 
-        grade.score !== "" && 
+      .filter(grade =>
+        grade.score !== null &&
+        grade.score !== undefined &&
+        grade.score !== "" &&
         !isNaN(parseFloat(grade.score)) &&
         grade.date
       )
@@ -31,11 +31,11 @@ function UnifiedProgress({
           adjustedScore += grade.extraCreditPoints;
         }
         const percentage = (adjustedScore / grade.maxScore) * 100;
-        
+
         if (isNaN(percentage) || !isFinite(percentage) || percentage < 0 || percentage > 200) {
           return null;
         }
-        
+
         return {
           date: new Date(grade.date),
           percentage,
@@ -52,7 +52,7 @@ function UnifiedProgress({
     const cumulativeData = allGrades.map((grade, index) => {
       cumulativeSum += grade.percentage;
       const cumulativeAverage = cumulativeSum / (index + 1);
-      
+
       if (isNaN(cumulativeAverage) || !isFinite(cumulativeAverage)) {
         return {
           ...grade,
@@ -60,7 +60,7 @@ function UnifiedProgress({
           cumulativeGPA: 0
         };
       }
-      
+
       return {
         ...grade,
         cumulativeAverage,
@@ -81,16 +81,16 @@ function UnifiedProgress({
         icon: '➡️'
       };
     }
-    
+
     const firstHalf = chartData.slice(0, Math.ceil(chartData.length / 2));
     const secondHalf = chartData.slice(Math.floor(chartData.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((sum, item) => sum + item.percentage, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, item) => sum + item.percentage, 0) / secondHalf.length;
-    
+
     const change = secondAvg - firstAvg;
     const changePercentage = Math.abs(change / firstAvg) * 100;
-    
+
     if (change > 2) {
       return {
         direction: 'improving',
@@ -137,7 +137,7 @@ function UnifiedProgress({
       if (data.length === 1) return chartWidth / 2 + padding;
       return (index / (data.length - 1)) * chartWidth + padding;
     };
-    
+
     const scaleY = (value) => {
       if (isNaN(value) || !isFinite(value)) return padding;
       return chartHeight - ((value - minValue) / valueRange) * chartHeight + padding;
@@ -158,52 +158,92 @@ function UnifiedProgress({
       <svg width={width} height={height} className="overflow-visible">
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f3f4f6" strokeWidth="1"/>
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f3f4f6" strokeWidth="1" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        <rect
+          x={padding}
+          y={padding}
+          width={chartWidth}
+          height={chartHeight}
+          fill="url(#grid)"
+          stroke="#d1d5db"
+          strokeWidth="1"
+        />
 
+
+        {data.map((point, index) => {
+          if (index === 0) return null;
+
+          const prevPoint = data[index - 1];
+          const x1 = scaleX(index - 1);
+          const y1 = scaleY(prevPoint.percentage);
+          const x2 = scaleX(index);
+          const y2 = scaleY(point.percentage);
+
+          if ([x1, y1, x2, y2].some(v => isNaN(v) || !isFinite(v))) {
+            return null;
+          }
+
+
+          const color = point.percentage >= prevPoint.percentage ? "#10b981" : "#ef4444";
+
+          const cx1 = x1 + (x2 - x1) / 2;
+          const cy1 = y1;
+          const cx2 = x1 + (x2 - x1) / 2;
+          const cy2 = y2;
+
+          return (
+            <path
+              key={`seg-${index}`}
+              d={`M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`}
+              fill="none"
+              stroke={color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          );
+        })}
         {targetY && (
           <line
             x1={padding}
             y1={targetY}
             x2={width - padding}
             y2={targetY}
-            stroke="#3b82f6"
+            stroke="#000000ff"
             strokeWidth="2"
-            strokeDasharray="5,5"
-          />
-        )}
+            strokeDasharray="5,5" />)}
 
-        {linePath && (
-          <path
-            d={linePath}
-            fill="none"
-            stroke="#10b981"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-
+        {/* Dots that match direction */}
         {data.map((point, index) => {
           const cx = scaleX(index);
           const cy = scaleY(point.percentage);
+
           if (isNaN(cx) || isNaN(cy) || !isFinite(cx) || !isFinite(cy)) {
             return null;
           }
+
+          // Default to green; update based on previous point
+          let fill = "#10b981";
+          if (index > 0) {
+            const prevPoint = data[index - 1];
+            fill = point.percentage >= prevPoint.percentage ? "#10b981" : "#ef4444";
+          }
+
           return (
             <circle
-              key={index}
+              key={`dot-${index}`}
               cx={cx}
               cy={cy}
               r="4"
-              fill="#10b981"
+              fill={fill}
               stroke="white"
               strokeWidth="2"
             />
           );
         })}
+
 
         {[minValue, (minValue + maxValue) / 2, maxValue].map((value, index) => {
           const y = scaleY(value);
@@ -229,10 +269,10 @@ function UnifiedProgress({
     <div className="space-y-6">
       {/* Grade Progression Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-400 overflow-hidden">
           <div className="bg-gray-100 px-6 py-4">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <span className="text-xl">📈</span>
+            <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <span className="text-2xl">📈</span>
               Grade Progression
             </h3>
           </div>
@@ -240,20 +280,31 @@ function UnifiedProgress({
           <div className="p-6">
             {/* Trend Indicator */}
             <div className="mb-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded border border-gray-300 text-sm font-semibold bg-gray-50">
+              <div
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border shadow-xl text-sm font-semibold 
+        ${trends.direction === "declining"
+                    ? "bg-red-100 border-red-300 text-red-800"
+                    : trends.direction === "improving"
+                      ? "bg-green-100 border-green-300 text-green-800"
+                      : trends.direction === "stable"
+                        ? "bg-orange-100 border-orange-300 text-orange-800"
+                        : "bg-gray-50 border-gray-300 text-gray-800"
+                  }`}
+              >
                 <span className="text-lg">{trends.icon}</span>
                 <span className="capitalize">{trends.direction}</span>
                 <span className="ml-1">({trends.description})</span>
               </div>
             </div>
 
+
             {/* Chart */}
             <div className="mb-6">
-              <SimpleLineChart 
-                data={chartData} 
+              <SimpleLineChart
+                data={chartData}
                 targetValue={targetGrade ? parseFloat(targetGrade) * 25 : null}
-                width={600} 
-                height={250} 
+                width={1450}
+                height={400}
               />
             </div>
 
@@ -273,22 +324,34 @@ function UnifiedProgress({
 
             {/* Recent Performance */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-900 mb-3">Recent Performance</h4>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Recent Performance</h4>
               <div className="space-y-2">
-                {chartData.slice(-3).map((grade, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded border">
-                    <div>
-                      <div className="font-medium text-gray-900">{grade.name}</div>
-                      <div className="text-sm text-gray-600">
-                        {grade.date.toLocaleDateString()}
+                {chartData.slice(-3).map((grade, index) => {
+                  const bgColor =
+                    grade.percentage < 40
+                      ? "bg-red-100 border-red-200 text-red-900"
+                      : grade.percentage < 70
+                        ? "bg-orange-100 border-orange-300 text-orange-800"
+                        : "bg-green-100 border-green-300 text-green-800";
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-2xl shadow-2xl border ${bgColor}`}
+                    >
+                      <div>
+                        <div className="font-lg font-bold">{grade.name}</div>
+                        <div className="text-m">
+                          {grade.date.toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">{grade.percentage.toFixed(1)}%</div>
+                        <div className="text-sm">{grade.gpa.toFixed(2)} GPA</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">{grade.percentage.toFixed(1)}%</div>
-                      <div className="text-sm text-gray-600">{grade.gpa.toFixed(2)} GPA</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

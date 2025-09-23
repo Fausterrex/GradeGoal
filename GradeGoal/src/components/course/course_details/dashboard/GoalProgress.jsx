@@ -88,7 +88,7 @@ function GoalProgress({
       <h3 className="text-2xl font-semibold text-gray-900 mb-4">
         Goal Progress
       </h3>
-
+      {/* Progress Circle */}
       <div className="relative w-45 h-45 mb-4">
         <svg className="w-full h-full transform -rotate-90">
           <circle
@@ -103,12 +103,20 @@ function GoalProgress({
             cx="90"
             cy="90"
             r="70"
-            stroke="#3B82F6"
+            stroke={
+              progressPercentage < 25
+                ? "#EF4444" 
+                : progressPercentage < 50
+                  ? "#F97316" 
+                  : progressPercentage < 80
+                    ? "#3B82F6" 
+                    : "#22C55E" 
+            }
             strokeWidth="20"
             fill="none"
-            strokeDasharray={2 * Math.PI * 58}
+            strokeDasharray={2 * Math.PI * 70}
             strokeDashoffset={
-              2 * Math.PI * 58 - (progressPercentage / 100) * 2 * Math.PI * 58
+              2 * Math.PI * 70 - (progressPercentage / 100) * 2 * Math.PI * 70
             }
             strokeLinecap="round"
             className="transition-all duration-500"
@@ -125,12 +133,11 @@ function GoalProgress({
       {/* Status */}
       <div className="mb-4">
         <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-m font-medium ${
-              progressPercentage >= 90 ? "bg-green-100 text-green-800" :
-          progressPercentage >= 70 ? "bg-yellow-100 text-yellow-800" :
-          progressPercentage >= 50 ? "bg-orange-100 text-orange-800" :
-          "bg-red-100 text-red-800"
-        }`}>
+          className={`inline-flex items-center px-3 py-1 rounded-full text-m font-medium ${progressPercentage >= 90 ? "bg-green-100 text-green-800" :
+            progressPercentage >= 70 ? "bg-yellow-100 text-yellow-800" :
+              progressPercentage >= 50 ? "bg-orange-100 text-orange-800" :
+                "bg-red-100 text-red-800"
+            }`}>
           {getStatusText()}
         </span>
       </div>
@@ -149,7 +156,7 @@ function GoalProgress({
           <div className="text-gray-600 text-sm">Target GPA</div>
         </div>
       </div>
-   
+
 
       {/* Gap Analysis */}
       {currentGPA < targetGPA && (
@@ -158,7 +165,7 @@ function GoalProgress({
             <div className="text-lg font-semibold text-white">
               Need {(targetGPA - currentGPA).toFixed(2)} more points to reach your target GPA
             </div>
-           
+
           </div>
         </div>
       )}
