@@ -284,7 +284,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${course.courseId}`);
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
-        setUserAnalytics(analyticsData);
+      setUserAnalytics(analyticsData);
       } else {
         // Fallback to default analytics
         const analytics = { current_grade: 0, grade_trend: 0 };
@@ -320,8 +320,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         if (result.success && result.gpa !== undefined) {
           setCourseGrade(result.gpa);
         }
-      }
-    } catch (error) {
+        }
+      } catch (error) {
       console.error('Failed to update course grade:', error);
     }
   };

@@ -175,8 +175,14 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
           status = 'not_achieved';
         }
       } else {
-        // Course is ongoing - show progress toward target
-        progress = Math.min((normalizedCurrentValue / normalizedTargetValue) * 100, 100);
+        // Course is ongoing - show progress based on course completion, not GPA ratio
+        // Find the course and get its completion percentage
+        const targetCourse = courses.find(course => 
+          (course.id || course.courseId) === goal.courseId
+        );
+        const courseCompletion = targetCourse?.progress || 0; // Use course progress percentage
+        progress = courseCompletion; // Use actual course completion percentage
+        
         isAchieved = normalizedCurrentValue >= normalizedTargetValue;
         isOnTrack = normalizedCurrentValue >= normalizedTargetValue * 0.4; // 40% threshold
         remainingValue = Math.max(normalizedTargetValue - normalizedCurrentValue, 0);

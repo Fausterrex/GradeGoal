@@ -174,7 +174,7 @@ CREATE TABLE `assessments` (
   PRIMARY KEY (`assessment_id`),
   KEY `FK4kbcb2x7nlbys293dd0vjysdm` (`category_id`),
   CONSTRAINT `FK4kbcb2x7nlbys293dd0vjysdm` FOREIGN KEY (`category_id`) REFERENCES `assessment_categories` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -183,7 +183,7 @@ CREATE TABLE `assessments` (
 
 LOCK TABLES `assessments` WRITE;
 /*!40000 ALTER TABLE `assessments` DISABLE KEYS */;
-INSERT INTO `assessments` VALUES ('2025-09-03',15.00,22,1,'2025-09-24 09:11:07.930399','2025-09-24 09:11:07.925373','Assignment 1',NULL,'OVERDUE'),('2025-09-11',13.00,23,2,'2025-09-24 09:11:23.386339','2025-09-24 09:11:23.386339','Quiz 1',NULL,'OVERDUE');
+INSERT INTO `assessments` VALUES ('2025-09-04',15.00,57,1,'2025-09-24 20:55:19.368557','2025-09-24 20:55:19.367556','Assignment 1',NULL,'OVERDUE'),('2025-09-24',15.00,58,2,'2025-09-24 20:55:29.974458','2025-09-24 20:55:29.974458','Quiz 1',NULL,'OVERDUE'),('2025-09-11',14.00,59,3,'2025-09-24 20:55:37.528093','2025-09-24 20:55:37.528093','Exam 1',NULL,'OVERDUE'),('2025-09-03',15.00,60,7,'2025-09-24 20:55:58.286493','2025-09-24 20:55:58.286493','Assignment 1',NULL,'OVERDUE'),('2025-09-12',14.00,61,8,'2025-09-24 20:56:12.998103','2025-09-24 20:56:12.998103','Quiz 1',NULL,'OVERDUE'),('2025-09-19',15.00,62,9,'2025-09-24 20:56:22.844875','2025-09-24 20:56:22.844875','Exam 1',NULL,'OVERDUE');
 /*!40000 ALTER TABLE `assessments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -265,7 +265,7 @@ CREATE TABLE `courses` (
 
 LOCK TABLES `courses` WRITE;
 /*!40000 ALTER TABLE `courses` DISABLE KEYS */;
-INSERT INTO `courses` VALUES (80.77,2.30,3,_binary '',5,'2025-09-23 15:52:37.285622','2025-09-24 09:12:13.007631',1,'2025','co11','Course 1',NULL,'FIRST',0,'3-categories','percentage','4.0',100,'exclude'),(0.00,0.00,3,_binary '',6,'2025-09-23 16:09:29.713652','2025-09-24 17:09:33.000000',1,'2025','Co22','Course 2',NULL,'FIRST',0,'3-categories','percentage','4.0',100,'exclude'),(0.00,0.00,3,_binary '',7,'2025-09-23 17:47:23.937246','2025-09-24 06:25:57.000000',1,'2025','co333','Course 3',NULL,'SECOND',0,'3-categories','percentage','4.0',100,'exclude'),(0.00,0.00,3,_binary '',8,'2025-09-23 20:26:20.081481','2025-09-24 17:10:03.000000',1,'2025','co444','Course 4',NULL,'THIRD',0,'3-categories','percentage','4.0',100,'exclude');
+INSERT INTO `courses` VALUES (85.43,2.70,3,_binary '',5,'2025-09-23 15:52:37.285622','2025-09-24 20:55:40.323421',1,'2025','co11','Course 1',NULL,'FIRST',0,'3-categories','percentage','4.0',100,'exclude'),(0.00,0.00,3,_binary '',6,'2025-09-23 16:09:29.713652','2025-09-25 04:08:25.000000',1,'2025','Co22','Course 2',NULL,'FIRST',0,'3-categories','percentage','4.0',100,'exclude'),(79.05,2.00,3,_binary '',7,'2025-09-23 17:47:23.937246','2025-09-24 20:56:25.876337',1,'2025','co333','Course 3',NULL,'SECOND',0,'3-categories','percentage','4.0',100,'exclude'),(0.00,0.00,3,_binary '',8,'2025-09-23 20:26:20.081481','2025-09-25 04:34:16.000000',1,'2025','co444','Course 4',NULL,'THIRD',0,'3-categories','percentage','4.0',100,'exclude');
 /*!40000 ALTER TABLE `courses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -327,7 +327,7 @@ CREATE TABLE `grades` (
   PRIMARY KEY (`grade_id`),
   KEY `FKr3vxme485so9o2jlqhtbdu85x` (`assessment_id`),
   CONSTRAINT `FKr3vxme485so9o2jlqhtbdu85x` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`assessment_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -336,7 +336,7 @@ CREATE TABLE `grades` (
 
 LOCK TABLES `grades` WRITE;
 /*!40000 ALTER TABLE `grades` DISABLE KEYS */;
-INSERT INTO `grades` VALUES ('2025-09-03',_binary '\0',100.00,15.00,15.00,22,'2025-09-24 09:11:07.940409',22,'2025-09-24 17:11:10.000000','','PERCENTAGE',NULL),('2025-09-11',_binary '\0',61.54,8.00,13.00,23,'2025-09-24 09:11:23.388341',23,'2025-09-24 17:12:12.000000','','PERCENTAGE',NULL);
+INSERT INTO `grades` VALUES ('2025-09-04',_binary '\0',93.33,14.00,15.00,57,'2025-09-24 20:55:19.369650',57,'2025-09-25 04:55:21.000000','','PERCENTAGE',NULL),('2025-09-24',_binary '\0',86.67,13.00,15.00,58,'2025-09-24 20:55:29.975459',58,'2025-09-25 04:55:32.000000','','PERCENTAGE',NULL),('2025-09-11',_binary '\0',78.57,11.00,14.00,59,'2025-09-24 20:55:37.530019',59,'2025-09-25 04:55:40.000000','','PERCENTAGE',NULL),('2025-09-03',_binary '\0',80.00,12.00,15.00,60,'2025-09-24 20:55:58.287494',60,'2025-09-25 04:56:00.000000','','PERCENTAGE',NULL),('2025-09-12',_binary '\0',85.71,12.00,14.00,61,'2025-09-24 20:56:12.999659',61,'2025-09-25 04:56:15.000000','','PERCENTAGE',NULL),('2025-09-19',_binary '\0',73.33,11.00,15.00,62,'2025-09-24 20:56:22.845876',62,'2025-09-25 04:56:25.000000','','PERCENTAGE',NULL);
 /*!40000 ALTER TABLE `grades` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -366,7 +366,7 @@ CREATE TABLE `notifications` (
   KEY `idx_created_date` (`created_at`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -375,7 +375,7 @@ CREATE TABLE `notifications` (
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (1,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:53:15',NULL),(2,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:54:24',NULL),(3,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:04',NULL),(4,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:29',NULL),(5,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:50',NULL),(6,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:55',NULL),(7,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:56:01',NULL),(8,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:56:05',NULL),(9,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:58:00',NULL),(10,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 06:03:28',NULL),(11,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:28:32',NULL),(12,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:29:46',NULL),(13,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:37:54',NULL),(14,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:40:10',NULL),(15,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:46:24',NULL),(16,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:47:22',NULL),(17,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:47:36',NULL),(18,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:49:47',NULL),(19,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:22:43',NULL),(20,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:22:56',NULL),(21,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:23:18',NULL),(22,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:23:35',NULL),(23,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:46:47',NULL),(24,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:52:25',NULL),(25,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 13:09:02',NULL),(26,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 16:16:30',NULL),(27,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:30',NULL),(28,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:35',NULL),(29,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:45',NULL),(30,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:26:27',NULL),(31,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:28:19',NULL),(32,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:46:04',NULL),(33,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:47:58',NULL),(34,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:50:56',NULL),(35,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 21:19:36',NULL),(36,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:23:54',NULL),(37,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:24:25',NULL),(38,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:33:26',NULL),(39,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:33:36',NULL),(40,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:35:16',NULL);
+INSERT INTO `notifications` VALUES (1,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:53:15',NULL),(2,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:54:24',NULL),(3,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:04',NULL),(4,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:29',NULL),(5,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:50',NULL),(6,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:55:55',NULL),(7,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:56:01',NULL),(8,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:56:05',NULL),(9,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 05:58:00',NULL),(10,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 06:03:28',NULL),(11,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:28:32',NULL),(12,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:29:46',NULL),(13,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:37:54',NULL),(14,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:40:10',NULL),(15,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:46:24',NULL),(16,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:47:22',NULL),(17,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:47:36',NULL),(18,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 09:49:47',NULL),(19,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:22:43',NULL),(20,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:22:56',NULL),(21,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:23:18',NULL),(22,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:23:35',NULL),(23,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:46:47',NULL),(24,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 10:52:25',NULL),(25,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 13:09:02',NULL),(26,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 16:16:30',NULL),(27,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:30',NULL),(28,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:35',NULL),(29,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 17:47:45',NULL),(30,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:26:27',NULL),(31,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:28:19',NULL),(32,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:46:04',NULL),(33,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:47:58',NULL),(34,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 20:50:56',NULL),(35,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-23 21:19:36',NULL),(36,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:23:54',NULL),(37,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:24:25',NULL),(38,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:33:26',NULL),(39,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:33:36',NULL),(40,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-23 21:35:16',NULL),(41,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 15:40:57',NULL),(42,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 17:53:33',NULL),(43,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 17:53:40',NULL),(44,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 19:58:04',NULL),(45,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 19:58:12',NULL),(46,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:01:12',NULL),(47,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:02:24',NULL),(48,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:03:39',NULL),(49,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:06:00',NULL),(50,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:06:26',NULL),(51,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-24 20:07:44',NULL),(52,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:41:29',NULL),(53,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:41:55',NULL),(54,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:48:24',NULL),(55,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:50:10',NULL),(56,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:50:18',NULL),(57,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:50:27',NULL),(58,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:55:21',NULL),(59,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:55:32',NULL),(60,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:55:40',NULL),(61,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 2','HIGH',0,NULL,'2025-09-24 20:56:00',NULL),(62,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-24 20:56:15',NULL),(63,1,NULL,'ACHIEVEMENT','Level Up!','Congratulations! You reached Level 3','HIGH',0,NULL,'2025-09-24 20:56:25',NULL);
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -498,13 +498,14 @@ CREATE TABLE `user_analytics` (
   `performance_metrics` json DEFAULT NULL,
   `calculated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `due_date` date DEFAULT NULL,
+  `semester` varchar(20) DEFAULT 'FIRST',
   PRIMARY KEY (`analytics_id`),
   KEY `idx_user_date` (`user_id`,`analytics_date`),
   KEY `idx_course_date` (`course_id`,`analytics_date`),
   KEY `idx_user_analytics_due_date` (`due_date`),
   CONSTRAINT `user_analytics_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `user_analytics_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -513,7 +514,7 @@ CREATE TABLE `user_analytics` (
 
 LOCK TABLES `user_analytics` WRITE;
 /*!40000 ALTER TABLE `user_analytics` DISABLE KEYS */;
-INSERT INTO `user_analytics` VALUES (1,1,5,'2025-09-24',4.00,4.00,1,0,0.00,NULL,'2025-09-24 09:11:10','2025-09-03'),(2,1,5,'2025-09-24',4.00,0.00,2,0,0.00,NULL,'2025-09-24 09:12:02','2025-09-11'),(3,1,5,'2025-09-24',2.30,-1.70,2,0,0.00,NULL,'2025-09-24 09:12:12','2025-09-11');
+INSERT INTO `user_analytics` VALUES (1,1,5,'2025-09-25',3.70,0.00,1,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 93.33, \"study_hours_logged\": 0.00}','2025-09-24 20:55:21','2025-09-04','FIRST'),(2,1,5,'2025-09-25',3.30,-0.40,2,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 90.00, \"study_hours_logged\": 0.00}','2025-09-24 20:55:32','2025-09-24','FIRST'),(3,1,5,'2025-09-25',2.70,-0.60,3,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 85.43, \"study_hours_logged\": 0.00}','2025-09-24 20:55:40','2025-09-11','FIRST'),(4,1,7,'2025-09-25',2.30,0.00,1,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 80.00, \"study_hours_logged\": 0.00}','2025-09-24 20:56:00','2025-09-03','SECOND'),(5,1,7,'2025-09-25',2.30,0.00,2,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 82.86, \"study_hours_logged\": 0.00}','2025-09-24 20:56:15','2025-09-12','SECOND'),(6,1,7,'2025-09-25',2.00,-0.30,3,0,0.00,'{\"completion_rate\": 100.000000000, \"percentage_score\": 79.05, \"study_hours_logged\": 0.00}','2025-09-24 20:56:25','2025-09-19','SECOND');
 /*!40000 ALTER TABLE `user_analytics` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -546,7 +547,7 @@ CREATE TABLE `user_progress` (
 
 LOCK TABLES `user_progress` WRITE;
 /*!40000 ALTER TABLE `user_progress` DISABLE KEYS */;
-INSERT INTO `user_progress` VALUES (1,20,1,80,0,'2025-09-24',0,0.00,'2025-09-24 09:12:02',0);
+INSERT INTO `user_progress` VALUES (1,210,3,90,0,'2025-09-25',1.35,0.00,'2025-09-24 20:56:49',1.18);
 /*!40000 ALTER TABLE `user_progress` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -824,7 +825,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` FUNCTION `CalculateSemesterGPA`(
     p_user_id BIGINT, 
-    p_semester ENUM('FIRST','SECOND','THIRD'), 
+    p_semester VARCHAR(20), 
     p_academic_year VARCHAR(255)
 ) RETURNS decimal(3,2)
     READS SQL DATA
@@ -835,14 +836,15 @@ BEGIN
     DECLARE semester_gpa DECIMAL(3,2) DEFAULT 0.00;
 
     -- Sum grade points (GPA * credit_hours) and total credit hours for specific semester
+    -- Use COLLATE to handle collation mismatch
     SELECT 
         COALESCE(SUM(c.course_gpa * c.credit_hours), 0),
         COALESCE(SUM(c.credit_hours), 0)
     INTO total_grade_points, total_credit_hours
     FROM courses c
     WHERE c.user_id = p_user_id
-      AND c.semester = p_semester
-      AND c.academic_year = p_academic_year
+      AND c.semester COLLATE utf8mb4_unicode_ci = p_semester COLLATE utf8mb4_unicode_ci
+      AND c.academic_year COLLATE utf8mb4_unicode_ci = p_academic_year COLLATE utf8mb4_unicode_ci
       AND c.course_gpa IS NOT NULL
       AND c.is_active = 1;
 
@@ -1264,6 +1266,49 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `CreateAnalyticsForSecondSemester` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateAnalyticsForSecondSemester`()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE course_id_var BIGINT;
+    DECLARE user_id_var BIGINT;
+    
+    DECLARE course_cursor CURSOR FOR 
+        SELECT course_id, user_id 
+        FROM courses 
+        WHERE semester = 'SECOND' AND is_active = 1;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN course_cursor;
+    
+    read_loop: LOOP
+        FETCH course_cursor INTO course_id_var, user_id_var;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Call UpdateUserAnalytics for each SECOND semester course
+        CALL UpdateUserAnalytics(user_id_var, course_id_var, 'SECOND');
+        
+    END LOOP;
+    
+    CLOSE course_cursor;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `InitializeMissingAnalytics` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -1370,6 +1415,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateCourseGrades`(IN p_course_id 
 BEGIN
     DECLARE calculated_grade DECIMAL(5,2);
     DECLARE calculated_gpa DECIMAL(3,2);
+    DECLARE course_user_id BIGINT;
+    
+    -- Get the user_id for the course
+    SELECT user_id INTO course_user_id
+    FROM courses 
+    WHERE course_id = p_course_id;
     
     -- Calculate the current course grade
     SET calculated_grade = CalculateCourseGrade(p_course_id);
@@ -1382,10 +1433,8 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE course_id = p_course_id;
     
-    -- Update user analytics
-    CALL UpdateUserAnalytics((
-        SELECT user_id FROM courses WHERE course_id = p_course_id
-    ), p_course_id);
+    -- Update user analytics with 2 parameters (user_id, course_id)
+    CALL UpdateUserAnalytics(course_user_id, p_course_id);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1407,72 +1456,94 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateUserAnalytics`(
     IN p_course_id BIGINT
 )
 BEGIN
-    DECLARE current_grade DECIMAL(5,2) DEFAULT 0.00;
-    DECLARE previous_grade DECIMAL(5,2) DEFAULT 0.00;
-    DECLARE grade_trend DECIMAL(5,2) DEFAULT 0.00;
-    DECLARE assignments_completed INT DEFAULT 0;
-    DECLARE assignments_pending INT DEFAULT 0;
-    DECLARE study_hours DECIMAL(5,2) DEFAULT 0.00;
-    DECLARE course_due_date DATE DEFAULT NULL;
-    
-    -- Get current course grade (in GPA format)
-    SELECT COALESCE(course_gpa, 0.00) INTO current_grade
-    FROM courses 
-    WHERE course_id = p_course_id AND user_id = p_user_id;
-    
-    -- Get the most recent assessment due date for this course
-    -- This will be used for weekly sorting
-    SELECT MAX(a.due_date) INTO course_due_date
+    DECLARE current_calculated_grade DECIMAL(5,2);
+    DECLARE current_gpa DECIMAL(3,2);
+    DECLARE previous_grade_trend DECIMAL(3,2);
+    DECLARE course_semester VARCHAR(20);
+    DECLARE course_due_date DATE;
+    DECLARE total_assignments_completed INT DEFAULT 0;
+    DECLARE total_assignments_pending INT DEFAULT 0;
+    DECLARE total_study_hours DECIMAL(5,2) DEFAULT 0.00; -- Hardcoded as study_hours table doesn't exist
+
+    -- Get the semester from the courses table
+    SELECT semester INTO course_semester FROM courses WHERE course_id = p_course_id;
+
+    -- Get the latest calculated course grade (percentage)
+    SELECT calculated_course_grade INTO current_calculated_grade
+    FROM courses
+    WHERE course_id = p_course_id;
+
+    -- Convert percentage to GPA
+    SET current_gpa = CalculateGPA(current_calculated_grade);
+
+    -- Get the due_date of the MOST RECENTLY GRADED assessment (not the latest due date)
+    -- This ensures each analytics record has a unique due date based on when grades were added
+    SELECT a.due_date INTO course_due_date
     FROM assessments a
-    INNER JOIN assessment_categories ac ON a.category_id = ac.category_id
+    JOIN assessment_categories ac ON a.category_id = ac.category_id
+    JOIN grades g ON a.assessment_id = g.assessment_id
     WHERE ac.course_id = p_course_id
-    AND a.due_date IS NOT NULL;
-    
-    -- If no due_date found, use current date as fallback
+    ORDER BY g.created_at DESC, g.updated_at DESC
+    LIMIT 1;
+
+    -- If no graded assessment found, use current date as fallback
     IF course_due_date IS NULL THEN
         SET course_due_date = CURDATE();
     END IF;
-    
-    -- Get previous analytics record for trend calculation
-    SELECT COALESCE(ua.current_grade, 0.00) INTO previous_grade
-    FROM user_analytics ua
-    WHERE ua.user_id = p_user_id AND ua.course_id = p_course_id
-    ORDER BY ua.analytics_date DESC, ua.calculated_at DESC
-    LIMIT 1;
-    
-    -- Calculate grade trend (current - previous)
-    SET grade_trend = current_grade - previous_grade;
-    
-    -- Count completed assignments (assessments with grades)
-    SELECT COUNT(*) INTO assignments_completed
+
+    -- Calculate assignments completed and pending
+    SELECT
+        COUNT(CASE WHEN g.percentage_score IS NOT NULL THEN 1 END),
+        COUNT(CASE WHEN g.percentage_score IS NULL THEN 1 END)
+    INTO total_assignments_completed, total_assignments_pending
     FROM assessments a
-    INNER JOIN assessment_categories ac ON a.category_id = ac.category_id
-    INNER JOIN grades g ON a.assessment_id = g.assessment_id
-    WHERE ac.course_id = p_course_id
-    AND g.points_earned IS NOT NULL;
-    
-    -- Count pending assignments (assessments without grades)
-    SELECT COUNT(*) INTO assignments_pending
-    FROM assessments a
-    INNER JOIN assessment_categories ac ON a.category_id = ac.category_id
+    JOIN assessment_categories ac ON a.category_id = ac.category_id
     LEFT JOIN grades g ON a.assessment_id = g.assessment_id
-    WHERE ac.course_id = p_course_id
-    AND g.points_earned IS NULL;
-    
-    -- ALWAYS insert a new record - never update existing ones
-    -- This ensures we get a new analytics record for every assessment update
+    WHERE ac.course_id = p_course_id;
+
+    -- Get previous grade trend for comparison (latest analytics record for this course)
+    SELECT current_grade INTO previous_grade_trend
+    FROM user_analytics
+    WHERE user_id = p_user_id AND course_id = p_course_id
+    ORDER BY analytics_date DESC, calculated_at DESC
+    LIMIT 1;
+
+    -- Insert a new analytics entry
     INSERT INTO user_analytics (
-        user_id, course_id, analytics_date, due_date, current_grade, grade_trend,
-        assignments_completed, assignments_pending, study_hours_logged,
-        calculated_at
+        user_id,
+        course_id,
+        analytics_date,
+        current_grade,
+        grade_trend,
+        assignments_completed,
+        assignments_pending,
+        study_hours_logged,
+        performance_metrics,
+        calculated_at,
+        due_date,
+        semester
     ) VALUES (
-        p_user_id, p_course_id, CURDATE(), course_due_date, current_grade, grade_trend,
-        assignments_completed, assignments_pending, study_hours,
-        CURRENT_TIMESTAMP
+        p_user_id,
+        p_course_id,
+        CURDATE(),
+        current_gpa, -- Store GPA here
+        COALESCE(current_gpa - previous_grade_trend, 0.00), -- Calculate trend based on GPA
+        total_assignments_completed,
+        total_assignments_pending,
+        total_study_hours,
+        JSON_OBJECT(
+            'completion_rate', CASE 
+                WHEN (total_assignments_completed + total_assignments_pending) > 0 
+                THEN (total_assignments_completed / (total_assignments_completed + total_assignments_pending)) * 100
+                ELSE 0.00
+            END,
+            'study_hours_logged', total_study_hours,
+            'percentage_score', current_calculated_grade -- Keep percentage here for reference
+        ),
+        NOW(),
+        course_due_date, -- Use actual assessment due date
+        COALESCE(course_semester, 'FIRST')
     );
-    
-    SELECT 'New analytics record created with due_date' as result;
-    
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1489,4 +1560,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-09-24 17:16:43
+-- Dump completed on 2025-09-25  4:57:39

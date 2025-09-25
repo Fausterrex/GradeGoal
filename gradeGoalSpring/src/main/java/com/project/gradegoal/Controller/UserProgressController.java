@@ -127,6 +127,96 @@ public class UserProgressController {
     }
 
     /**
+     * Get semester-specific GPA for a user
+     * @param userId User ID
+     * @param semester Semester (FIRST, SECOND, THIRD, SUMMER)
+     * @param academicYear Academic year (optional, defaults to 2025)
+     * @return Semester GPA
+     */
+    @GetMapping("/{userId}/semester-gpa")
+    public ResponseEntity<?> getSemesterGPA(
+            @PathVariable Long userId,
+            @RequestParam String semester,
+            @RequestParam(required = false, defaultValue = "2025") String academicYear) {
+        try {
+            System.out.println("🔄 [UserProgressController] Getting semester GPA for user: " + userId + ", semester: " + semester + ", year: " + academicYear);
+            
+            // Calculate semester GPA for the specific semester
+            BigDecimal semesterGPA = databaseCalculationService.calculateSemesterGPA(userId, semester, academicYear);
+            
+            System.out.println("📊 [UserProgressController] Calculated " + semester + " semester GPA: " + semesterGPA);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("userId", userId);
+            result.put("semester", semester);
+            result.put("academicYear", academicYear);
+            result.put("semesterGPA", semesterGPA.doubleValue());
+            result.put("success", true);
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            System.err.println("❌ [UserProgressController] Error getting semester GPA: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("error", e.getMessage());
+            errorResult.put("success", false);
+            
+            return ResponseEntity.status(500).body(errorResult);
+        }
+    }
+
+    /**
+     * Get all semester GPAs for a user
+     * @param userId User ID
+     * @param academicYear Academic year (optional, defaults to 2025)
+     * @return All semester GPAs
+     */
+    @GetMapping("/{userId}/all-semester-gpas")
+    public ResponseEntity<?> getAllSemesterGPAs(
+            @PathVariable Long userId,
+            @RequestParam(required = false, defaultValue = "2025") String academicYear) {
+        try {
+            System.out.println("🔄 [UserProgressController] Getting all semester GPAs for user: " + userId + ", year: " + academicYear);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("userId", userId);
+            result.put("academicYear", academicYear);
+            
+            // Calculate GPA for each semester
+            String[] semesters = {"FIRST", "SECOND", "THIRD", "SUMMER"};
+            Map<String, Double> semesterGPAs = new HashMap<>();
+            
+            for (String semester : semesters) {
+                try {
+                    BigDecimal gpa = databaseCalculationService.calculateSemesterGPA(userId, semester, academicYear);
+                    semesterGPAs.put(semester, gpa.doubleValue());
+                    System.out.println("📊 [UserProgressController] " + semester + " semester GPA: " + gpa);
+                } catch (Exception e) {
+                    System.err.println("⚠️ [UserProgressController] Error calculating " + semester + " semester GPA: " + e.getMessage());
+                    semesterGPAs.put(semester, 0.0);
+                }
+            }
+            
+            result.put("semesterGPAs", semesterGPAs);
+            result.put("success", true);
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            System.err.println("❌ [UserProgressController] Error getting all semester GPAs: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("error", e.getMessage());
+            errorResult.put("success", false);
+            
+            return ResponseEntity.status(500).body(errorResult);
+        }
+    }
+
+    /**
      * Test endpoint to check database functions
      * @param userId User ID
      * @return Test results

@@ -88,14 +88,25 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       const userProfile = await getUserProfile(currentUser.email);
       const userId = userProfile.userId;
 
-      // Fetch GPA data from the API
-      const response = await fetch(`/api/user-progress/${userId}/with-gpas`);
+      // Fetch all semester GPAs from the new API
+      const response = await fetch(`/api/user-progress/${userId}/all-semester-gpas`);
       if (response.ok) {
-        const userProgress = await response.json();
+        const data = await response.json();
         
-        // Extract GPA data
-        const semesterGPA = userProgress.semesterGpa || userProgress.semester_gpa || 0;
-        const cumulativeGPA = userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0;
+        // Extract semester GPAs
+        const semesterGPAs = data.semesterGPAs || {};
+        const firstSemesterGPA = semesterGPAs.FIRST || 0;
+        const secondSemesterGPA = semesterGPAs.SECOND || 0;
+        const thirdSemesterGPA = semesterGPAs.THIRD || 0;
+        const summerSemesterGPA = semesterGPAs.SUMMER || 0;
+        
+        // Get cumulative GPA from the original endpoint
+        const cumulativeResponse = await fetch(`/api/user-progress/${userId}/with-gpas`);
+        let cumulativeGPA = 0;
+        if (cumulativeResponse.ok) {
+          const userProgress = await cumulativeResponse.json();
+          cumulativeGPA = userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0;
+        }
         
         // Get course GPAs from the courses data
         const courseGPAs = {};
@@ -105,12 +116,44 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         });
 
         setGpaData({
-          semesterGPA,
+          semesterGPA: firstSemesterGPA, // Default to first semester for backward compatibility
           cumulativeGPA,
-          courseGPAs
+          courseGPAs,
+          // Add semester-specific GPAs
+          firstSemesterGPA,
+          secondSemesterGPA,
+          thirdSemesterGPA,
+          summerSemesterGPA
+        });
+        
+        console.log("📊 Loaded semester GPAs:", {
+          first: firstSemesterGPA,
+          second: secondSemesterGPA,
+          third: thirdSemesterGPA,
+          summer: summerSemesterGPA,
+          cumulative: cumulativeGPA
         });
       } else {
-        console.error("Failed to fetch GPA data");
+        console.error("Failed to fetch semester GPA data");
+        // Fallback to original method
+        const fallbackResponse = await fetch(`/api/user-progress/${userId}/with-gpas`);
+        if (fallbackResponse.ok) {
+          const userProgress = await fallbackResponse.json();
+          const semesterGPA = userProgress.semesterGpa || userProgress.semester_gpa || 0;
+          const cumulativeGPA = userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0;
+          
+          const courseGPAs = {};
+          courses.forEach(course => {
+            const courseId = course.id || course.courseId;
+            courseGPAs[courseId] = course.courseGpa || course.course_gpa || 0;
+          });
+
+          setGpaData({
+            semesterGPA,
+            cumulativeGPA,
+            courseGPAs
+          });
+        }
       }
     } catch (error) {
       console.error("Error loading GPA data:", error);

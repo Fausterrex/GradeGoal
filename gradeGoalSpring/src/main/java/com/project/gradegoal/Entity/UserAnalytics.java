@@ -44,13 +44,20 @@ public class UserAnalytics {
     @Column(name = "calculated_at")
     private LocalDateTime calculatedAt;
 
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    @Column(name = "semester", length = 20)
+    private String semester;
+
     // Constructors
     public UserAnalytics() {}
 
-    public UserAnalytics(Long userId, Long courseId, LocalDate analyticsDate, 
+    public UserAnalytics(Long userId, Long courseId, LocalDate analyticsDate,
                         BigDecimal currentGrade, BigDecimal gradeTrend,
                         Integer assignmentsCompleted, Integer assignmentsPending,
-                        BigDecimal studyHoursLogged, String performanceMetrics) {
+                        BigDecimal studyHoursLogged, String performanceMetrics,
+                        LocalDate dueDate) {
         this.userId = userId;
         this.courseId = courseId;
         this.analyticsDate = analyticsDate;
@@ -60,6 +67,7 @@ public class UserAnalytics {
         this.assignmentsPending = assignmentsPending;
         this.studyHoursLogged = studyHoursLogged;
         this.performanceMetrics = performanceMetrics;
+        this.dueDate = dueDate;
         this.calculatedAt = LocalDateTime.now();
     }
 
@@ -152,6 +160,22 @@ public class UserAnalytics {
         this.calculatedAt = calculatedAt;
     }
 
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDate dueDate) {
+        this.dueDate = dueDate;
+    }
+
+    public String getSemester() {
+        return semester;
+    }
+
+    public void setSemester(String semester) {
+        this.semester = semester;
+    }
+
     @Override
     public String toString() {
         return "UserAnalytics{" +
@@ -165,6 +189,8 @@ public class UserAnalytics {
                 ", assignmentsPending=" + assignmentsPending +
                 ", studyHoursLogged=" + studyHoursLogged +
                 ", calculatedAt=" + calculatedAt +
+                ", dueDate=" + dueDate +
+                ", semester=" + semester +
                 '}';
     }
 }

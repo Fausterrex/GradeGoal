@@ -181,13 +181,13 @@ const GoalCard = ({
           <div>
             Current:{" "}
             <span className="font-semibold text-gray-800">
-              {progressData.currentValue}%
+              {progressData.currentValue}
             </span>
           </div>
           <div>
             Target:{" "}
             <span className="font-semibold text-gray-800">
-              {progressData.targetValue}%
+              {progressData.targetValue}
             </span>
           </div>
         </div>

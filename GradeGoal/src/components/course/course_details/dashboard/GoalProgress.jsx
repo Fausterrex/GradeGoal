@@ -111,10 +111,15 @@ function GoalProgress({
     courseProgress = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
   }
   
-  // Calculate progress percentage based on GPA values
-  let progressPercentage = 0;
-  if (targetGPA > 0) {
-    progressPercentage = Math.min((currentGPA / targetGPA) * 100, 100);
+  // Calculate progress percentage based on course completion, not GPA ratio
+  let progressPercentage = courseCompletion;
+  
+  // Only show 100% if course is actually 100% complete
+  if (courseCompletion < 100) {
+    progressPercentage = courseCompletion;
+  } else {
+    // Course is 100% complete, now check if goal is achieved
+    progressPercentage = currentGPA >= targetGPA ? 100 : courseCompletion;
   }
   
   // Calculate achievement probability using utility function

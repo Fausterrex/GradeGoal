@@ -1,6 +1,7 @@
 package com.project.gradegoal.Controller;
 
 import com.project.gradegoal.Entity.Course;
+import com.project.gradegoal.Entity.UserAnalytics;
 import com.project.gradegoal.Service.DatabaseCalculationService;
 import com.project.gradegoal.Service.CourseService;
 import com.project.gradegoal.Repository.UserAnalyticsRepository;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -572,16 +574,27 @@ public class DatabaseCalculationController {
     /**
      * Get user analytics for a specific course
      * Returns all analytics records for the user and course, ordered by date
+     * Supports optional semester filtering
      */
     @GetMapping("/user/{userId}/analytics/{courseId}")
-    public ResponseEntity<?> getUserAnalytics(@PathVariable Long userId, @PathVariable Long courseId) {
+    public ResponseEntity<?> getUserAnalytics(
+            @PathVariable Long userId, 
+            @PathVariable Long courseId,
+            @RequestParam(required = false) String semester) {
         try {
-            System.out.println("🔍 [DatabaseCalculationController] Fetching analytics for user: " + userId + ", course: " + courseId);
+            System.out.println("🔍 [DatabaseCalculationController] Fetching analytics for user: " + userId + ", course: " + courseId + ", semester: " + semester);
             
-            // Get all analytics records for this user and course, ordered by date
-            var analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
+            List<UserAnalytics> analyticsList;
             
-            System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records");
+            if (semester != null && !semester.isEmpty()) {
+                // Filter by semester if provided
+                analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdAndSemesterOrderByAnalyticsDateDesc(userId, courseId, semester);
+                System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records for semester: " + semester);
+            } else {
+                // Get all analytics records for this user and course, ordered by date
+                analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
+                System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records");
+            }
             
             if (analyticsList.isEmpty()) {
                 System.out.println("⚠️ [DatabaseCalculationController] No analytics found, returning empty array");
@@ -595,7 +608,8 @@ public class DatabaseCalculationController {
                     ", date=" + analytics.getAnalyticsDate() + 
                     ", current_grade=" + analytics.getCurrentGrade() + 
                     ", grade_trend=" + analytics.getGradeTrend() + 
-                    ", assignments_completed=" + analytics.getAssignmentsCompleted());
+                    ", assignments_completed=" + analytics.getAssignmentsCompleted() +
+                    ", semester=" + analytics.getSemester());
             });
             
             return ResponseEntity.ok(analyticsList);

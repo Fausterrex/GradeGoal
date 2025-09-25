@@ -39,13 +39,16 @@ public class DatabaseAnalyticsController {
             
             jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
-                    CallableStatement cs = con.prepareCall("{ call UpdateUserAnalytics(?, ?) }");
+                    CallableStatement cs = con.prepareCall("{ call UpdateUserAnalytics(?, ?, ?) }");
                     cs.setLong(1, userId);
                     if (courseId != null) {
                         cs.setLong(2, courseId);
                     } else {
                         cs.setNull(2, Types.BIGINT);
                     }
+                    // Get the semester from the course
+                    String semester = getCourseSemester(courseId);
+                    cs.setString(3, semester);
                     return cs;
                 },
                 (CallableStatementCallback<Void>) cs -> {
@@ -62,6 +65,16 @@ public class DatabaseAnalyticsController {
             response.put("success", false);
             response.put("error", e.getMessage());
             return ResponseEntity.ok(response);
+        }
+    }
+    
+    private String getCourseSemester(Long courseId) {
+        try {
+            String sql = "SELECT semester FROM courses WHERE course_id = ?";
+            String semester = jdbcTemplate.queryForObject(sql, String.class, courseId);
+            return semester != null ? semester : "FIRST"; // Default to FIRST if not found
+        } catch (Exception e) {
+            return "FIRST"; // Default to FIRST if error
         }
     }
 }

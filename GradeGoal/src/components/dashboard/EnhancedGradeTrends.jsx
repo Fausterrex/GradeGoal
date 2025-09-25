@@ -36,13 +36,16 @@ const percentageToGPA = (percentage, scale = 4.0) => {
 
 const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const { currentUser } = useAuth();
+  
+  // Add userAnalytics state
+  const [userAnalytics, setUserAnalytics] = useState([]);
 
   // ========================================
   // STATE MANAGEMENT
   // ========================================
-  const [timeRange, setTimeRange] = useState("12weeks"); // 4weeks, 12weeks, semester
   const [viewMode, setViewMode] = useState("semester"); // semester, cumulative, individual, comparison
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [currentSemester, setCurrentSemester] = useState("FIRST"); // Current semester filter
   const [targetGPAInfo, setTargetGPAInfo] = useState({
     semesterTarget: 0,
     cumulativeTarget: 0,
@@ -57,13 +60,95 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [cumulativeGPA, setCumulativeGPA] = useState(0);
   const [userId, setUserId] = useState(null);
 
+  // Load userAnalytics data for the selected course
+  const loadUserAnalytics = async () => {
+    try {
+      if (!currentUser) {
+        return;
+      }
+
+      if (viewMode === "individual" && !selectedCourse) {
+        console.log('❌ Individual mode requires a selected course');
+        setUserAnalytics([]);
+        return;
+      }
+
+      // For semester and cumulative modes, we need to load analytics for all courses
+      // For individual mode, we load analytics for the selected course
+      let allAnalytics = [];
+      
+      if (viewMode === "individual" && selectedCourse) {
+        // Individual mode: load analytics for specific course
+        const userId = selectedCourse.userId || selectedCourse.id;
+        const courseId = selectedCourse.courseId || selectedCourse.id;
+        
+        const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${courseId}?semester=${currentSemester}`);
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          allAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];
+        }
+      } else {
+        // Semester/Cumulative mode: load analytics for all courses
+        const activeCourses = courses.filter(course => course.isActive !== false);
+        const analyticsPromises = activeCourses.map(async (course) => {
+          const userId = course.userId || course.id;
+          const courseId = course.courseId || course.id;
+          
+          try {
+            const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${courseId}?semester=${currentSemester}`);
+            if (analyticsResponse.ok) {
+              const analyticsData = await analyticsResponse.json();
+              return Array.isArray(analyticsData) ? analyticsData : [analyticsData];
+            } else {
+              return [];
+            }
+          } catch (error) {
+            return [];
+          }
+        });
+        
+        const analyticsResults = await Promise.all(analyticsPromises);
+        allAnalytics = analyticsResults.flat();
+      }
+      
+      setUserAnalytics(allAnalytics);
+    } catch (error) {
+      console.error("Error loading user analytics:", error);
+      setUserAnalytics([]);
+    }
+  };
+
+  // Set default selected course when courses are loaded
+  useEffect(() => {
+    if (courses.length > 0 && !selectedCourse) {
+      const firstActiveCourse = courses.find(course => course.isActive !== false);
+      if (firstActiveCourse) {
+        setSelectedCourse(firstActiveCourse);
+      }
+    }
+  }, [courses, selectedCourse]);
+
+  // Load userAnalytics when selectedCourse or viewMode changes
+  useEffect(() => {
+    if (currentUser) {
+      loadUserAnalytics();
+    }
+  }, [selectedCourse, currentUser, viewMode, currentSemester]);
+
   // Load user ID and calculate GPAs when component mounts or data changes
   useEffect(() => {
-    if (currentUser && (selectedCourse || courses.length > 0)) {
+    if (currentUser && selectedCourse) {
       loadTargetGPAInfo();
       calculateGPAs();
     }
   }, [currentUser, selectedCourse, courses, grades, gpaData]);
+
+  // Recalculate GPAs when semester changes
+  useEffect(() => {
+    if (gpaData) {
+      calculateGPAs();
+    }
+  }, [currentSemester, gpaData]);
 
   const loadTargetGPAInfo = async () => {
     if (!currentUser) {
@@ -145,8 +230,26 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   };
 
   const calculateGPAs = async () => {
-    // Use actual GPA data from props
-    const semestralGPA = gpaData?.semesterGPA || 0;
+    // Use semester-specific GPA based on currentSemester
+    let semestralGPA = 0;
+    if (gpaData) {
+      switch (currentSemester) {
+        case "FIRST":
+          semestralGPA = gpaData.firstSemesterGPA || gpaData.semesterGPA || 0;
+          break;
+        case "SECOND":
+          semestralGPA = gpaData.secondSemesterGPA || 0;
+          break;
+        case "THIRD":
+          semestralGPA = gpaData.thirdSemesterGPA || 0;
+          break;
+        case "SUMMER":
+          semestralGPA = gpaData.summerSemesterGPA || 0;
+          break;
+        default:
+          semestralGPA = gpaData.semesterGPA || 0;
+      }
+    }
     setCurrentSemestralGPA(semestralGPA);
 
     // Calculate individual course GPA if a course is selected
@@ -161,59 +264,140 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     // Use actual cumulative GPA from props
     const cumulativeGPAValue = gpaData?.cumulativeGPA || 0;
     setCumulativeGPA(cumulativeGPAValue);
+    
   };
 
   // Removed calculateIndividualCourseGPA function
 
-  // Generate simple weekly grade data for line chart
+  // Generate weekly grade data using userAnalytics (same logic as UnifiedProgress)
   const weeklyData = useMemo(() => {
     if (courses.length === 0) return [];
 
     const activeCourses = courses.filter((course) => course.isActive !== false);
     if (activeCourses.length === 0) return [];
 
-    const weeks = timeRange === "4weeks" ? 4 : timeRange === "12weeks" ? 12 : 16;
-    const weeklyData = [];
-
-    // Get current GPA based on view mode
-    let currentGPA = 0;
-    if (selectedCourse) {
-      currentGPA = currentCourseGPA || 0;
-    } else {
-      if (viewMode === "semester") {
-        currentGPA = currentSemestralGPA || 0;
-      } else if (viewMode === "cumulative") {
-        currentGPA = cumulativeGPA || 0;
-      } else {
-        currentGPA = overallGPA || 0;
-      }
+    // Use userAnalytics data which contains the current_grade progression
+    if (!userAnalytics || userAnalytics.length === 0) {
+      return [];
     }
 
-    // Create simple progression data
-    for (let i = 0; i < weeks; i++) {
-      const weekNumber = i + 1;
+    // Add safety check to ensure userAnalytics is an array
+    if (!Array.isArray(userAnalytics)) {
+      console.warn('userAnalytics is not an array:', userAnalytics);
+      return [];
+    }
+
+    // Filter analytics by current semester and course (if individual mode)
+    let filteredAnalytics = userAnalytics.filter(analytics => 
+      analytics.semester === currentSemester
+    );
+
+
+    // If in individual mode and a course is selected, filter by that specific course
+    if (viewMode === "individual" && selectedCourse) {
+      const courseId = selectedCourse.courseId || selectedCourse.id;
+      filteredAnalytics = filteredAnalytics.filter(analytics => 
+        analytics.courseId === courseId
+      );
+    }
+
+    if (filteredAnalytics.length === 0) {
+      return [];
+    }
+
+    // Sort analytics by due_date to get chronological progression
+    const sortedAnalytics = [...filteredAnalytics].sort((a, b) => {
+      const dateA = new Date(a.dueDate || a.createdAt);
+      const dateB = new Date(b.dueDate || b.createdAt);
+      return dateA - dateB;
+    });
+
+    // Group analytics by week (Monday start)
+    const weeklyGroups = {};
+    sortedAnalytics.forEach((analytics, index) => {
+      const dueDate = new Date(analytics.dueDate || analytics.createdAt);
+      if (isNaN(dueDate.getTime())) return;
+
+      const weekStart = new Date(dueDate);
+      const dayOfWeek = weekStart.getDay();
+      let daysToMonday;
+      if (dayOfWeek === 0) {
+        daysToMonday = -6;
+      } else {
+        daysToMonday = -(dayOfWeek - 1);
+      }
+      weekStart.setDate(weekStart.getDate() + daysToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (!weeklyGroups[weekKey]) {
+        weeklyGroups[weekKey] = {
+          weekStart: weekStart,
+          analytics: [],
+          latestCurrentGrade: 0,
+          latestTimestamp: null
+        };
+      }
+      
+      weeklyGroups[weekKey].analytics.push(analytics);
+      
+      // Keep track of the latest current_grade for this week (by calculated_at timestamp)
+      const currentTimestamp = new Date(analytics.calculatedAt || analytics.createdAt);
+      const existingTimestamp = weeklyGroups[weekKey].latestTimestamp ? 
+        new Date(weeklyGroups[weekKey].latestTimestamp) : new Date(0);
+      
+      if (currentTimestamp > existingTimestamp) {
+        weeklyGroups[weekKey].latestCurrentGrade = analytics.currentGrade || 0;
+        weeklyGroups[weekKey].latestTimestamp = analytics.calculatedAt || analytics.createdAt;
+      }
+    });
+    
+    
+    const weeklyData = [];
+    Object.values(weeklyGroups).forEach((group, index) => {
+      let currentGPA = group.latestCurrentGrade;
+      
+      // For semester mode, use the current semester GPA for the latest week
+      if (viewMode === "semester" && index === Object.values(weeklyGroups).length - 1) {
+        currentGPA = currentSemestralGPA || 0;
+      }
+      
+      // For individual mode, use the current course GPA for the latest week
+      if (viewMode === "individual" && selectedCourse && index === Object.values(weeklyGroups).length - 1) {
+        currentGPA = currentCourseGPA || 0;
+      }
+      
+      // For cumulative mode, use the current cumulative GPA for the latest week
+      if (viewMode === "cumulative" && index === Object.values(weeklyGroups).length - 1) {
+        currentGPA = cumulativeGPA || 0;
+      }
       
       const weekData = {
-        week: `W${weekNumber}`,
+        week: `W${index + 1}`,
         gpa: currentGPA,
         semesterGPA: currentSemestralGPA || 0,
         cumulativeGPA: cumulativeGPA || 0,
         [selectedCourse ? selectedCourse.name : "currentGPA"]: currentGPA,
+        currentGrade: currentGPA,
+        assessmentCount: group.analytics.length,
+        weekNumber: index + 1
       };
 
       weeklyData.push(weekData);
-    }
+    });
 
     return weeklyData;
   }, [
     courses,
-    timeRange,
+    userAnalytics,
     selectedCourse,
+    viewMode,
     currentCourseGPA,
     currentSemestralGPA,
     cumulativeGPA,
     overallGPA,
-    viewMode,
+    currentSemester
   ]);
 
 
@@ -223,28 +407,28 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       const data = payload[0].payload;
       const gpaValue = data.gpa || 0;
       
-      let gpaLabel = "";
-      if (selectedCourse) {
+        let gpaLabel = "";
+      if (viewMode === "individual" && selectedCourse) {
         gpaLabel = `${selectedCourse.name} GPA`;
       } else if (viewMode === "semester") {
-        gpaLabel = "Current Semester GPA";
-      } else if (viewMode === "cumulative") {
-        gpaLabel = "Cumulative GPA";
-      } else {
-        gpaLabel = "Overall GPA";
-      }
+        gpaLabel = `${currentSemester === "FIRST" ? "1st" : currentSemester === "SECOND" ? "2nd" : currentSemester === "THIRD" ? "3rd" : "Summer"} Semester GPA`;
+        } else if (viewMode === "cumulative") {
+          gpaLabel = "Cumulative GPA";
+        } else {
+          gpaLabel = "Overall GPA";
+        }
 
-      return (
-        <div className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-600">
-          <p className="text-white font-semibold mb-2">{`Week: ${label}`}</p>
-          <p className="text-green-400 mb-1 text-lg font-bold">
-            {`${gpaLabel}: ${gpaValue.toFixed(2)}`}
-          </p>
+        return (
+          <div className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-600">
+            <p className="text-white font-semibold mb-2">{`Week: ${label}`}</p>
+            <p className="text-green-400 mb-1 text-lg font-bold">
+              {`${gpaLabel}: ${gpaValue.toFixed(2)}`}
+            </p>
           <p className="text-gray-300 text-sm">
-            {`Percentage: ${Math.round(0 /* Removed GPA conversion */)}%`}
+            {`Percentage: ${Math.round((gpaValue / 4.0) * 100)}%`}
           </p>
-        </div>
-      );
+          </div>
+        );
     }
     return null;
   };
@@ -262,41 +446,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           CONTROLS SECTION
           ======================================== */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        {/* ========================================
-            TIME RANGE BUTTONS
-            ======================================== */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTimeRange("4weeks")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              timeRange === "4weeks"
-                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-            }`}
-          >
-            4 Weeks
-          </button>
-          <button
-            onClick={() => setTimeRange("12weeks")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              timeRange === "12weeks"
-                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-            }`}
-          >
-            12 Weeks
-          </button>
-          <button
-            onClick={() => setTimeRange("semester")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              timeRange === "semester"
-                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-            }`}
-          >
-            Full Semester
-          </button>
-        </div>
 
         {/* ========================================
             VIEW MODE BUTTONS
@@ -364,24 +513,42 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="mb-2">
               <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
-                {selectedCourse
+                {viewMode === "individual" && selectedCourse
                   ? "Current Course GPA"
+                  : viewMode === "semester"
+                  ? `${currentSemester === "FIRST" ? "1st" : currentSemester === "SECOND" ? "2nd" : currentSemester === "THIRD" ? "3rd" : "Summer"} Semester GPA`
+                  : viewMode === "cumulative"
+                  ? "Cumulative GPA"
                   : "Current Semestral GPA"}
               </h3>
             </div>
             <p className="text-4xl font-bold mb-1">
-              {selectedCourse
+              {viewMode === "individual" && selectedCourse
                 ? currentCourseGPA.toFixed(2)
+                : viewMode === "semester"
+                ? currentSemestralGPA.toFixed(2)
+                : viewMode === "cumulative"
+                ? cumulativeGPA.toFixed(2)
                 : currentSemestralGPA.toFixed(2)}
             </p>
             <p className="text-lg text-gray-600 mb-1">
-              ({selectedCourse
+              ({viewMode === "individual" && selectedCourse
                 ? gpaToPercentage(currentCourseGPA)
+                : viewMode === "semester"
+                ? gpaToPercentage(currentSemestralGPA)
+                : viewMode === "cumulative"
+                ? gpaToPercentage(cumulativeGPA)
                 : gpaToPercentage(currentSemestralGPA)
               }%)
             </p>
             <p className="text-sm opacity-80">
-              {selectedCourse ? selectedCourse.name : "Current semester only"}
+              {viewMode === "individual" && selectedCourse
+                ? selectedCourse.name
+                : viewMode === "semester"
+                ? "Current semester only"
+                : viewMode === "cumulative"
+                ? "All semesters combined"
+                : "Current semester only"}
             </p>
           </div>
 
@@ -391,11 +558,17 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="mb-2">
               <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
-                {selectedCourse ? "Course Target GPA" : "Semester Target GPA"}
+                {viewMode === "individual" && selectedCourse
+                  ? "Course Target GPA"
+                  : viewMode === "semester"
+                  ? `${currentSemester === "FIRST" ? "1st" : currentSemester === "SECOND" ? "2nd" : currentSemester === "THIRD" ? "3rd" : "Summer"} Semester Target GPA`
+                  : viewMode === "cumulative"
+                  ? "Cumulative Target GPA"
+                  : "Semester Target GPA"}
               </h3>
             </div>
             <p className="text-4xl font-bold mb-1">
-              {selectedCourse
+              {viewMode === "individual" && selectedCourse
                 ? targetGPAInfo.courseTargets[
                     selectedCourse.id || selectedCourse.courseId
                   ] > 0
@@ -406,24 +579,48 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                       4.0
                     ).toFixed(2)
                   : "Not Set"
+                : viewMode === "semester"
+                ? targetGPAInfo.semesterTarget > 0
+                  ? Math.min(targetGPAInfo.semesterTarget, 4.0).toFixed(2)
+                  : "Not Set"
+                : viewMode === "cumulative"
+                ? targetGPAInfo.cumulativeTarget > 0
+                  ? Math.min(targetGPAInfo.cumulativeTarget, 4.0).toFixed(2)
+                  : "Not Set"
                 : targetGPAInfo.semesterTarget > 0
                 ? Math.min(targetGPAInfo.semesterTarget, 4.0).toFixed(2)
                 : "Not Set"}
             </p>
             <p className="text-lg text-blue-200 mb-1">
-              {selectedCourse
+              {viewMode === "individual" && selectedCourse
                 ? targetGPAInfo.courseTargets[
                     selectedCourse.id || selectedCourse.courseId
                   ] > 0
                   ? `(${gpaToPercentage(targetGPAInfo.courseTargets[selectedCourse.id || selectedCourse.courseId])}%)`
+                  : ""
+                : viewMode === "semester"
+                ? targetGPAInfo.semesterTarget > 0
+                  ? `(${gpaToPercentage(targetGPAInfo.semesterTarget)}%)`
+                  : ""
+                : viewMode === "cumulative"
+                ? targetGPAInfo.cumulativeTarget > 0
+                  ? `(${gpaToPercentage(targetGPAInfo.cumulativeTarget)}%)`
                   : ""
                 : targetGPAInfo.semesterTarget > 0
                 ? `(${gpaToPercentage(targetGPAInfo.semesterTarget)}%)`
                 : ""}
             </p>
             <p className="text-sm opacity-80">
-              {selectedCourse
+              {viewMode === "individual" && selectedCourse
                 ? selectedCourse.name
+                : viewMode === "semester"
+                ? targetGPAInfo.semesterTarget > 0
+                  ? "Semester goal"
+                  : "No targets set"
+                : viewMode === "cumulative"
+                ? targetGPAInfo.cumulativeTarget > 0
+                  ? "Long-term academic goal"
+                  : "No targets set"
                 : targetGPAInfo.semesterTarget > 0
                 ? "Semester goal"
                 : "No targets set"}
@@ -481,10 +678,10 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             ======================================== */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-800">
-            {selectedCourse
+            {viewMode === "individual" && selectedCourse
               ? `${selectedCourse.name} GPA`
               : viewMode === "semester"
-              ? "Current Semester GPA"
+              ? `${currentSemester === "FIRST" ? "1st" : currentSemester === "SECOND" ? "2nd" : currentSemester === "THIRD" ? "3rd" : "Summer"} Semester GPA`
               : viewMode === "cumulative"
               ? "Cumulative GPA"
               : "Overall GPA"}
@@ -550,6 +747,48 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             </ResponsiveContainer>
           )}
         </div>
+
+        {/* ========================================
+            SEMESTER SELECTOR (Only for semester mode)
+            ======================================== */}
+        {viewMode === "semester" && (
+          <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Select Semester
+              </h4>
+              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full border">
+                📅 View different semester progress
+              </span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {["FIRST", "SECOND", "THIRD", "SUMMER"].map((semester) => (
+                <button
+                  key={semester}
+                  onClick={() => {
+                    setCurrentSemester(semester);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    currentSemester === semester
+                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
+                      : "bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-800 border border-gray-300"
+                  }`}
+                >
+                  {semester === "FIRST" && "1st Semester"}
+                  {semester === "SECOND" && "2nd Semester"}
+                  {semester === "THIRD" && "3rd Semester"}
+                  {semester === "SUMMER" && "Summer"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 text-xs text-gray-500">
+              <span className="inline-flex items-center">
+                <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                Currently viewing: <span className="font-semibold">{currentSemester === "FIRST" ? "1st" : currentSemester === "SECOND" ? "2nd" : currentSemester === "THIRD" ? "3rd" : "Summer"} Semester</span>
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================
