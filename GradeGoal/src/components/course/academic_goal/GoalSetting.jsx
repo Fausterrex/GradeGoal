@@ -238,7 +238,7 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
         isCompact={isCompact}
       />
 
-      {/* Goals List */}
+      {/* Goals List - Responsive Grid Layout */}
       {filteredGoals.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-500 text-lg mb-2">No goals found</div>
@@ -247,10 +247,10 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
               ? 'Create your first academic goal to get started!'
               : 'No goals found for this category.'
             }
-                      </div>
-                    </div>
+          </div>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredGoals.map((goal) => (
             <GoalCard
               key={goal.goalId}
@@ -260,10 +260,12 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
               onEdit={handleEditGoal}
               onDelete={handleDeleteGoal}
               isCompact={isCompact}
+              allGoals={filteredGoals}
+              isGridLayout={true}
             />
           ))}
-                    </div>
-                  )}
+        </div>
+      )}
 
       {/* Add/Edit Goal Modal */}
       <GoalModal

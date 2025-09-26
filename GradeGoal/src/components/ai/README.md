@@ -8,11 +8,18 @@ This folder contains all AI-related components and services for the GradeGoal ap
 src/components/ai/
 ├── components/           # AI-specific React components
 │   ├── AIAnalysisButton.jsx      # Button to trigger AI analysis
-│   └── AIRecommendationCard.jsx  # Display AI recommendations
+│   ├── AIAchievementProbability.jsx  # Display AI achievement probability
+│   ├── AIFocusIndicator.jsx      # Display focus indicators
+│   └── AIScorePrediction.jsx     # Display score predictions
 ├── services/            # AI service integrations
-│   └── geminiService.js          # Gemini AI API integration
+│   ├── geminiService.js          # Gemini AI API integration
+│   └── aiAnalysisService.js      # AI analysis data service
 ├── utils/               # AI utility functions
-│   └── aiHelpers.js             # Helper functions for AI features
+│   ├── aiHelpers.js             # Helper functions for AI features
+│   ├── achievementProbabilityUtils.js  # Achievement probability calculations
+│   ├── aiPredictionUtils.js     # AI prediction utilities
+│   ├── gradeCalculationUtils.js # Grade calculation utilities
+│   └── aiResponseUtils.js       # AI response parsing utilities
 └── README.md            # This file
 ```
 
@@ -26,16 +33,32 @@ src/components/ai/
   - Loading states and error handling
   - Integration with Gemini AI API
 
-### 2. AI Recommendation Cards
-- **Component**: `AIRecommendationCard.jsx`
-- **Purpose**: Displays AI-generated recommendations
+### 2. AI Achievement Probability
+- **Component**: `AIAchievementProbability.jsx`
+- **Purpose**: Displays AI-calculated achievement probability
 - **Features**:
-  - Expandable recommendation details
-  - Priority-based color coding
-  - Mark as read/dismiss functionality
-  - Rich content display (predictions, study habits, etc.)
+  - Large, visually appealing display
+  - Shows best possible GPA
+  - Independent local calculation (not AI-generated)
+  - Real-time updates based on current grades
 
-### 3. Gemini AI Service
+### 3. AI Focus Indicators
+- **Component**: `AIFocusIndicator.jsx`
+- **Purpose**: Displays AI-generated focus indicators
+- **Features**:
+  - Category-specific focus areas
+  - Priority-based highlighting
+  - Visual indicators for improvement areas
+
+### 4. AI Score Predictions
+- **Component**: `AIScorePrediction.jsx`
+- **Purpose**: Displays AI score predictions for assessments
+- **Features**:
+  - GPA impact calculations
+  - Weighted average projections
+  - Perfect score simulations
+
+### 5. Gemini AI Service
 - **Service**: `geminiService.js`
 - **Purpose**: Handles all Gemini AI API interactions
 - **Features**:
@@ -44,14 +67,48 @@ src/components/ai/
   - Save/retrieve AI recommendations
   - Fallback recommendations when AI fails
 
-### 4. AI Helpers
-- **Utils**: `aiHelpers.js`
-- **Purpose**: Utility functions for AI features
+### 6. AI Analysis Service
+- **Service**: `aiAnalysisService.js`
+- **Purpose**: Manages AI analysis data
 - **Features**:
-  - Enhanced achievement probability calculation
-  - AI recommendation formatting
-  - Priority color schemes
-  - Data validation and parsing
+  - Fetch AI analysis from database
+  - Parse AI response content
+  - Handle focus indicators and score predictions
+
+### 7. Achievement Probability Utils
+- **Utils**: `achievementProbabilityUtils.js`
+- **Purpose**: Independent probability calculations
+- **Features**:
+  - Realistic scenario simulations
+  - GPA conversion utilities
+  - Best possible outcome calculations
+  - Local, deterministic calculations
+
+### 8. AI Prediction Utils
+- **Utils**: `aiPredictionUtils.js`
+- **Purpose**: AI prediction utilities
+- **Features**:
+  - Fallback recommendation generation
+  - Prediction data processing
+  - Scenario-based calculations
+
+### 9. Grade Calculation Utils
+- **Utils**: `gradeCalculationUtils.js`
+- **Purpose**: Grade and GPA calculation utilities
+- **Features**:
+  - Current grade calculations
+  - GPA conversion functions
+  - Category average calculations
+  - Overall course grade calculations
+
+### 10. AI Response Utils
+- **Utils**: `aiResponseUtils.js`
+- **Purpose**: AI response parsing and prompt building
+- **Features**:
+  - AI response parsing
+  - Prompt construction
+  - Priority determination
+  - Content validation
 
 ## 🔧 Setup Instructions
 
@@ -116,14 +173,16 @@ The AI integration provides the following types of recommendations:
 - Shows enhanced achievement probability
 
 ### 2. Unified Recommendations
-- Replaced hardcoded recommendations with AI data
-- Displays AI-generated insights
+- Integrated AI recommendations directly into component
+- Displays AI-generated insights and study strategies
 - Real-time loading and error handling
+- Removed separate AIAnalysisDisplay component
 
 ### 3. Enhanced Achievement Probability
-- Uses AI insights to calculate more accurate probabilities
-- Considers course completion, current performance, and AI predictions
+- Uses independent local calculations for accurate probabilities
+- Considers course completion, current performance, and realistic scenarios
 - Updates in real-time as new data becomes available
+- No longer dependent on AI-generated probability calculations
 
 ## 🔄 Data Flow
 
@@ -131,8 +190,9 @@ The AI integration provides the following types of recommendations:
 2. **AIAnalysisButton** calls `geminiService.generateAIRecommendations()`
 3. **Gemini AI** analyzes course data and generates recommendations
 4. **Recommendations saved** to database via API
-5. **UnifiedRecommendations** component displays AI recommendations
-6. **Users can interact** with recommendations (read, dismiss, expand)
+5. **UnifiedRecommendations** component displays AI recommendations directly
+6. **Achievement probability** calculated independently using local algorithms
+7. **Users can interact** with recommendations (read, dismiss)
 
 ## 🛠️ Customization
 

@@ -308,15 +308,17 @@ function UnifiedGradeBreakdown({
         <h4 className="text-xl font-bold text-gray-900 ml-5 mb-4">Overall Performance Summary</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
           <div className="text-center p-9 bg-orange-100 rounded-xl border border-orange-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
-            <div className="text-3xl font-bold text-black">{getOverallContribution().toFixed(1)}%</div>
+            <div className="text-3xl font-bold text-black">
+              {course?.calculatedCourseGrade ? course.calculatedCourseGrade.toFixed(1) : getOverallContribution().toFixed(1)}%
+            </div>
             <div className="text-sm text-gray-600">Weighted Average</div>
           </div>
           <div className="text-center p-4 bg-pink-100 rounded-xl border border-pink-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-gray-900">
-              {currentGPA.toFixed(2)}
+              {course?.courseGpa ? course.courseGpa.toFixed(2) : currentGPA.toFixed(2)}
             </div>
             <div className="text-sm text-gray-500">
-              ({Math.round(getOverallContribution())}%)
+              ({course?.calculatedCourseGrade ? course.calculatedCourseGrade.toFixed(1) : Math.round(getOverallContribution())}%)
             </div>
             <div className="text-sm text-gray-600">Overall GPA</div>
           </div>

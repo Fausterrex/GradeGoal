@@ -106,23 +106,43 @@ export const getScorePredictionForAssessment = (assessmentName, categoryName) =>
  * Get achievement probability data
  */
 export const getAchievementProbability = () => {
-  if (!aiAnalysisData || !aiAnalysisData.content) return null;
+  console.log('🎯 [getAchievementProbability] Starting calculation...');
+  console.log('🎯 [getAchievementProbability] AI Analysis Data:', {
+    hasData: !!aiAnalysisData,
+    hasContent: !!aiAnalysisData?.content,
+    contentType: typeof aiAnalysisData?.content,
+    dataKeys: aiAnalysisData ? Object.keys(aiAnalysisData) : 'no data'
+  });
+  
+  if (!aiAnalysisData || !aiAnalysisData.content) {
+    console.log('🎯 [getAchievementProbability] No AI analysis data available');
+    return null;
+  }
   
   try {
     const content = typeof aiAnalysisData.content === 'string' 
       ? JSON.parse(aiAnalysisData.content) 
       : aiAnalysisData.content;
     
+    console.log('🎯 [getAchievementProbability] Parsed content keys:', Object.keys(content));
     
     // Check for new enhanced structure first
     if (content.targetGoalProbability) {
+      console.log('🎯 [getAchievementProbability] Found targetGoalProbability:', content.targetGoalProbability);
+      console.log('🎯 [getAchievementProbability] Probability value:', content.targetGoalProbability.probability);
       return content.targetGoalProbability;
     }
     
     // Fallback to old structure
-    return content.achievementProbability || null;
+    if (content.achievementProbability) {
+      console.log('🎯 [getAchievementProbability] Found achievementProbability (fallback):', content.achievementProbability);
+      return content.achievementProbability;
+    }
+    
+    console.log('🎯 [getAchievementProbability] No probability data found in content');
+    return null;
   } catch (error) {
-    console.error('Error parsing achievement probability:', error);
+    console.error('🎯 [getAchievementProbability] Error parsing achievement probability:', error);
     return null;
   }
 };

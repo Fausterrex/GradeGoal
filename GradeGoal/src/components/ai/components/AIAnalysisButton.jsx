@@ -147,30 +147,32 @@ const AIAnalysisButton = ({
   };
 
   return (
-    <div className="space-y-2">
-      <button
-        onClick={handleAnalysis}
-        disabled={disabled || isAnalyzing || checkingAnalysis}
-        className={`
-          inline-flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm
-          transition-all duration-200 transform hover:scale-105 active:scale-95
-          border-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-          ${getButtonStyle()}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        `}
-      >
-        {getButtonIcon()}
-        <span>{getButtonText()}</span>
-      </button>
+    <div className="space-y-2 text-center">
+      <div className="flex justify-center">
+        <button
+          onClick={handleAnalysis}
+          disabled={disabled || isAnalyzing || checkingAnalysis}
+          className={`
+            inline-flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm
+            transition-all duration-200 transform hover:scale-105 active:scale-95
+            border-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+            ${getButtonStyle()}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+        >
+          {getButtonIcon()}
+          <span>{getButtonText()}</span>
+        </button>
+      </div>
 
       {error && (
-        <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+        <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200 text-center">
           {error}
         </div>
       )}
 
       {!error && !isAnalyzing && !checkingAnalysis && (
-        <div className="text-xs text-gray-500 max-w-xs">
+        <div className="text-xs text-gray-500 text-center mx-auto max-w-xs">
           {hasExistingAnalysis 
             ? "Update your AI analysis with latest course data and performance insights."
             : "Get personalized AI insights for your academic performance and goal achievement."
@@ -179,13 +181,13 @@ const AIAnalysisButton = ({
       )}
 
       {checkingAnalysis && (
-        <div className="text-xs text-blue-600 max-w-xs">
+        <div className="text-xs text-blue-600 text-center mx-auto max-w-xs">
           Checking for existing AI analysis...
         </div>
       )}
 
       {isAnalyzing && (
-        <div className="text-xs text-purple-600 max-w-xs">
+        <div className="text-xs text-purple-600 text-center mx-auto max-w-xs">
           {hasExistingAnalysis
             ? "AI is updating your analysis with latest course data..."
             : "AI is analyzing your course data and generating personalized recommendations..."

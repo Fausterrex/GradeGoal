@@ -118,6 +118,18 @@ function UnifiedProgress({
      sortedWeekKeys.forEach((weekKey, index) => {
        const group = weeklyGroups[weekKey];
        
+       // Only include weeks that have actual grade entries (not just analytics records)
+       const hasActualGrades = group.analytics.some(analytics => {
+         // Check if this analytics record corresponds to actual grade entries
+         // by looking for assignments_completed > 0 AND current_grade > 0
+         // This ensures we only show weeks with real grade data
+         return analytics.assignmentsCompleted > 0 && analytics.currentGrade > 0;
+       });
+       
+       if (!hasActualGrades) {
+         return; // Skip weeks without actual grades
+       }
+       
        // Use current_grade directly as GPA (it's already in GPA format from database)
        const currentGPA = group.latestCurrentGrade;
        const currentGradePercentage = currentGPA * 25; // Convert GPA to percentage for display

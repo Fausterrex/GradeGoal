@@ -33,6 +33,7 @@ function GoalProgress({
         });
         
         if (hasAssessments) {
+          console.log('🎯 [GoalProgress] Getting AI achievement probability...');
           const probability = getAchievementProbability();
           
       // Override probability calculation if goal is already achieved
@@ -47,7 +48,9 @@ function GoalProgress({
         targetGPA,
         isGoalAchieved: currentGPA >= targetGPA,
         originalProbability: probability?.probability,
-        probabilityObject: probability
+        probabilityObject: probability,
+        courseGpaScale: course?.gpaScale,
+        hasAssessments: hasAssessments
       });
       
       if (probability && currentGPA >= targetGPA) {
@@ -58,6 +61,7 @@ function GoalProgress({
         console.log('🎯 [GoalProgress] Correcting probability from', probability.probability, 'to 100% (callback)');
         setAiAchievementProbability(correctedProbability);
       } else {
+        console.log('🎯 [GoalProgress] Using original AI probability:', probability?.probability);
         setAiAchievementProbability(probability);
       }
         } else {
@@ -73,6 +77,7 @@ function GoalProgress({
     });
     
     if (hasAssessments) {
+      console.log('🎯 [GoalProgress] Getting AI achievement probability (initial)...');
       const probability = getAchievementProbability();
       
       // Override probability calculation if goal is already achieved
@@ -80,16 +85,31 @@ function GoalProgress({
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
       
+      console.log('🎯 [GoalProgress] AI Probability Debug (initial):', {
+        currentGrade,
+        targetGrade,
+        currentGPA,
+        targetGPA,
+        isGoalAchieved: currentGPA >= targetGPA,
+        originalProbability: probability?.probability,
+        probabilityObject: probability,
+        courseGpaScale: course?.gpaScale,
+        hasAssessments: hasAssessments
+      });
+      
       if (probability && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
         };
+        console.log('🎯 [GoalProgress] Correcting probability from', probability.probability, 'to 100% (initial)');
         setAiAchievementProbability(correctedProbability);
       } else {
+        console.log('🎯 [GoalProgress] Using original AI probability (initial):', probability?.probability);
         setAiAchievementProbability(probability);
       }
     } else {
+      console.log('🎯 [GoalProgress] No assessments found, hiding AI components');
       setAiAchievementProbability(null); // Hide AI components when no assessments
     }
 
@@ -100,12 +120,18 @@ function GoalProgress({
   const calculateCourseCompletion = () => {
     if (!categories || categories.length === 0) return 0;
     
-    let totalAssessments = 0;
+    let totalExpectedAssessments = 0;
     let completedAssessments = 0;
     
     categories.forEach(category => {
       const categoryGrades = grades[category.id] || [];
-      totalAssessments += categoryGrades.length; // Count actual assessments
+      
+      // Each category should have at least 1 assessment for a complete course
+      // If category has assessments, count them; if empty, expect at least 1
+      const expectedInCategory = Math.max(categoryGrades.length, 1);
+      totalExpectedAssessments += expectedInCategory;
+      
+      // Count completed assessments in this category
       categoryGrades.forEach(grade => {
         // Only count as completed if there's a meaningful score (> 0)
         if (grade.score !== null && grade.score !== undefined && grade.score > 0) {
@@ -114,7 +140,7 @@ function GoalProgress({
       });
     });
     
-    return totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
+    return totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
   };
   
   const courseCompletion = calculateCourseCompletion();
@@ -177,12 +203,18 @@ function GoalProgress({
   // Calculate course completion progress for achievement probability
   let courseProgress = 0;
   if (categories.length > 0) {
-    let totalAssessments = 0;
+    let totalExpectedAssessments = 0;
     let completedAssessments = 0;
     
     categories.forEach(category => {
       const categoryGrades = grades[category.id] || [];
-      totalAssessments += categoryGrades.length; // Count actual assessments
+      
+      // Each category should have at least 1 assessment for a complete course
+      // If category has assessments, count them; if empty, expect at least 1
+      const expectedInCategory = Math.max(categoryGrades.length, 1);
+      totalExpectedAssessments += expectedInCategory;
+      
+      // Count completed assessments in this category
       categoryGrades.forEach(grade => {
         // Only count as completed if there's a meaningful score (> 0)
         if (grade.score !== null && grade.score !== undefined && grade.score > 0) {
@@ -191,7 +223,7 @@ function GoalProgress({
       });
     });
     
-    courseProgress = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
+    courseProgress = totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
   }
   
   // Calculate progress percentage based on actual course progress
@@ -355,6 +387,7 @@ function GoalProgress({
               probability={aiAchievementProbability.probability}
               confidence={aiAchievementProbability.confidence}
               factors={aiAchievementProbability.factors}
+              bestPossibleGPA={aiAchievementProbability.bestPossibleGPA}
               isVisible={true}
               isCompact={isCompact}
             />

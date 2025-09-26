@@ -4,7 +4,7 @@
 // This component displays individual goal cards with progress information
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FaEdit, FaTimes, FaBullseye, FaCalendarAlt } from "react-icons/fa";
+import { Edit2, Trash2, Target, Calendar, TrendingUp, TrendingDown, Book, Award, Clock } from "lucide-react";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "./goalProgress";
 import { getGoalTypeLabel, getPriorityColor, getCourseName, formatGoalDate } from "./goalUtils";
 import AIAnalysisButton from "../../ai/components/AIAnalysisButton";
@@ -17,7 +17,8 @@ const GoalCard = ({
   onEdit,
   onDelete,
   isCompact = false,
-  allGoals = []
+  allGoals = [],
+  isGridLayout = false
 }) => {
   const [progressData, setProgressData] = useState({
     progress: 0,
@@ -118,229 +119,249 @@ const GoalCard = ({
   const statusInfo = getProgressStatusInfo(progressData.status);
   const progressBarColor = getProgressBarColor(progressData.status, progressData.progress);
 
+  // Get priority colors and styles
+  const getPriorityStyles = (priority) => {
+    switch (priority) {
+      case 'HIGH':
+        return {
+          background: 'bg-gradient-to-r from-red-50 to-pink-50',
+          border: 'border-red-200',
+          badge: 'bg-red-100 text-red-700',
+          icon: 'text-red-600'
+        };
+      case 'MEDIUM':
+        return {
+          background: 'bg-gradient-to-r from-yellow-50 to-orange-50',
+          border: 'border-yellow-200',
+          badge: 'bg-yellow-100 text-yellow-700',
+          icon: 'text-yellow-600'
+        };
+      case 'LOW':
+        return {
+          background: 'bg-gradient-to-r from-green-50 to-emerald-50',
+          border: 'border-green-200',
+          badge: 'bg-green-100 text-green-700',
+          icon: 'text-green-600'
+        };
+      default:
+        return {
+          background: 'bg-gradient-to-r from-gray-50 to-slate-50',
+          border: 'border-gray-200',
+          badge: 'bg-gray-100 text-gray-700',
+          icon: 'text-gray-600'
+        };
+    }
+  };
+
+  const priorityStyles = getPriorityStyles(goal.priority);
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-300 hover:shadow-xl transition-shadow duration-200">
-      {/* Header */}
-      <div className={`flex items-start justify-between mb-4 p-6 rounded-t-xl ${goal.priority === "LOW"
-        ? "bg-green-100"
-        : goal.priority === "MEDIUM"
-          ? "bg-orange-100"
-          : goal.priority === "HIGH"
-            ? "bg-red-100"
-            : "bg-gray-100"
-        }`}>
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {goal.goalTitle}
-            </h3>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
-                goal.priority
-              )}`}
-            >
-              {goal.priority}
+    <div className={`bg-white rounded-2xl shadow-md hover:shadow-lg border ${priorityStyles.border} transition-all duration-300 overflow-hidden`}>
+      {/* Clean Header */}
+      <div className={`${priorityStyles.background} p-4 relative`}>
+        {/* Action Buttons - Top Right */}
+        <div className="absolute top-3 right-3 flex space-x-1">
+          <button
+            onClick={() => onEdit(goal)}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white/60 rounded-lg transition-all duration-200"
+            title="Edit Goal"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(goal)}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white/60 rounded-lg transition-all duration-200"
+            title="Delete Goal"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Course Name - Main Focus */}
+        <div className="text-center mb-3 mx-auto max-w-full">
+          <h3 className="text-xl font-bold text-gray-900 mb-2 px-16" title={goal.courseId ? getCourseName(goal.courseId, courses) : goal.goalTitle}>
+            {goal.courseId ? getCourseName(goal.courseId, courses) : goal.goalTitle}
+          </h3>
+          
+          {/* Priority Badge */}
+          <div className="flex justify-center mb-2">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${priorityStyles.badge}`}>
+              {goal.priority} PRIORITY
             </span>
           </div>
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <div className="flex items-center space-x-1">
-              <FaBullseye className="w-3 h-3" />
-              <span>Target: {progressData.targetValue}</span>
-            </div>
-            {goal.courseId && (
-              <span className="text-gray-400">• {getCourseName(goal.courseId, courses)}</span>
-            )}
-            {goal.goalType === "SEMESTER_GPA" &&
-              goal.semester &&
-              goal.academicYear && (
-                <span className="text-gray-400">
-                  •{" "}
-                  {goal.semester === "FIRST"
-                    ? "1st"
-                    : goal.semester === "SECOND"
-                      ? "2nd"
-                      : "3rd"}{" "}
-                  Sem {goal.academicYear}
-                </span>
-              )}
-            <div className="flex items-center space-x-1">
-              <FaCalendarAlt className="w-3 h-3" />
+          
+          {/* Goal Type & Due Date */}
+          <div className="space-y-1">
+            <div className="text-sm text-gray-600 font-medium">{getGoalTypeLabel(goal.goalType)}</div>
+            <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
+              <Calendar className="w-3 h-3" />
               <span>{formatGoalDate(goal.targetDate)}</span>
             </div>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => onEdit(goal)}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <FaEdit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(goal)}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <FaTimes className="w-4 h-4" />
-          </button>
-        </div>
       </div>
-      <div className="p-6">
-        {/* Progress Bar */}
-        <div className="flex items-center space-x-3 mb-4">
-          <span className="text-sm font-medium text-gray-600">
-            {progressData.isCourseCompleted ? "Course Progress:" : "Progress:"}
-          </span>
-          <div className="flex-1 bg-red-100 rounded-full h-2">
-            <div
-              className="h-2 rounded-full bg-red-400 transition-all duration-300"
-              style={{ width: `${progressData.progress}%` }}
-            ></div>
+      {/* Main Content */}
+      <div className="p-5">
+        {/* Progress Overview - Clean & Simple */}
+        <div className="text-center mb-5">
+          {/* Current vs Target - Side by Side */}
+          <div className="flex items-center justify-center space-x-6 mb-4">
+            {/* Current GPA */}
+            <div className="text-center">
+              <div className="text-3xl font-bold mb-1" style={{
+                background: progressData.currentValue >= progressData.targetValue 
+                  ? 'linear-gradient(135deg, #10b981, #059669)' 
+                  : progressData.currentValue >= progressData.targetValue * 0.8
+                  ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)'
+                  : progressData.currentValue >= progressData.targetValue * 0.6
+                  ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                  : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                {progressData.currentValue.toFixed(2)}
+              </div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Current</div>
+            </div>
+            
+            {/* Separator */}
+            <div className="text-gray-300 text-2xl">/</div>
+            
+            {/* Target GPA */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-1">
+                {progressData.targetValue}
+              </div>
+              <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Target</div>
+            </div>
           </div>
-          <span className="text-sm font-semibold text-gray-800">
-            {progressData.progress}%
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.textColor}`}
-          >
-            {statusInfo.text}
-          </span>
-        </div>
 
-        {/* Current vs Target */}
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-          <div>
-            Current:{" "}
-            <span className="font-semibold text-gray-800">
-              {progressData.currentValue}
-            </span>
+          {/* Progress Bar - Clean Design */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Progress</span>
+              <span className="text-sm font-bold text-gray-900">{progressData.progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div
+                className={`h-3 rounded-full transition-all duration-700 ${
+                  progressData.progress >= 80
+                    ? "bg-gradient-to-r from-green-400 to-green-500"
+                    : progressData.progress >= 60
+                    ? "bg-gradient-to-r from-blue-400 to-blue-500"
+                    : progressData.progress >= 40
+                    ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                    : "bg-gradient-to-r from-red-400 to-red-500"
+                }`}
+                style={{ width: `${progressData.progress}%` }}
+              ></div>
+            </div>
           </div>
-          <div>
-            Target:{" "}
-            <span className="font-semibold text-gray-800">
-              {progressData.targetValue}
-            </span>
+
+          {/* Status & Points Needed */}
+          <div className="space-y-2">
+            <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
+              progressData.isAchieved 
+                ? 'bg-green-100 text-green-700' 
+                : progressData.isOnTrack 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-orange-100 text-orange-700'
+            }`}>
+              <span className="text-sm">
+                {progressData.isAchieved ? '✅' : progressData.isOnTrack ? '📈' : '⚠️'}
+              </span>
+              <span className="text-sm font-semibold">
+                {progressData.isAchieved ? 'Goal Achieved!' : progressData.isOnTrack ? 'On Track' : 'Needs Focus'}
+              </span>
+            </div>
+            
+            {!progressData.isAchieved && (
+              <div className="text-sm text-gray-600">
+                <span className="font-bold text-orange-600">{(progressData.targetValue - progressData.currentValue).toFixed(2)}</span> points needed to reach your goal
+              </div>
+            )}
           </div>
         </div>
 
         {/* Course Completion Status */}
         {progressData.isCourseCompleted && (
-          <div className={`p-3 rounded-lg border mb-4 ${
+          <div className={`mt-4 p-4 rounded-xl ${
             progressData.status === 'achieved' 
-              ? 'bg-green-50 border-green-200' 
+              ? 'bg-green-50 border border-green-200' 
               : progressData.status === 'close_to_goal'
-              ? 'bg-purple-50 border-purple-200'
-              : 'bg-orange-50 border-orange-200'
+              ? 'bg-purple-50 border border-purple-200'
+              : 'bg-orange-50 border border-orange-200'
           }`}>
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${
-                progressData.status === 'achieved' 
-                  ? 'bg-green-500' 
-                  : progressData.status === 'close_to_goal'
-                  ? 'bg-purple-500'
-                  : 'bg-orange-500'
-              }`}></div>
-              <span className={`text-sm font-medium ${
+            <div className="text-center">
+              <div className={`text-2xl mb-2`}>
+                {progressData.status === 'achieved' ? '🎉' : progressData.status === 'close_to_goal' ? '✨' : '💪'}
+              </div>
+              <div className={`text-sm font-semibold mb-1 ${
                 progressData.status === 'achieved' 
                   ? 'text-green-800' 
                   : progressData.status === 'close_to_goal'
                   ? 'text-purple-800'
                   : 'text-orange-800'
               }`}>
-                Course Completed
-              </span>
-            </div>
-            <div className={`mt-1 text-sm ${
-              progressData.status === 'achieved' 
-                ? 'text-green-700' 
-                : progressData.status === 'close_to_goal'
-                ? 'text-purple-700'
-                : 'text-orange-700'
-            }`}>
-              {progressData.status === 'achieved' 
-                ? `🎉 Amazing work! You crushed your target of ${progressData.targetValue} GPA with an outstanding ${progressData.currentValue} GPA! You're on fire! 🔥`
-                : progressData.status === 'close_to_goal'
-                ? `✨ So close! You got ${progressData.currentValue} GPA (Target: ${progressData.targetValue} GPA) - just ${(progressData.targetValue - progressData.currentValue).toFixed(2)} GPA points away! You're almost there! 💪`
-                : `💪 Great effort! You finished with ${progressData.currentValue} GPA (Target: ${progressData.targetValue} GPA). Every step counts - keep pushing forward! You've got this! 🚀`
-              }
+                Course Completed!
+              </div>
+              <div className={`text-xs ${
+                progressData.status === 'achieved' 
+                  ? 'text-green-700' 
+                  : progressData.status === 'close_to_goal'
+                  ? 'text-purple-700'
+                  : 'text-orange-700'
+              }`}>
+                {progressData.status === 'achieved' 
+                  ? `Amazing! You exceeded your target with ${progressData.currentValue} GPA!`
+                  : progressData.status === 'close_to_goal'
+                  ? `So close! You achieved ${progressData.currentValue} GPA`
+                  : `Great effort! Final GPA: ${progressData.currentValue}`
+                }
+              </div>
             </div>
           </div>
         )}
 
         {/* Motivational Message */}
         {!progressData.isCourseCompleted && (
-          <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 mb-4">
-            <span className="text-sm text-gray-700">
-              🚀 You've got this! Every journey starts with a single step!
-            </span>
-          </div>
-        )}
-
-        {/* Achievement Probability */}
-        {!progressData.isCourseCompleted && !isCompact && (
-          <div className="flex items-center space-x-2 text-sm mb-4">
-            <span className="text-gray-600">Achievement Probability:</span>
-            <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  progressData.achievementProbability >= 70
-                    ? "bg-green-500"
-                    : progressData.achievementProbability >= 40
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-                }`}
-                style={{ width: `${progressData.achievementProbability}%` }}
-              ></div>
+          <div className="mt-4 text-center">
+            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2 inline-block">
+              🚀 Every journey starts with a single step!
             </div>
-            <span
-              className={`font-semibold ${
-                progressData.achievementProbability >= 70
-                  ? "text-green-600"
-                  : progressData.achievementProbability >= 40
-                  ? "text-yellow-600"
-                  : "text-red-600"
-              }`}
-            >
-              {progressData.achievementProbability}%
-            </span>
           </div>
         )}
 
-        {/* AI Analysis Button */}
+
+        {/* AI Analysis Section - Clean & Centered */}
         {!progressData.isCourseCompleted && !isCompact && (
-          <div className="mb-4">
-            <AIAnalysisButton
-              course={courses.find(c => c.id === goal.courseId)}
-              goal={goal}
-              grades={(() => {
-                // Get grades for this specific course by collecting all grades from categories
-                if (!goal.courseId || !categories.length) return [];
-                
-                const courseGrades = [];
-                categories.forEach(category => {
-                  const categoryGrades = grades[category.id] || [];
-                  courseGrades.push(...categoryGrades);
-                });
-                
-                
-                return courseGrades;
-              })()}
-              categories={categories}
-              onAnalysisComplete={(recommendations) => {
-                // Handle the AI analysis completion
-              }}
-            />
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <div className="text-center">
+              <AIAnalysisButton
+                course={courses.find(c => c.id === goal.courseId)}
+                goal={goal}
+                grades={(() => {
+                  // Get grades for this specific course by collecting all grades from categories
+                  if (!goal.courseId || !categories.length) return [];
+                  
+                  const courseGrades = [];
+                  categories.forEach(category => {
+                    const categoryGrades = grades[category.id] || [];
+                    courseGrades.push(...categoryGrades);
+                  });
+                  
+                  return courseGrades;
+                })()}
+                categories={categories}
+                onAnalysisComplete={(recommendations) => {
+                  // Handle the AI analysis completion
+                }}
+              />
+            </div>
           </div>
         )}
 
-        {/* Remaining */}
-        {!progressData.isCourseCompleted && progressData.remainingValue > 0 && (
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">Remaining:</span>{" "}
-            {progressData.remainingValue.toFixed(2)} GPA points to reach target
-          </div>
-        )}
       </div>
     </div>
   );
