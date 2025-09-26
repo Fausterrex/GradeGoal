@@ -5,6 +5,7 @@
 // Provides intelligent academic recommendations and predictions
 
 import { setAIAnalysisData } from './aiAnalysisService';
+import { saveAIAnalysisData } from './aiDatabaseService';
 import DatabaseGradeService from '../../../services/databaseGradeService.js';
 
 // Import utility modules
@@ -26,7 +27,7 @@ const aiRecommendationCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // In-memory storage for AI analysis (temporary solution)
-const aiAnalysisStorage = new Map();
+export const aiAnalysisStorage = new Map();
 
 /**
  * Generate a cache key for AI recommendations
@@ -373,13 +374,19 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Set AI analysis data for real-time updates across components
     setAIAnalysisData(result);
 
-    // Save to database for persistence (temporarily disabled)
-    // try {
-    //   await saveAIAnalysisToDatabase(result, courseData, goalData);
-    // } catch (error) {
-    //   console.warn('Failed to save AI analysis to database:', error);
-    //   // Continue with cached result even if database save fails
-    // }
+    // Save to database for persistence
+    try {
+      await saveAIAnalysisData(
+        result.userId,
+        result.courseId,
+        correctedAnalysis,
+        'COURSE_ANALYSIS'
+      );
+      console.log('✅ [generateAIRecommendations] Successfully saved analysis to database');
+    } catch (error) {
+      console.warn('⚠️ [generateAIRecommendations] Failed to save AI analysis to database:', error);
+      // Continue with cached result even if database save fails
+    }
 
     return result;
   } catch (error) {
@@ -445,18 +452,157 @@ export const saveAIRecommendations = async (recommendations) => {
  */
 export const getAIRecommendations = async (userId, courseId = null) => {
   try {
-    // Check if we have stored AI analysis for this course
+    console.log('🔄 [getAIRecommendations] Loading recommendations for user:', userId, 'course:', courseId);
+    
+    // First check if we have stored AI analysis in memory
     const storageKey = `${userId}-${courseId}`;
     const storedAnalysis = aiAnalysisStorage.get(storageKey);
     
     if (storedAnalysis) {
-      return [storedAnalysis];
+      console.log('✅ [getAIRecommendations] Found recommendations in memory');
+      // Convert stored analysis to recommendation format
+      return [{
+        recommendationId: 'ai-analysis-main',
+        userId: userId,
+        courseId: courseId,
+        title: 'AI Academic Insights',
+        content: storedAnalysis.content,
+        recommendationType: 'AI_ANALYSIS',
+        priority: 'HIGH',
+        aiGenerated: true,
+        aiConfidence: storedAnalysis.confidence || 0.85,
+        aiModel: storedAnalysis.aiModel || 'gemini-2.0-flash-exp',
+        createdAt: storedAnalysis.createdAt,
+        isRead: false,
+        isDismissed: false,
+        category: 'AI Analysis',
+        impact: 'Comprehensive academic analysis and recommendations'
+      }];
     }
     
-    // If no stored analysis, return empty array
+    // If not in memory, try to load from database
+    const { getAIAnalysis } = await import('../../../backend/api');
+    const analysisResponse = await getAIAnalysis(userId, courseId);
+    
+    if (analysisResponse.success && analysisResponse.hasAnalysis) {
+      const dbAnalysis = analysisResponse.analysis;
+      console.log('📊 [getAIRecommendations] Found analysis in database, extracting recommendations');
+      
+      // Parse the analysis data to extract recommendations
+      let analysisData;
+      try {
+        analysisData = typeof dbAnalysis.analysisData === 'string' 
+          ? JSON.parse(dbAnalysis.analysisData) 
+          : dbAnalysis.analysisData;
+      } catch (parseError) {
+        console.error('❌ [getAIRecommendations] Error parsing analysis data:', parseError);
+        return [];
+      }
+      
+      // Extract recommendations from the analysis data
+      const recommendations = [];
+      
+      // Add top priority recommendations
+      if (analysisData.topPriorityRecommendations && Array.isArray(analysisData.topPriorityRecommendations)) {
+        analysisData.topPriorityRecommendations.forEach((rec, index) => {
+          recommendations.push({
+            recommendationId: `top-priority-${index}`,
+            userId: userId,
+            courseId: courseId,
+            title: rec.title || `Priority Recommendation ${index + 1}`,
+            content: rec.description || rec.content || 'AI-generated recommendation',
+            recommendationType: 'AI_ANALYSIS',
+            priority: rec.priority || 'HIGH',
+            aiGenerated: true,
+            aiConfidence: 0.85,
+            aiModel: 'gemini-2.0-flash-exp',
+            createdAt: dbAnalysis.createdAt,
+            isRead: false,
+            isDismissed: false,
+            category: rec.category || 'Course-Specific',
+            impact: rec.impact || 'Significant impact on academic performance',
+            actionButton: rec.actionButton || 'Take Action'
+          });
+        });
+      }
+      
+      // Add study strategy recommendations
+      if (analysisData.studyStrategy) {
+        recommendations.push({
+          recommendationId: 'study-strategy',
+          userId: userId,
+          courseId: courseId,
+          title: 'Study Strategy',
+          content: analysisData.studyStrategy.description || analysisData.studyStrategy.content || 'Personalized study strategy based on your performance',
+          recommendationType: 'AI_ANALYSIS',
+          priority: 'MEDIUM',
+          aiGenerated: true,
+          aiConfidence: 0.85,
+          aiModel: 'gemini-2.0-flash-exp',
+          createdAt: dbAnalysis.createdAt,
+          isRead: false,
+          isDismissed: false,
+          category: 'Study Strategy',
+          impact: 'Improved study efficiency and academic performance',
+          actionButton: 'View Strategy',
+          focusArea: analysisData.studyStrategy.focusArea,
+          recommendedSchedule: analysisData.studyStrategy.recommendedSchedule,
+          studyTips: analysisData.studyStrategy.studyTips
+        });
+      }
+      
+      // Add study habit recommendations
+      if (analysisData.studyHabitRecommendations && Array.isArray(analysisData.studyHabitRecommendations)) {
+        analysisData.studyHabitRecommendations.forEach((rec, index) => {
+          recommendations.push({
+            recommendationId: `study-habit-${index}`,
+            userId: userId,
+            courseId: courseId,
+            title: rec.title || `Study Habit ${index + 1}`,
+            content: rec.description || rec.content || 'AI-generated study habit recommendation',
+            recommendationType: 'AI_ANALYSIS',
+            priority: rec.priority || 'MEDIUM',
+            aiGenerated: true,
+            aiConfidence: 0.85,
+            aiModel: 'gemini-2.0-flash-exp',
+            createdAt: dbAnalysis.createdAt,
+            isRead: false,
+            isDismissed: false,
+            category: 'General Academic',
+            impact: rec.impact || 'Improved study habits and academic performance',
+            actionButton: rec.actionButton || 'Implement'
+          });
+        });
+      }
+      
+      console.log('✅ [getAIRecommendations] Extracted', recommendations.length, 'recommendations from database');
+      
+      // Also return the main analysis as a recommendation
+      const mainRecommendation = {
+        recommendationId: 'ai-analysis-main',
+        userId: userId,
+        courseId: courseId,
+        title: 'AI Academic Insights',
+        content: analysisData,
+        recommendationType: 'AI_ANALYSIS',
+        priority: 'HIGH',
+        aiGenerated: true,
+        aiConfidence: 0.85,
+        aiModel: 'gemini-2.0-flash-exp',
+        createdAt: dbAnalysis.createdAt,
+        isRead: false,
+        isDismissed: false,
+        category: 'AI Analysis',
+        impact: 'Comprehensive academic analysis and recommendations'
+      };
+      
+      return [mainRecommendation, ...recommendations];
+    }
+    
+    console.log('❌ [getAIRecommendations] No analysis found in database');
     return [];
   } catch (error) {
-    console.error('Error fetching AI recommendations:', error);
+    console.error('❌ [getAIRecommendations] Error fetching AI recommendations:', error);
     return [];
   }
 };

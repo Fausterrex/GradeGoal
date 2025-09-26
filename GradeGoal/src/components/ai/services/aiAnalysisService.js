@@ -4,6 +4,7 @@
 // Service to manage AI analysis data across components
 
 import { getAIRecommendations } from './geminiService';
+import { saveAIAnalysisData, loadAIAnalysisFromDatabase } from './aiDatabaseService';
 
 // Store for AI analysis data
 let aiAnalysisData = null;
@@ -29,6 +30,7 @@ export const setAIAnalysisData = (data) => {
   aiAnalysisData = data;
   aiAnalysisListeners.forEach(listener => listener(data));
 };
+
 
 /**
  * Subscribe to AI analysis data changes
@@ -148,19 +150,59 @@ export const getAchievementProbability = () => {
 };
 
 /**
- * Load AI analysis data for a course
+ * Load AI analysis data for a course (enhanced version that handles both database and generation)
  */
 export const loadAIAnalysisForCourse = async (userId, courseId) => {
   try {
+    console.log('🔄 [loadAIAnalysisForCourse] Loading AI analysis for user:', userId, 'course:', courseId);
+    
+    // First, check if we have cached analysis data in memory
+    if (aiAnalysisData && aiAnalysisData.userId === userId && aiAnalysisData.courseId === courseId) {
+      console.log('✅ [loadAIAnalysisForCourse] Using cached analysis data');
+      return aiAnalysisData;
+    }
+    
+    // Try to load from database first
+    const dbAnalysisData = await loadAIAnalysisFromDatabase(userId, courseId);
+    if (dbAnalysisData) {
+      setAIAnalysisData(dbAnalysisData);
+      
+      // Also store in memory for getAIRecommendations to find
+      const storageKey = `${userId}-${courseId}`;
+      const { aiAnalysisStorage } = await import('./geminiService');
+      aiAnalysisStorage.set(storageKey, dbAnalysisData);
+      
+      return dbAnalysisData;
+    }
+    
+    // If no analysis exists in database, generate new one
+    console.log('🤖 [loadAIAnalysisForCourse] No existing analysis found, generating new analysis...');
     const recommendations = await getAIRecommendations(userId, courseId);
     if (recommendations && recommendations.length > 0) {
       const analysisData = recommendations[0]; // Get the first (most recent) analysis
+      
+      // Save to database for future use
+      try {
+        await saveAIAnalysisData(
+          userId, 
+          courseId, 
+          analysisData.content, 
+          'COURSE_ANALYSIS'
+        );
+        console.log('💾 [loadAIAnalysisForCourse] Saved new analysis to database');
+      } catch (saveError) {
+        console.warn('⚠️ [loadAIAnalysisForCourse] Failed to save analysis to database:', saveError);
+        // Continue with in-memory data even if save fails
+      }
+      
       setAIAnalysisData(analysisData);
       return analysisData;
     }
+    
+    console.log('❌ [loadAIAnalysisForCourse] No analysis data available');
     return null;
   } catch (error) {
-    console.error('Error loading AI analysis:', error);
+    console.error('❌ [loadAIAnalysisForCourse] Error loading AI analysis:', error);
     return null;
   }
 };

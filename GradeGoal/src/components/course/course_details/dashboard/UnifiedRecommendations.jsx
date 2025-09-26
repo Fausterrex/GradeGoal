@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { getAIRecommendations, saveAIRecommendations } from "../../../ai/services/geminiService";
+import { loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
+import { useAuth } from "../../../../context/AuthContext";
 import { 
   Target, 
   TrendingUp, 
@@ -23,31 +25,42 @@ function UnifiedRecommendations({
   currentGrade,
   userAnalytics 
 }) {
+  const { currentUser } = useAuth();
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load AI recommendations when component mounts or course changes
+  // Load AI analysis and recommendations when component mounts or course changes
   useEffect(() => {
-    const loadAIRecommendations = async () => {
-      if (!course?.id) return;
+    const loadAIData = async () => {
+      if (!course?.id || !currentUser?.uid) return;
 
       setLoading(true);
       setError(null);
 
       try {
+        // First, load AI analysis data (which will be saved to database)
+        const { getUserProfile } = await import('../../../../backend/api');
+        const userProfile = await getUserProfile(currentUser.email);
+        
+        if (userProfile?.userId && course?.id) {
+          console.log('🔄 [UnifiedRecommendations] Loading AI analysis for course:', course.courseName);
+          await loadAIAnalysisForCourse(userProfile.userId, course.id);
+        }
+
+        // Then load recommendations
         const recommendations = await getAIRecommendations(course.userId, course.id);
         setAiRecommendations(recommendations);
       } catch (err) {
-        console.error('Error loading AI recommendations:', err);
+        console.error('Error loading AI data:', err);
         setError('Failed to load AI recommendations');
       } finally {
         setLoading(false);
       }
     };
 
-    loadAIRecommendations();
-  }, [course?.id, course?.userId]);
+    loadAIData();
+  }, [course?.id, course?.userId, currentUser?.uid]);
 
   const handleDismissRecommendation = async (recommendationId) => {
     try {

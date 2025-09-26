@@ -7,7 +7,8 @@ import React, { useState, useEffect } from "react";
 import { convertToGPA } from "../../academic_goal/gpaConversionUtils";
 import AIAchievementProbability from "../../../ai/components/AIAchievementProbability";
 import { RefreshCw } from "lucide-react";
-import { getAchievementProbability, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
+import { getAchievementProbability, subscribeToAIAnalysis, loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
+import { useAuth } from "../../../../context/AuthContext";
 
 function GoalProgress({
   currentGrade,
@@ -19,8 +20,30 @@ function GoalProgress({
   onSetGoal = () => {}, // Callback for when user wants to set a goal
   isCompact = false // New prop for compact layout
 }) {
-
+  const { currentUser } = useAuth();
   const [aiAchievementProbability, setAiAchievementProbability] = useState(null);
+
+  // Load AI analysis data on component mount
+  useEffect(() => {
+    const loadAIAnalysis = async () => {
+      if (!currentUser?.uid || !course?.id) return;
+
+      try {
+        // Get user profile to get database user ID
+        const { getUserProfile } = await import('../../../../backend/api');
+        const userProfile = await getUserProfile(currentUser.email);
+        
+        if (userProfile?.userId && course?.id) {
+          console.log('🔄 [GoalProgress] Loading AI analysis for course:', course.courseName);
+          await loadAIAnalysisForCourse(userProfile.userId, course.id);
+        }
+      } catch (error) {
+        console.error('❌ [GoalProgress] Error loading AI analysis:', error);
+      }
+    };
+
+    loadAIAnalysis();
+  }, [currentUser?.uid, course?.id]);
 
   // Subscribe to AI analysis data changes
   useEffect(() => {

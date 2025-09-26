@@ -942,3 +942,125 @@ export async function debugCourseCalculations(courseId) {
   return response.json();
 }
 
+// AI Analysis API functions
+
+/**
+ * Save AI analysis to database
+ */
+export async function saveAIAnalysis(userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS', aiModel = 'gemini-2.0-flash-exp', confidence = 0.85) {
+  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/save`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      courseId,
+      analysisData: JSON.stringify(analysisData),
+      analysisType,
+      aiModel,
+      confidence
+    }),
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to save AI analysis with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Get AI analysis from database
+ */
+export async function getAIAnalysis(userId, courseId) {
+  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to get AI analysis with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Check if AI analysis exists
+ */
+export async function checkAIAnalysisExists(userId, courseId) {
+  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/exists`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to check AI analysis existence with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Save AI assessment prediction
+ */
+export async function saveAIAssessmentPrediction(userId, courseId, assessmentId, predictedScore, predictedPercentage, predictedGpa, confidenceLevel, recommendedScore, recommendedPercentage, analysisReasoning) {
+  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/assessment-prediction/save`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      courseId,
+      assessmentId,
+      predictedScore,
+      predictedPercentage,
+      predictedGpa,
+      confidenceLevel,
+      recommendedScore,
+      recommendedPercentage,
+      analysisReasoning
+    }),
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to save AI assessment prediction with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Get AI assessment predictions for a course
+ */
+export async function getAIAssessmentPredictions(userId, courseId) {
+  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/predictions`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to get AI assessment predictions with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+

@@ -31,15 +31,15 @@ const AIAnalysisButton = ({
 
       try {
         // Import the check function dynamically
-        const { checkAIAnalysisExists } = await import('../services/geminiService');
+        const { checkAIAnalysisExists } = await import('../../../backend/api');
         
         // Get user profile to get database user ID
         const { getUserProfile } = await import('../../../backend/api');
         const userProfile = await getUserProfile(currentUser.email);
         
         if (userProfile?.userId && course?.id) {
-          const exists = await checkAIAnalysisExists(userProfile.userId, course.id);
-          setHasExistingAnalysis(exists);
+          const existsResponse = await checkAIAnalysisExists(userProfile.userId, course.id);
+          setHasExistingAnalysis(existsResponse.success && existsResponse.exists);
         } else {
           console.warn('Unable to check AI analysis - missing user profile or course ID:', {
             userProfileExists: !!userProfile,
