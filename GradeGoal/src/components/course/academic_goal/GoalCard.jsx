@@ -208,18 +208,15 @@ const GoalCard = ({
           <div className="flex items-center justify-center space-x-6 mb-4">
             {/* Current GPA */}
             <div className="text-center">
-              <div className="text-3xl font-bold mb-1" style={{
-                background: progressData.currentValue >= progressData.targetValue 
-                  ? 'linear-gradient(135deg, #10b981, #059669)' 
+              <div className={`text-3xl font-bold mb-1 ${
+                progressData.currentValue >= progressData.targetValue 
+                  ? 'text-green-600' 
                   : progressData.currentValue >= progressData.targetValue * 0.8
-                  ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)'
+                  ? 'text-blue-600'
                   : progressData.currentValue >= progressData.targetValue * 0.6
-                  ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-                  : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>
+                  ? 'text-yellow-600'
+                  : 'text-red-600'
+              }`}>
                 {progressData.currentValue.toFixed(2)}
               </div>
               <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Current</div>

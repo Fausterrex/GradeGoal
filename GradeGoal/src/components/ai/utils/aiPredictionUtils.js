@@ -309,7 +309,7 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
   const { currentGPA, progress, grades, categories } = courseData;
   const { targetValue, goalType } = goalData;
 
-  // Calculate current course grade from actual grades
+  // Calculate current course grade from actual grades for debugging
   const currentGrade = calculateCurrentGrade(grades, categories);
   console.log('🎯 [Enhanced Fallback] Current Grade Calculation:', {
     currentGrade: currentGrade,
@@ -317,7 +317,7 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
     categoriesCount: categories?.length || 0
   });
   
-  // Use database CalculateGPA function for accurate GPA conversion
+  // Use the course GPA directly from the database (already calculated and stored)
   let currentGPAValue = parseFloat(currentGPA) || 0;
   console.log('🎯 [Enhanced Fallback] Initial GPA Values:', {
     courseGPA: currentGPA,
@@ -325,11 +325,12 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
     calculatedGrade: currentGrade
   });
   
-  if (currentGrade > 0) {
+  // Only recalculate if database course GPA is missing or invalid
+  if (currentGPAValue <= 0 && currentGrade > 0) {
     try {
       // Use static import instead of dynamic import
       currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
-      console.log('🎯 [Enhanced Fallback] Database GPA calculation successful:', {
+      console.log('🎯 [Enhanced Fallback] Database GPA calculation successful (fallback):', {
         inputGrade: currentGrade,
         outputGPA: currentGPAValue
       });
@@ -343,7 +344,7 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
       });
     }
   } else {
-    console.log('🎯 [Enhanced Fallback] No current grade calculated, using course GPA:', currentGPAValue);
+    console.log('🎯 [Enhanced Fallback] Using database course GPA directly:', currentGPAValue);
   }
   
   // Handle different goal types - convert target value appropriately

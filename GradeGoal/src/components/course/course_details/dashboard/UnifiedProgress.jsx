@@ -166,52 +166,94 @@ function UnifiedProgress({
   const trendAnalysis = useMemo(() => {
     const { weekly } = trajectoryData;
     
+    console.log('🎯 [Trend Analysis] Weekly data:', {
+      weeklyCount: weekly.length,
+      weeklyData: weekly.map(w => ({ week: w.weekNumber, gpa: w.currentGPA, date: w.date }))
+    });
+    
     if (weekly.length < 2) {
       return {
         direction: 'stable',
         percentage: 0,
-        description: 'Insufficient data for trend analysis',
+        description: weekly.length === 1 ? 'Single data point - trend unknown' : 'Insufficient data for trend analysis',
         icon: '➡️',
         confidence: 'low'
       };
     }
 
-    // Analyze weekly trend
-    const recentWeeks = weekly.slice(-3); // Last 3 weeks
-    const earlyWeeks = weekly.slice(0, Math.min(3, weekly.length));
+    // Use a more robust trend calculation approach
+    // Compare the most recent data point with the earliest data point
+    const firstGPA = weekly[0].currentGPA;
+    const lastGPA = weekly[weekly.length - 1].currentGPA;
     
-    const recentAvg = recentWeeks.reduce((sum, week) => sum + week.currentGPA, 0) / recentWeeks.length;
-    const earlyAvg = earlyWeeks.reduce((sum, week) => sum + week.currentGPA, 0) / earlyWeeks.length;
+    // Also calculate recent trend (last 2-3 data points vs earlier ones)
+    let recentAvg, earlyAvg;
+    
+    if (weekly.length >= 4) {
+      // If we have enough data, compare recent vs early periods
+      const recentWeeks = weekly.slice(-2); // Last 2 weeks
+      const earlyWeeks = weekly.slice(0, 2);  // First 2 weeks
+      
+      recentAvg = recentWeeks.reduce((sum, week) => sum + week.currentGPA, 0) / recentWeeks.length;
+      earlyAvg = earlyWeeks.reduce((sum, week) => sum + week.currentGPA, 0) / earlyWeeks.length;
+    } else {
+      // For smaller datasets, just compare first and last
+      recentAvg = lastGPA;
+      earlyAvg = firstGPA;
+    }
     
     const change = recentAvg - earlyAvg;
+    const absoluteChange = Math.abs(change);
+    
+    // Calculate percentage change based on the initial GPA
     const changePercentage = earlyAvg > 0 ? (change / earlyAvg) * 100 : 0;
+
+    console.log('🎯 [Trend Analysis] Calculation:', {
+      firstGPA,
+      lastGPA,
+      earlyAvg,
+      recentAvg,
+      change,
+      changePercentage,
+      weeklyLength: weekly.length
+    });
 
     let direction, description, icon, confidence;
     
-    if (Math.abs(changePercentage) < 5) {
+    // Use a more sensitive threshold for GPA changes (since GPA scale is smaller)
+    if (absoluteChange < 0.1) { // Less than 0.1 GPA change
       direction = 'stable';
       description = 'Consistent performance';
       icon = '➡️';
-      confidence = 'medium';
-    } else if (changePercentage > 0) {
+      confidence = 'high';
+    } else if (change > 0) {
       direction = 'improving';
-      description = `GPA increased by ${Math.abs(changePercentage).toFixed(1)}%`;
+      if (changePercentage > 0) {
+        description = `GPA improved by ${changePercentage.toFixed(1)}%`;
+      } else {
+        description = `GPA increased by ${absoluteChange.toFixed(2)} points`;
+      }
       icon = '📈';
-      confidence = changePercentage > 15 ? 'high' : 'medium';
+      confidence = absoluteChange > 0.3 ? 'high' : 'medium';
     } else {
       direction = 'declining';
-      description = `GPA decreased by ${Math.abs(changePercentage).toFixed(1)}%`;
+      if (changePercentage < 0) {
+        description = `GPA declined by ${Math.abs(changePercentage).toFixed(1)}%`;
+      } else {
+        description = `GPA decreased by ${absoluteChange.toFixed(2)} points`;
+      }
       icon = '📉';
-      confidence = changePercentage < -15 ? 'high' : 'medium';
+      confidence = absoluteChange > 0.3 ? 'high' : 'medium';
     }
 
-      return {
+    return {
       direction,
       percentage: Math.abs(changePercentage),
       description,
       icon,
       confidence,
-      changeValue: change
+      changeValue: change,
+      absoluteChange
     };
   }, [trajectoryData]);
 
@@ -254,32 +296,39 @@ function UnifiedProgress({
     }
 
     return (
-      <div className="bg-gray-50 rounded-2xl shadow-lg p-8 border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-          <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-            📊 Hover over data points to see GPA values
+      <div className="bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{title}</h3>
+            <p className="text-sm text-gray-600">Track your academic progress over time</p>
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-600 bg-purple-100 px-4 py-2 rounded-full border border-purple-200">
+            <span className="text-purple-600">ℹ️</span>
+            <span className="font-medium">Hover for details</span>
           </div>
         </div>
 
-        <div className="h-96 bg-white rounded-xl p-4 border border-gray-200">
+        <div className="h-80 bg-white rounded-lg p-6 border border-gray-200 shadow-inner">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <LineChart data={data} margin={{ top: 20, right: 40, left: 30, bottom: 30 }}>
+              <CartesianGrid strokeDasharray="2 4" stroke="#e5e7eb" opacity={0.6} />
               <XAxis
                 dataKey="weekNumber"
                 stroke="#6b7280"
                 fontSize={14}
-                tick={{ fill: "#374151" }}
-                fontWeight="500"
+                tick={{ fill: "#374151", fontWeight: "500" }}
+                tickFormatter={(value) => `Week ${value}`}
+                axisLine={{ stroke: "#d1d5db", strokeWidth: 2 }}
+                tickLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
               />
               <YAxis
                 domain={[0, 4]}
                 stroke="#6b7280"
                 fontSize={14}
-                tick={{ fill: "#374151" }}
+                tick={{ fill: "#374151", fontWeight: "500" }}
                 tickFormatter={(value) => `${value.toFixed(1)}`}
-                fontWeight="500"
+                axisLine={{ stroke: "#d1d5db", strokeWidth: 2 }}
+                tickLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
                 label={{ 
                   value: 'GPA Scale', 
                   angle: -90, 
@@ -288,13 +337,21 @@ function UnifiedProgress({
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#8b5cf6" />
+                  <stop offset="50%" stopColor="#a78bfa" />
+                  <stop offset="100%" stopColor="#c4b5fd" />
+                </linearGradient>
+              </defs>
               <Line
                 type="monotone"
                 dataKey="currentGPA"
-                stroke="#8b5cf6"
-                strokeWidth={3}
-                dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: "#8b5cf6", strokeWidth: 2, fill: "#fff" }}
+                stroke="url(#colorGradient)"
+                strokeWidth={4}
+                dot={{ fill: "#8b5cf6", strokeWidth: 3, r: 5, stroke: "#fff" }}
+                activeDot={{ r: 8, stroke: "#8b5cf6", strokeWidth: 3, fill: "#fff", filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.4))" }}
+                filter="drop-shadow(0 2px 4px rgba(139, 92, 246, 0.2))"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -306,33 +363,74 @@ function UnifiedProgress({
   return (
     <div className="space-y-6">
       {/* Trend Analysis */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4 shadow-lg hover:shadow-xl transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Performance Trend</h3>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            trendAnalysis.direction === 'improving' ? 'bg-green-100 text-green-800' :
-            trendAnalysis.direction === 'declining' ? 'bg-red-100 text-red-800' :
-            'bg-gray-100 text-gray-800'
-          }`}>
-            {trendAnalysis.icon} {trendAnalysis.direction}
-          </div>
-          </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{trendAnalysis.percentage.toFixed(1)}%</div>
-            <div className="text-sm text-gray-600">Change</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-gray-800">{trendAnalysis.description}</div>
-            <div className="text-sm text-gray-600">Trend Analysis</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-gray-800 capitalize">{trendAnalysis.confidence}</div>
-            <div className="text-sm text-gray-600">Confidence</div>
-          </div>
-              </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow">
+              <span className="text-white text-lg">📊</span>
             </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Performance Trend</h3>
+              <p className="text-xs text-gray-600">Analyzing your academic progression</p>
+            </div>
+          </div>
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold shadow border transition-all duration-300 ${
+            trendAnalysis.direction === 'improving' 
+              ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300' :
+            trendAnalysis.direction === 'declining' 
+              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300' :
+              'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
+          }`}>
+            <span className="mr-1">{trendAnalysis.icon}</span>
+            <span className="capitalize">{trendAnalysis.direction}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg p-3 shadow border border-gray-200 hover:border-purple-300 transition-all duration-300">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow">
+                <span className="text-white text-lg">📈</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900 mb-1">
+                {trendAnalysis.percentage > 0 
+                  ? `${trendAnalysis.percentage.toFixed(1)}%`
+                  : trendAnalysis.absoluteChange 
+                    ? `${trendAnalysis.absoluteChange.toFixed(2)} pts`
+                    : '0%'
+                }
+              </div>
+              <div className="text-xs font-medium text-gray-600">Change</div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-3 shadow border border-gray-200 hover:border-blue-300 transition-all duration-300">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow">
+                <span className="text-white text-lg">ℹ️</span>
+              </div>
+              <div className="text-sm font-bold text-gray-800 mb-1">{trendAnalysis.description}</div>
+              <div className="text-xs font-medium text-gray-600">Trend Analysis</div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-3 shadow border border-gray-200 hover:border-green-300 transition-all duration-300">
+            <div className="text-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 shadow ${
+                trendAnalysis.confidence === 'high' 
+                  ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                trendAnalysis.confidence === 'medium'
+                  ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                  'bg-gradient-to-br from-gray-500 to-gray-600'
+              }`}>
+                <span className="text-white text-lg">✓</span>
+              </div>
+              <div className="text-sm font-bold text-gray-800 capitalize mb-1">{trendAnalysis.confidence}</div>
+              <div className="text-xs font-medium text-gray-600">Confidence</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Charts Section */}
       {weekly.length > 0 ? (

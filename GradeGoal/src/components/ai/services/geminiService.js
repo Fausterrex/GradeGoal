@@ -229,18 +229,22 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Calculate and log current course grade for debugging
     const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
     
-    // Use database CalculateGPA function for accurate GPA conversion
+    // Use the course GPA directly from the database (already calculated and stored)
     let currentGPAValue = parseFloat(courseData.currentGPA) || 0;
-    if (currentGrade > 0) {
+    
+    // Only recalculate if database course GPA is missing or invalid
+    if (currentGPAValue <= 0 && currentGrade > 0) {
       try {
         // Use static import instead of dynamic import
         currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
-        console.log('✅ Database GPA calculation successful:', currentGPAValue);
+        console.log('✅ Database GPA calculation successful (fallback):', currentGPAValue);
       } catch (error) {
         console.warn('Failed to get database GPA, using fallback:', error);
         // Fallback to local calculation if database call fails
         currentGPAValue = calculateGPAFromPercentage(currentGrade);
       }
+    } else {
+      console.log('✅ Using database course GPA directly:', currentGPAValue);
     }
     
     console.log('Current course grade calculation:', {

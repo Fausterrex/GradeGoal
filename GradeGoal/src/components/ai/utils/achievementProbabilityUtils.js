@@ -706,6 +706,7 @@ export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
   console.log('🎯 [PostProcess] Starting AI response correction...');
 
   const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
+  // Use the course GPA directly from the database (already calculated and stored)
   const currentGPA = parseFloat(courseData.currentGPA) || 0;
 
   let targetGPA, gpaGap;

@@ -37,7 +37,7 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
       <div className={`flex items-center space-x-4 ${isCompact ? 'mb-4' : 'mb-6'}`}>
         {getProbabilityIcon(probabilityValue)}
         <div>
-          <h4 className={`${isCompact ? 'text-lg' : 'text-xl'} font-bold text-gray-900`}>AI GPA Goal Probability</h4>
+          <h4 className={`${isCompact ? 'text-lg' : 'text-xl'} font-bold text-gray-900`}>GPA Goal Probability</h4>
           {!isCompact && (
             <p className="text-base text-gray-600 mt-1">Based on current performance and remaining assessments</p>
           )}
