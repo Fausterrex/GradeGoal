@@ -261,22 +261,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       );
 
       if (!hasAnyGrades) {
-        // No grades, set default analytics
-        const defaultAnalytics = {
-          current_grade: 0,
-          grade_trend: 0,
-          assignments_completed: 0,
-          assignments_pending: 0,
-          performance_metrics: {
-            gradeTrend: 0,
-            targetGrade: targetGrade || 0,
-            currentGrade: 0,
-            completionRate: 0,
-            assignmentsPending: 0,
-            assignmentsCompleted: 0
-          }
-        };
-        setUserAnalytics(defaultAnalytics);
+        // No grades, set default analytics as empty array
+        setUserAnalytics([]);
         return;
       }
       
@@ -284,18 +270,20 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${course.courseId}`);
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
-      setUserAnalytics(analyticsData);
+        console.log('📊 [GradeEntry] Loaded userAnalytics:', analyticsData);
+        console.log('📊 [GradeEntry] Analytics type:', Array.isArray(analyticsData) ? 'array' : typeof analyticsData);
+        console.log('📊 [GradeEntry] Analytics length:', Array.isArray(analyticsData) ? analyticsData.length : 'not array');
+        setUserAnalytics(analyticsData);
       } else {
-        // Fallback to default analytics
-        const analytics = { current_grade: 0, grade_trend: 0 };
-        setUserAnalytics(analytics);
+        console.log('⚠️ [GradeEntry] Analytics API failed, using empty array');
+        // Fallback to empty array
+        setUserAnalytics([]);
       }
 
     } catch (error) {
       console.error("Error loading user analytics:", error);
-      // Set default analytics on error
-      const analytics = { current_grade: 0, grade_trend: 0 };
-      setUserAnalytics(analytics);
+      // Set empty array on error
+      setUserAnalytics([]);
     }
   };
 
@@ -463,14 +451,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       <SuccessMessage successMessage={successMessage} />
 
       <div
-        className={`w-full px-8 py-12 ${
+        className={`w-full ${showDashboard ? 'px-0 py-0' : 'px-8 py-12'} ${
           course.isActive === false ? "opacity-90" : ""
         } flex-1`}
       >
         {course.isActive === false && <ArchivedWarning />}
 
-        <div className="max-w-[1600px] mx-auto">
-          {showDashboard ? (
+        {showDashboard ? (
+          <div className="w-full">
             <Dashboard
               course={course}
               grades={grades}
@@ -491,7 +479,9 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
                 navigate('/dashboard/goals');
               }}
             />
-          ) : (
+          </div>
+        ) : (
+          <div className="max-w-[1600px] mx-auto">
             <AssessmentCategories
               categories={categories}
               grades={grades}
@@ -502,9 +492,11 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               onEditScore={handleEditScore}
               onEditAssessment={handleEditAssessment}
               onDeleteAssessment={handleDeleteAssessment}
+              course={course}
+              targetGrade={targetGrade}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

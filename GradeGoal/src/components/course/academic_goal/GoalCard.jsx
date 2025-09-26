@@ -7,6 +7,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { FaEdit, FaTimes, FaBullseye, FaCalendarAlt } from "react-icons/fa";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "./goalProgress";
 import { getGoalTypeLabel, getPriorityColor, getCourseName, formatGoalDate } from "./goalUtils";
+import AIAnalysisButton from "../../ai/components/AIAnalysisButton";
+import { getAssessmentCategoriesByCourseId } from "../../../backend/api";
 
 const GoalCard = ({
   goal,
@@ -30,6 +32,9 @@ const GoalCard = ({
     isCourseCompleted: false,
     courseCompletionStatus: 'ongoing'
   });
+
+  const [categories, setCategories] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
   // Memoize the goal progress calculation to prevent infinite loops
   const memoizedGoalProgress = useMemo(() => {
@@ -60,6 +65,37 @@ const GoalCard = ({
     Object.keys(grades).join(','),
     allGoals.length
   ]);
+
+  // Fetch assessment categories for course goals
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!goal?.courseId || goal.goalType !== 'COURSE_GRADE') return;
+      
+      setIsLoadingCategories(true);
+      try {
+        const categoriesData = await getAssessmentCategoriesByCourseId(goal.courseId);
+        console.log('🎯 GoalCard - Raw categories data:', categoriesData);
+        
+        const transformedCategories = categoriesData.map(category => ({
+          id: category.categoryId || category.id,
+          categoryName: category.categoryName || category.name,
+          weight: category.weightPercentage || category.weight,
+          weightPercentage: category.weightPercentage || category.weight,
+          orderSequence: category.orderSequence
+        }));
+        
+        console.log('🎯 GoalCard - Transformed categories:', transformedCategories);
+        setCategories(transformedCategories);
+      } catch (error) {
+        console.error('Failed to load assessment categories:', error);
+        setCategories([]);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, [goal?.courseId, goal?.goalType]);
 
   // Calculate goal progress asynchronously with proper caching
   useEffect(() => {
@@ -272,6 +308,44 @@ const GoalCard = ({
             >
               {progressData.achievementProbability}%
             </span>
+          </div>
+        )}
+
+        {/* AI Analysis Button */}
+        {!progressData.isCourseCompleted && !isCompact && (
+          <div className="mb-4">
+            <AIAnalysisButton
+              course={courses.find(c => c.id === goal.courseId)}
+              goal={goal}
+              grades={(() => {
+                // Get grades for this specific course by collecting all grades from categories
+                if (!goal.courseId || !categories.length) return [];
+                
+                const courseGrades = [];
+                categories.forEach(category => {
+                  const categoryGrades = grades[category.id] || [];
+                  courseGrades.push(...categoryGrades);
+                });
+                
+                console.log('🎯 GoalCard - Course-specific grades:', {
+                  courseId: goal.courseId,
+                  categoriesCount: categories.length,
+                  totalGrades: courseGrades.length,
+                  gradesByCategory: categories.map(cat => ({
+                    categoryId: cat.id,
+                    categoryName: cat.categoryName || cat.name,
+                    gradesCount: (grades[cat.id] || []).length
+                  }))
+                });
+                
+                return courseGrades;
+              })()}
+              categories={categories}
+              onAnalysisComplete={(recommendations) => {
+                console.log('AI Analysis completed:', recommendations);
+                // Handle the AI analysis completion
+              }}
+            />
           </div>
         )}
 

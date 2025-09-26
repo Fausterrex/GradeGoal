@@ -26,65 +26,103 @@ function Dashboard({
 }) {
 
   return (
-    <div className="space-y-8">
-      {/* Top Row - Goal Progress and User Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
-        <GoalProgress
-          currentGrade={currentGrade}
-          targetGrade={targetGrade}
-          course={course}
-          colorScheme={colorScheme}
-          grades={grades}
-          categories={categories}
-          onSetGoal={onSetGoal}
-        />
-        <UserProgress 
-          userProgress={userProgress}
-          course={course}
-        />
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100">
+      <div className="w-full px-4 lg:px-6 py-8">
+        
+        {/* Two-Row Layout - Top: Sidebar + Main Content, Bottom: Full-Width Grade Breakdown */}
+        <div className="space-y-8">
+          
+          {/* Top Row - Main Dashboard Content */}
+          <div className="grid grid-cols-12 gap-8">
+            
+            {/* Left Sidebar - Goal & User Progress */}
+            <div className="col-span-12 lg:col-span-4 space-y-8">
+              {/* Goal Progress - Enhanced */}
+              <div className="transform hover:scale-[1.02] transition-transform duration-300">
+                <GoalProgress
+                  currentGrade={currentGrade}
+                  targetGrade={targetGrade}
+                  course={course}
+                  colorScheme={colorScheme}
+                  grades={grades}
+                  categories={categories}
+                  onSetGoal={onSetGoal}
+                  isCompact={true}
+                />
+              </div>
+              
+              {/* User Progress - Enhanced */}
+              <div className="transform hover:scale-[1.02] transition-transform duration-300">
+                <UserProgress 
+                  userProgress={userProgress}
+                  course={course}
+                />
+              </div>
+            </div>
+
+            {/* Right Content - Analytics & Progress */}
+            <div className="col-span-12 lg:col-span-8 space-y-8">
+              
+              {/* Analytics Section - Elevated */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 transform hover:shadow-xl transition-all duration-300">
+                <UnifiedAnalytics
+                  userAnalytics={userAnalytics}
+                  course={course}
+                  grades={grades}
+                  categories={categories}
+                  targetGrade={targetGrade}
+                  currentGrade={currentGrade}
+                />
+              </div>
+
+              {/* Progress Chart - Elevated */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 transform hover:shadow-xl transition-all duration-300">
+                <UnifiedProgress
+                  currentGrade={currentGrade}
+                  targetGrade={targetGrade}
+                  course={course}
+                  grades={grades}
+                  categories={categories}
+                  colorScheme={colorScheme}
+                  userAnalytics={userAnalytics}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row - Full Width Layout for Grade Breakdown & AI */}
+          <div className="grid grid-cols-12 gap-8">
+            
+            {/* Grade Breakdown - Full Space, No Compression! */}
+            <div className="col-span-12 lg:col-span-8">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transform hover:shadow-xl transition-all duration-300 p-6">
+                <UnifiedGradeBreakdown
+                  categories={categories}
+                  grades={grades}
+                  course={course}
+                  colorScheme={colorScheme}
+                  targetGrade={targetGrade}
+                  currentGrade={currentGrade}
+                />
+              </div>
+            </div>
+
+            {/* AI Recommendations - Dedicated Space */}
+            <div className="col-span-12 lg:col-span-4">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg border border-indigo-100 p-6 transform hover:shadow-xl transition-all duration-300 h-full">
+                <UnifiedRecommendations
+                  course={course}
+                  grades={grades}
+                  categories={categories}
+                  targetGrade={targetGrade}
+                  currentGrade={currentGrade}
+                  userAnalytics={userAnalytics}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-  
-
-      {/* Unified Analytics */}
-      <UnifiedAnalytics
-        userAnalytics={userAnalytics}
-        course={course}
-        grades={grades}
-        categories={categories}
-        targetGrade={targetGrade}
-        currentGrade={currentGrade}
-      />
-
-      {/* Unified Progress */}
-      <UnifiedProgress
-        currentGrade={currentGrade}
-        targetGrade={targetGrade}
-        course={course}
-        grades={grades}
-        categories={categories}
-        colorScheme={colorScheme}
-        userAnalytics={userAnalytics}
-      />
-
-      {/* Unified Grade Breakdown */}
-      <UnifiedGradeBreakdown
-        categories={categories}
-        grades={grades}
-        course={course}
-        colorScheme={colorScheme}
-        targetGrade={targetGrade}
-        currentGrade={currentGrade}
-      />
-
-      {/* Unified Recommendations */}
-      <UnifiedRecommendations
-        course={course}
-        grades={grades}
-        categories={categories}
-        targetGrade={targetGrade}
-        currentGrade={currentGrade}
-        userAnalytics={userAnalytics}
-      />
     </div>
   );
 }

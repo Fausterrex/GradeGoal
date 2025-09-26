@@ -399,6 +399,8 @@ const calculateCumulativeGPAProgress = async (goal, courses, grades, userStats) 
  */
 const calculateAchievementProbability = (currentValue, targetValue, goalType, targetDate) => {
   if (!targetValue || targetValue <= 0) return 0;
+  
+  // If goal is already achieved, return 100% immediately
   if (currentValue >= targetValue) return 100;
   
   // If no progress has been made, probability should be 0
@@ -407,45 +409,53 @@ const calculateAchievementProbability = (currentValue, targetValue, goalType, ta
   // Base probability from current progress
   const baseProgress = (currentValue / targetValue) * 100;
   
-  // Time factor (if target date is set)
+  // Time factor (if target date is set) - more optimistic
   let timeFactor = 1;
   if (targetDate) {
     const now = new Date();
     const target = new Date(targetDate);
     const totalDays = Math.max((target - now) / (1000 * 60 * 60 * 24), 1);
-    const daysElapsed = Math.max(365 - totalDays, 0); // Assuming 1 year timeline
     
-    if (totalDays > 0) {
-      timeFactor = Math.min(daysElapsed / 365, 1);
+    if (totalDays > 30) {
+      timeFactor = 1.1; // Bonus for having time
+    } else if (totalDays > 7) {
+      timeFactor = 1.0; // Neutral for reasonable time
+    } else {
+      timeFactor = 0.9; // Small penalty for very little time
     }
   }
 
-  // More realistic probability calculation
-  // Base probability should be much more optimistic for reasonable progress
+  // Start with more optimistic baseline
   let probability = baseProgress;
   
-  // Apply goal type modifiers (less conservative)
+  // Apply goal type modifiers (more optimistic)
   let modifier = 1;
   switch (goalType) {
     case 'COURSE_GRADE':
-      modifier = 1.1; // Course grades are easier to improve
+      modifier = 1.2; // Course grades are very achievable
       break;
     case 'SEMESTER_GPA':
-      modifier = 1.0; // Semester GPA is moderately achievable
+      modifier = 1.1; // Semester GPA is quite achievable
       break;
     case 'CUMMULATIVE_GPA':
-      modifier = 0.9; // Cumulative GPA is harder but not impossible
+      modifier = 1.0; // Cumulative GPA is still achievable
       break;
   }
 
-  // Apply time factor as a bonus, not a penalty
-  if (targetDate) {
-    const timeBonus = timeFactor * 0.1; // Up to 10% bonus for time remaining
-    probability += timeBonus * 100;
+  // Apply time factor
+  probability = probability * timeFactor;
+  
+  // Strong boosts for good progress
+  if (baseProgress > 90) {
+    probability = Math.min(probability * 1.3, 100); // 30% boost for excellent progress
+  } else if (baseProgress > 80) {
+    probability = Math.min(probability * 1.2, 100); // 20% boost for very good progress
+  } else if (baseProgress > 70) {
+    probability = Math.min(probability * 1.15, 100); // 15% boost for good progress
   }
   
-  // Ensure probability is realistic - if you're at 70% progress, you should have at least 50% chance
-  const minimumProbability = Math.min(baseProgress * 0.7, 50); // At least 70% of progress, max 50%
+  // Ensure realistic minimum probability for reasonable progress
+  const minimumProbability = Math.min(baseProgress * 0.85, 85); // Much more optimistic minimum
   probability = Math.max(probability * modifier, minimumProbability);
 
   return Math.min(Math.max(probability, 0), 100);

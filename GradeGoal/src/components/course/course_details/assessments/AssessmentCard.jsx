@@ -5,6 +5,9 @@
 
 import React from "react";
 import { calculateGPAFromPercentage } from "../../../../backend/api";
+import AIAssessmentPrediction from "../../../ai/components/AIAssessmentPrediction";
+import AIScorePrediction from "../../../ai/components/AIScorePrediction";
+import { getScorePredictionForAssessment, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
 
 // Simple grade color function to replace the deleted one
 const getGradeColor = (percentage) => {
@@ -22,16 +25,52 @@ function AssessmentCard({
   onAssessmentClick,
   onEditScore,
   onEditAssessment,
-  onDeleteAssessment
+  onDeleteAssessment,
+  userId,
+  targetGrade,
+  categoryName,
+  allGrades,
+  allCategories
 }) {
   const [gpa, setGpa] = React.useState("0.00");
+  const [scorePrediction, setScorePrediction] = React.useState(null);
   
   const hasScore =
     grade.score !== null &&
     grade.score !== undefined &&
     grade.score !== "" &&
     grade.score !== 0 &&
-    !isNaN(parseFloat(grade.score));
+    !isNaN(parseFloat(grade.score)) &&
+    parseFloat(grade.score) > 0;
+
+  // Get score prediction for pending assessments
+  React.useEffect(() => {
+    console.log('AssessmentCard - categoryName:', categoryName);
+    console.log('AssessmentCard - hasScore:', hasScore);
+    console.log('AssessmentCard - grade.score:', grade.score, 'type:', typeof grade.score);
+    console.log('AssessmentCard - grade object:', grade);
+    
+    const unsubscribe = subscribeToAIAnalysis((analysisData) => {
+      if (analysisData && !hasScore && categoryName) {
+        const assessmentName = grade.assessmentName || grade.name || grade.title || 'Assessment';
+        console.log('Getting score prediction for assessment:', assessmentName, 'in category:', categoryName);
+        const prediction = getScorePredictionForAssessment(assessmentName, categoryName);
+        console.log('🎯 AssessmentCard - Subscription setting score prediction:', prediction);
+        setScorePrediction(prediction);
+      }
+    });
+
+    // Get initial prediction
+    if (!hasScore && categoryName) {
+      const assessmentName = grade.assessmentName || grade.name || grade.title || 'Assessment';
+      console.log('Getting initial score prediction for assessment:', assessmentName, 'in category:', categoryName);
+      const prediction = getScorePredictionForAssessment(assessmentName, categoryName);
+      console.log('🎯 AssessmentCard - Setting score prediction:', prediction);
+      setScorePrediction(prediction);
+    }
+
+    return unsubscribe;
+  }, [grade.assessmentName, grade.name, grade.title, categoryName, hasScore]);
     
   const percentage = hasScore ? ((parseFloat(grade.score) / parseFloat(grade.maxScore)) * 100) : null;
 
@@ -191,6 +230,50 @@ function AssessmentCard({
                 {grade.note}
               </p>
             </div>
+          )}
+
+          {/* AI Prediction */}
+          {userId && targetGrade && (
+            <AIAssessmentPrediction
+              assessment={grade}
+              course={course}
+              userId={userId}
+              targetGrade={targetGrade}
+            />
+          )}
+
+          {/* AI Score Prediction for Pending Assessments */}
+          {!hasScore && scorePrediction && (
+            <AIScorePrediction
+              assessment={grade}
+              prediction={scorePrediction}
+              isVisible={true}
+              courseData={(() => {
+                const courseData = {
+                  currentGPA: course?.courseGpa || course?.course_gpa || 0,
+                  categories: allCategories || course?.categories || [],
+                  grades: allGrades || course?.grades || []
+                };
+                console.log('🎯 AssessmentCard - Course object inspection:', {
+                  course: course,
+                  courseKeys: course ? Object.keys(course) : 'no course',
+                  courseGpa: course?.courseGpa,
+                  course_gpa: course?.course_gpa,
+                  id: course?.id,
+                  courseId: course?.courseId
+                });
+                console.log('🎯 AssessmentCard - Passing courseData to AIScorePrediction:', {
+                  currentGPA: courseData.currentGPA,
+                  categoriesCount: courseData.categories.length,
+                  gradesCount: Array.isArray(courseData.grades) ? courseData.grades.length : Object.keys(courseData.grades).length,
+                  assessment: grade,
+                  categoryName: categoryName,
+                  allGradesKeys: allGrades ? Object.keys(allGrades) : 'none',
+                  allCategoriesCount: allCategories ? allCategories.length : 'none'
+                });
+                return courseData;
+              })()}
+            />
           )}
         </div>
       </div>

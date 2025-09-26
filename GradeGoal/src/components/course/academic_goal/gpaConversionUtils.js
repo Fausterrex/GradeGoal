@@ -143,13 +143,15 @@ export const getConversionPreview = (value, inputFormat, gpaScale = 4.0) => {
  */
 export const calculateAchievementProbability = (currentGPA, targetGPA, courseProgress = 0, targetDate = null) => {
   if (!targetGPA || targetGPA <= 0) return 0;
+  
+  // If goal is already achieved, return 100% probability
   if (currentGPA >= targetGPA) return 100;
   
   // Base probability from current progress toward target
   const gpaProgress = (currentGPA / targetGPA) * 100;
   
-  // Course completion factor - more completed assessments = more accurate prediction
-  const completionFactor = Math.min(courseProgress / 100, 1);
+  // Course completion factor - but don't penalize too heavily for incomplete courses
+  const completionFactor = Math.max(0.3, Math.min(courseProgress / 100, 1)); // Minimum 30% factor
   
   // Time factor - if target date is set and approaching, adjust probability
   let timeFactor = 1;
@@ -159,23 +161,27 @@ export const calculateAchievementProbability = (currentGPA, targetGPA, coursePro
     const daysRemaining = Math.max(0, (target - today) / (1000 * 60 * 60 * 24));
     
     if (daysRemaining < 30) {
-      timeFactor = 0.8; // Less time = lower probability
+      timeFactor = 0.9; // Less harsh penalty for approaching deadlines
     } else if (daysRemaining < 60) {
-      timeFactor = 0.9;
+      timeFactor = 0.95;
     }
   }
   
-  // Calculate final probability
+  // Calculate final probability with more optimistic baseline
   let probability = gpaProgress * completionFactor * timeFactor;
   
-  // Boost probability if already making good progress
-  if (gpaProgress > 80) {
-    probability = Math.min(probability * 1.1, 100);
+  // Boost probability significantly if already making good progress
+  if (gpaProgress > 90) {
+    probability = Math.min(probability * 1.2, 100); // 20% boost for excellent progress
+  } else if (gpaProgress > 80) {
+    probability = Math.min(probability * 1.15, 100); // 15% boost for very good progress
+  } else if (gpaProgress > 70) {
+    probability = Math.min(probability * 1.1, 100); // 10% boost for good progress
   }
   
-  // Reduce probability if very low progress and course is mostly complete
-  if (gpaProgress < 30 && completionFactor > 0.7) {
-    probability = probability * 0.7;
+  // Ensure minimum realistic probability for reasonable progress
+  if (gpaProgress > 50) {
+    probability = Math.max(probability, gpaProgress * 0.8); // At least 80% of progress ratio
   }
   
   return Math.round(Math.max(0, Math.min(100, probability)));

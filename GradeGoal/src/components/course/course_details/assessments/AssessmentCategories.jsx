@@ -16,7 +16,9 @@ function AssessmentCategories({
   onAssessmentClick,
   onEditScore,
   onEditAssessment,
-  onDeleteAssessment
+  onDeleteAssessment,
+  course, // Add course prop for AI analysis
+  targetGrade // Add target grade for AI analysis
 }) {
   const [categoryAverages, setCategoryAverages] = useState({});
 
@@ -88,6 +90,10 @@ function AssessmentCategories({
             onEditScore={onEditScore}
             onEditAssessment={onEditAssessment}
             onDeleteAssessment={onDeleteAssessment}
+            course={course}
+            allGrades={grades}
+            allCategories={categories}
+            targetGrade={targetGrade}
           />
         );
       })}

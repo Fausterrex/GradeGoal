@@ -42,8 +42,13 @@ function UnifiedProgress({
 
    // Calculate trajectory data using user analytics (current_grade progression)
    const trajectoryData = useMemo(() => {
+     console.log('📊 [UnifiedProgress] Received userAnalytics:', userAnalytics);
+     console.log('📊 [UnifiedProgress] Analytics type:', Array.isArray(userAnalytics) ? 'array' : typeof userAnalytics);
+     console.log('📊 [UnifiedProgress] Analytics length:', Array.isArray(userAnalytics) ? userAnalytics.length : 'not array');
+     
      // Use userAnalytics data which contains the current_grade progression
      if (!userAnalytics || userAnalytics.length === 0) {
+       console.log('⚠️ [UnifiedProgress] No userAnalytics data available');
        return { weekly: [], statistics: {} };
      }
 
