@@ -48,10 +48,27 @@ function UnifiedGradeBreakdown({
 
   const getOverallContribution = () => {
     let totalContribution = 0;
+    let totalWeight = 0;
+    
     categories.forEach(category => {
       const analysis = getCategoryAnalysis(category);
-      totalContribution += analysis.contribution;
+      
+      // Check if we should exclude this category based on handle_missing setting
+      const shouldExclude = course?.handleMissing === 'exclude' && 
+                           (analysis.average === null || analysis.completed === 0);
+      
+      if (!shouldExclude) {
+        totalContribution += analysis.contribution;
+        totalWeight += category.weight || 0;
+      }
     });
+    
+    // If we're excluding categories, normalize the result to 100% scale
+    if (course?.handleMissing === 'exclude' && totalWeight < 100) {
+      const normalizedPercentage = (totalContribution / totalWeight) * 100;
+      return normalizedPercentage; // Return as percentage of completed work
+    }
+    
     return totalContribution;
   };
 

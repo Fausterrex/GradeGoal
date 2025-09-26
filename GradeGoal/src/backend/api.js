@@ -548,8 +548,15 @@ export async function getUserProfile(email) {
   );
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || "Failed to fetch user profile");
+    // Handle both JSON and text error responses
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to fetch user profile");
+    } else {
+      const errorText = await response.text();
+      throw new Error(errorText || "Failed to fetch user profile");
+    }
   }
 
   return response.json();

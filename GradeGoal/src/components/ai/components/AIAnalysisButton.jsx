@@ -35,7 +35,7 @@ const AIAnalysisButton = ({
         
         // Get user profile to get database user ID
         const { getUserProfile } = await import('../../../backend/api');
-        const userProfile = await getUserProfile(currentUser.uid);
+        const userProfile = await getUserProfile(currentUser.email);
         
         if (userProfile?.userId && course?.id) {
           const exists = await checkAIAnalysisExists(userProfile.userId, course.id);

@@ -80,22 +80,11 @@ function GoalProgress({
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
       
-      console.log('🎯 [GoalProgress] AI Probability Debug:', {
-        currentGrade,
-        targetGrade,
-        currentGPA,
-        targetGPA,
-        isGoalAchieved: currentGPA >= targetGPA,
-        originalProbability: probability?.probability,
-        probabilityObject: probability
-      });
-      
       if (probability && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
         };
-        console.log('🎯 [GoalProgress] Correcting probability from', probability.probability, 'to 100%');
         setAiAchievementProbability(correctedProbability);
       } else {
         setAiAchievementProbability(probability);
@@ -165,7 +154,7 @@ function GoalProgress({
         </div>
 
         {/* Current Grade Display */}
-        {currentGrade && (
+        {currentGrade != null && currentGrade > 0 && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-1">Current Grade</div>
@@ -215,22 +204,6 @@ function GoalProgress({
     progressPercentage = courseProgress;
   }
   
-  console.log('🎯 [GoalProgress] Progress calculation:', {
-    courseProgress,
-    currentGPA,
-    targetGPA,
-    progressPercentage,
-    courseCompletion,
-    isGoalAchieved: currentGPA >= targetGPA,
-    isCourseComplete: courseProgress >= 100,
-    totalAssessmentsFound: categories.reduce((total, cat) => total + (grades[cat.id] || []).length, 0),
-    completedAssessmentsFound: categories.reduce((total, cat) => {
-      const catGrades = grades[cat.id] || [];
-      return total + catGrades.filter(grade => 
-        grade.score !== null && grade.score !== undefined && grade.score > 0
-      ).length;
-    }, 0)
-  });
 
   // Extract color names from Tailwind classes (e.g., "bg-blue-600" -> "blue")
   const getColorName = (colorClass) => {

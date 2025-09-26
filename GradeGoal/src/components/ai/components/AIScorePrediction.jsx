@@ -43,20 +43,12 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     const { currentGPA, categories, grades, currentWeightedAverage: systemWeightedAverage } = courseData;
     const currentGPAValue = parseFloat(currentGPA) || 0;
     
-    console.log('🔍 calculateGPAImpact - Input data:', {
-      currentGPA,
-      categoriesCount: categories?.length,
-      gradesType: typeof grades,
-      gradesKeys: grades ? Object.keys(grades) : 'no grades',
-      assessment: assessment
-    });
     
     // Find the category for this assessment
     const category = categories.find(cat => 
-      cat.id === assessment.categoryId || 
-      cat.categoryName === assessment.categoryName ||
-      cat.name === assessment.categoryName
+      cat.id === assessment.categoryId
     );
+    
     
     if (!category) return null;
     
@@ -77,15 +69,9 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     let currentWeightedAverage = 0;
     let totalWeight = 0;
     
-    console.log('🔍 calculateGPAImpact - Processing categories (including 0% scores):', categories);
     
     categories.forEach(cat => {
       const catGrades = grades[cat.id] || [];
-      console.log(`🔍 calculateGPAImpact - Category ${cat.name} (${cat.id}):`, {
-        weight: cat.weight,
-        gradesCount: catGrades.length,
-        grades: catGrades
-      });
       
       if (catGrades.length > 0) {
         // Calculate percentage from score and maxScore (EXCLUDE 0% scores from average)
@@ -95,33 +81,14 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
         });
         
         if (validGrades.length === 0) {
-          console.log(`🔍 calculateGPAImpact - Category ${cat.name}: No valid grades (all 0%), skipping category`);
           return; // Skip this category entirely
         }
         
         const catAverage = validGrades.reduce((sum, grade) => {
           const percentage = grade.percentage || ((grade.score / grade.maxScore) * 100);
-          console.log(`🔍 calculateGPAImpact - Grade ${grade.name}:`, {
-            score: grade.score,
-            maxScore: grade.maxScore,
-            percentage: percentage,
-            included: 'YES'
-          });
           return sum + percentage;
         }, 0) / validGrades.length;
         
-        // Log excluded grades
-        catGrades.forEach(grade => {
-          const percentage = grade.percentage || ((grade.score / grade.maxScore) * 100);
-          if (percentage === 0) {
-            console.log(`🔍 calculateGPAImpact - Grade ${grade.name}:`, {
-              score: grade.score,
-              maxScore: grade.maxScore,
-              percentage: percentage,
-              included: 'NO (0% excluded)'
-            });
-          }
-        });
         
         // Only include categories with actual scores (exclude 0% - matches main system)
         let weightedContribution = 0;
@@ -131,12 +98,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
           totalWeight += cat.weight;
         }
         
-        console.log(`🔍 calculateGPAImpact - Category ${cat.name} calculation:`, {
-          catAverage,
-          weightedContribution,
-          currentWeightedAverage,
-          included: catAverage > 0 ? 'YES' : 'NO (0% excluded)'
-        });
       }
     });
     
@@ -145,12 +106,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       currentWeightedAverage = (currentWeightedAverage / totalWeight) * 100;
     }
     
-    console.log('🔍 calculateGPAImpact - Final weighted average calculation:', {
-      totalWeightedScore: currentWeightedAverage,
-      totalWeight,
-      normalizedWeightedAverage: currentWeightedAverage,
-      explanation: totalWeight < 100 ? 'Normalized to 100% scale (excluded 0% scores)' : 'No normalization needed'
-    });
     
     // Calculate what the new weighted average would be with perfect score in this category
     let newWeightedAverage = 0;
@@ -201,13 +156,18 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
             }, 0) + 100; // Add perfect score
             catAverage = totalScores / (catGrades.length + 1); // Include the new assessment
           }
-        }
-        
-        // Only include categories with actual scores (same logic as current calculation)
-        if (catAverage > 0) {
+          
+          // For target category with perfect score, always include it (even if it was 0% before)
           const weightedContribution = (catAverage * cat.weight) / 100;
           newWeightedAverage += weightedContribution;
           newTotalWeight += cat.weight;
+        } else {
+          // For non-target categories, only include if they have actual scores
+          if (catAverage > 0) {
+            const weightedContribution = (catAverage * cat.weight) / 100;
+            newWeightedAverage += weightedContribution;
+            newTotalWeight += cat.weight;
+          }
         }
       }
     });
@@ -217,13 +177,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       newWeightedAverage = (newWeightedAverage / newTotalWeight) * 100;
     }
     
-    console.log('🔍 calculateGPAImpact - New weighted average with perfect score:', {
-      rawWeightedAverage: newWeightedAverage,
-      newTotalWeight,
-      normalizedWeightedAverage: newWeightedAverage,
-      targetCategory: category.name,
-      explanation: 'Excludes 0% scores, matches main system approach'
-    });
     
     // Use the actual course GPA instead of recalculating from weighted average
     const actualCurrentGPA = courseData.currentGPA || 0;
@@ -233,15 +186,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     const projectedGPAFromPercentage = calculateGPAFromPercentage(newWeightedAverage);
     
     // Debug the DATABASE-MATCHED GPA conversion
-    console.log('🔍 calculateGPAImpact - DATABASE-MATCHED GPA Conversion:', {
-      currentWeightedAverage: `${currentWeightedAverage.toFixed(2)}%`,
-      newWeightedAverageWithPerfectScore: `${newWeightedAverage.toFixed(2)}%`,
-      currentGPA: actualCurrentGPA,
-      projectedGPAWithPerfectScore: projectedGPAFromPercentage,
-      improvement: `${(projectedGPAFromPercentage - actualCurrentGPA).toFixed(2)} GPA`,
-      categoryBeingImproved: category.name,
-      perfectScoreLogic: `Adding 100% score to ${category.name} category`
-    });
     
     const improvement = projectedGPAFromPercentage - actualCurrentGPA;
     
@@ -256,31 +200,13 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       categoryImprovement: 100 - currentCategoryAverage
     };
     
-    console.log('🔍 calculateGPAImpact - Final result:', result);
     return result;
   };
 
   const gpaImpact = calculateGPAImpact();
 
-  // Debug logging
-  console.log('🎯 AIScorePrediction - Component data:', {
-    assessment: assessment,
-    prediction: prediction,
-    courseData: courseData,
-    gpaImpact: gpaImpact
-  });
-  
-  // Additional debugging for prediction
-  console.log('🎯 AIScorePrediction - Prediction details:', {
-    hasPrediction: !!prediction,
-    predictionType: typeof prediction,
-    predictionKeys: prediction ? Object.keys(prediction) : 'no prediction',
-    predictionContent: prediction
-  });
-
   // Safety check for prediction
   if (!prediction) {
-    console.log('🎯 AIScorePrediction - No prediction available, not rendering');
     return null;
   }
 

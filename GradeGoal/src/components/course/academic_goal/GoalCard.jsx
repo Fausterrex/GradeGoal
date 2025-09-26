@@ -74,8 +74,6 @@ const GoalCard = ({
       setIsLoadingCategories(true);
       try {
         const categoriesData = await getAssessmentCategoriesByCourseId(goal.courseId);
-        console.log('🎯 GoalCard - Raw categories data:', categoriesData);
-        
         const transformedCategories = categoriesData.map(category => ({
           id: category.categoryId || category.id,
           categoryName: category.categoryName || category.name,
@@ -83,8 +81,6 @@ const GoalCard = ({
           weightPercentage: category.weightPercentage || category.weight,
           orderSequence: category.orderSequence
         }));
-        
-        console.log('🎯 GoalCard - Transformed categories:', transformedCategories);
         setCategories(transformedCategories);
       } catch (error) {
         console.error('Failed to load assessment categories:', error);
@@ -327,22 +323,11 @@ const GoalCard = ({
                   courseGrades.push(...categoryGrades);
                 });
                 
-                console.log('🎯 GoalCard - Course-specific grades:', {
-                  courseId: goal.courseId,
-                  categoriesCount: categories.length,
-                  totalGrades: courseGrades.length,
-                  gradesByCategory: categories.map(cat => ({
-                    categoryId: cat.id,
-                    categoryName: cat.categoryName || cat.name,
-                    gradesCount: (grades[cat.id] || []).length
-                  }))
-                });
                 
                 return courseGrades;
               })()}
               categories={categories}
               onAnalysisComplete={(recommendations) => {
-                console.log('AI Analysis completed:', recommendations);
                 // Handle the AI analysis completion
               }}
             />

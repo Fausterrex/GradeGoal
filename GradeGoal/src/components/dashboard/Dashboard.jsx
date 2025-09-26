@@ -37,6 +37,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
     cumulativeGPA: 0,
     courseGPAs: {}
   });
+  const [isLoadingGpa, setIsLoadingGpa] = useState(false);
 
   // Load user ID, target grades, and GPA data when component mounts
   useEffect(() => {
@@ -44,7 +45,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       loadUserAndTargetGrades();
       loadGpaData();
     }
-  }, [currentUser, courses]);
+  }, [currentUser, courses.length]); // Only depend on courses.length, not the entire courses array
 
   const loadUserAndTargetGrades = async () => {
     try {
@@ -83,13 +84,21 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
   };
 
   const loadGpaData = async () => {
+    if (isLoadingGpa) return; // Prevent multiple simultaneous calls
+    
     try {
-      // Get user profile to get userId
-      const userProfile = await getUserProfile(currentUser.email);
-      const userId = userProfile.userId;
+      setIsLoadingGpa(true);
+      
+      // Use existing userId if available, otherwise get user profile
+      let currentUserId = userId;
+      if (!currentUserId) {
+        const userProfile = await getUserProfile(currentUser.email);
+        currentUserId = userProfile.userId;
+        setUserId(currentUserId);
+      }
 
       // Fetch all semester GPAs from the new API
-      const response = await fetch(`/api/user-progress/${userId}/all-semester-gpas`);
+      const response = await fetch(`/api/user-progress/${currentUserId}/all-semester-gpas`);
       if (response.ok) {
         const data = await response.json();
         
@@ -101,7 +110,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         const summerSemesterGPA = semesterGPAs.SUMMER || 0;
         
         // Get cumulative GPA from the original endpoint
-        const cumulativeResponse = await fetch(`/api/user-progress/${userId}/with-gpas`);
+        const cumulativeResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`);
         let cumulativeGPA = 0;
         if (cumulativeResponse.ok) {
           const userProgress = await cumulativeResponse.json();
@@ -136,7 +145,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       } else {
         console.error("Failed to fetch semester GPA data");
         // Fallback to original method
-        const fallbackResponse = await fetch(`/api/user-progress/${userId}/with-gpas`);
+        const fallbackResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`);
         if (fallbackResponse.ok) {
           const userProgress = await fallbackResponse.json();
           const semesterGPA = userProgress.semesterGpa || userProgress.semester_gpa || 0;
@@ -157,6 +166,8 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       }
     } catch (error) {
       console.error("Error loading GPA data:", error);
+    } finally {
+      setIsLoadingGpa(false);
     }
   };
 

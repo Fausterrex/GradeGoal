@@ -270,9 +270,6 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${course.courseId}`);
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
-        console.log('📊 [GradeEntry] Loaded userAnalytics:', analyticsData);
-        console.log('📊 [GradeEntry] Analytics type:', Array.isArray(analyticsData) ? 'array' : typeof analyticsData);
-        console.log('📊 [GradeEntry] Analytics length:', Array.isArray(analyticsData) ? analyticsData.length : 'not array');
         setUserAnalytics(analyticsData);
       } else {
         console.log('⚠️ [GradeEntry] Analytics API failed, using empty array');

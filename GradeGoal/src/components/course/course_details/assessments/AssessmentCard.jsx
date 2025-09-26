@@ -45,17 +45,10 @@ function AssessmentCard({
 
   // Get score prediction for pending assessments
   React.useEffect(() => {
-    console.log('AssessmentCard - categoryName:', categoryName);
-    console.log('AssessmentCard - hasScore:', hasScore);
-    console.log('AssessmentCard - grade.score:', grade.score, 'type:', typeof grade.score);
-    console.log('AssessmentCard - grade object:', grade);
-    
     const unsubscribe = subscribeToAIAnalysis((analysisData) => {
       if (analysisData && !hasScore && categoryName) {
         const assessmentName = grade.assessmentName || grade.name || grade.title || 'Assessment';
-        console.log('Getting score prediction for assessment:', assessmentName, 'in category:', categoryName);
         const prediction = getScorePredictionForAssessment(assessmentName, categoryName);
-        console.log('🎯 AssessmentCard - Subscription setting score prediction:', prediction);
         setScorePrediction(prediction);
       }
     });
@@ -63,9 +56,7 @@ function AssessmentCard({
     // Get initial prediction
     if (!hasScore && categoryName) {
       const assessmentName = grade.assessmentName || grade.name || grade.title || 'Assessment';
-      console.log('Getting initial score prediction for assessment:', assessmentName, 'in category:', categoryName);
       const prediction = getScorePredictionForAssessment(assessmentName, categoryName);
-      console.log('🎯 AssessmentCard - Setting score prediction:', prediction);
       setScorePrediction(prediction);
     }
 
@@ -254,23 +245,6 @@ function AssessmentCard({
                   categories: allCategories || course?.categories || [],
                   grades: allGrades || course?.grades || []
                 };
-                console.log('🎯 AssessmentCard - Course object inspection:', {
-                  course: course,
-                  courseKeys: course ? Object.keys(course) : 'no course',
-                  courseGpa: course?.courseGpa,
-                  course_gpa: course?.course_gpa,
-                  id: course?.id,
-                  courseId: course?.courseId
-                });
-                console.log('🎯 AssessmentCard - Passing courseData to AIScorePrediction:', {
-                  currentGPA: courseData.currentGPA,
-                  categoriesCount: courseData.categories.length,
-                  gradesCount: Array.isArray(courseData.grades) ? courseData.grades.length : Object.keys(courseData.grades).length,
-                  assessment: grade,
-                  categoryName: categoryName,
-                  allGradesKeys: allGrades ? Object.keys(allGrades) : 'none',
-                  allCategoriesCount: allCategories ? allCategories.length : 'none'
-                });
                 return courseData;
               })()}
             />

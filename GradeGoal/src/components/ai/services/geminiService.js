@@ -5,6 +5,7 @@
 // Provides intelligent academic recommendations and predictions
 
 import { setAIAnalysisData } from './aiAnalysisService';
+import DatabaseGradeService from '../../../services/databaseGradeService.js';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'your-gemini-api-key-here';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
@@ -160,7 +161,7 @@ export const getAssessmentPredictionsFromDatabase = async (userId, courseId) => 
  */
 export const checkAIAnalysisExists = async (userId, courseId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/ai-analysis/course/${courseId}/user/${userId}/exists`);
+    const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/exists`);
     
     if (!response.ok) {
       throw new Error(`Failed to check AI analysis: ${response.status}`);
@@ -217,8 +218,24 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     
     // Calculate and log current course grade for debugging
     const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
+    
+    // Use database CalculateGPA function for accurate GPA conversion
+    let currentGPAValue = parseFloat(courseData.currentGPA) || 0;
+    if (currentGrade > 0) {
+      try {
+        // Use static import instead of dynamic import
+        currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
+        console.log('✅ Database GPA calculation successful:', currentGPAValue);
+      } catch (error) {
+        console.warn('Failed to get database GPA, using fallback:', error);
+        // Fallback to local calculation if database call fails
+        currentGPAValue = calculateGPAFromPercentage(currentGrade);
+      }
+    }
+    
     console.log('Current course grade calculation:', {
       currentGrade: currentGrade,
+      currentGPA: currentGPAValue,
       grades: courseData.grades?.length || 0,
       categories: courseData.categories?.length || 0
     });
@@ -226,12 +243,24 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Check if API key is available
     if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your-gemini-api-key-here') {
       console.warn('Gemini API key not configured, using fallback recommendations');
+      // Calculate proper gap based on goal type
+      let targetGPA, gap;
+      if (goalData.goalType === 'COURSE_GRADE') {
+        const targetPercentage = parseFloat(goalData.targetValue) || 100;
+        targetGPA = calculateGPAFromPercentage(targetPercentage);
+        gap = targetGPA - currentGPAValue;
+      } else {
+        targetGPA = parseFloat(goalData.targetValue) || 4.0;
+        gap = targetGPA - currentGPAValue;
+      }
+      
       console.log('Using fallback with GPA values:', { 
-        currentGPA: courseData.currentGPA, 
+        currentGPA: currentGPAValue, 
         targetValue: goalData.targetValue,
-        gap: parseFloat(goalData.targetValue) - parseFloat(courseData.currentGPA)
+        targetGPA: targetGPA,
+        gap: gap
       });
-      const fallbackResult = getFallbackRecommendations(courseData, goalData);
+      const fallbackResult = await getFallbackRecommendations(courseData, goalData);
       
       // Cache the fallback result
       aiRecommendationCache.set(cacheKey, {
@@ -245,7 +274,7 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Check if AI is disabled via environment variable
     if (import.meta.env.VITE_AI_ENABLED === 'false') {
       console.log('AI analysis disabled via environment variable, using fallback');
-      const fallbackResult = getFallbackRecommendations(courseData, goalData);
+      const fallbackResult = await getFallbackRecommendations(courseData, goalData);
       
       // Cache the fallback result
       aiRecommendationCache.set(cacheKey, {
@@ -283,11 +312,14 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
       if (response.status === 429) {
         console.warn(`🚫 Gemini API rate limit exceeded (429). Please wait before making more requests.`);
         console.log('⏳ Falling back to enhanced local AI analysis...');
+      } else if (response.status === 503) {
+        console.warn(`🚫 Gemini API service temporarily unavailable (503). This is a temporary issue.`);
+        console.log('⏳ Falling back to enhanced local AI analysis...');
       } else {
         console.warn(`Gemini API error: ${response.status} - ${response.statusText}`);
         console.log('Falling back to local AI analysis due to API error');
       }
-      return getFallbackRecommendations(courseData, goalData);
+      return await getFallbackRecommendations(courseData, goalData);
     }
 
     const data = await response.json();
@@ -565,10 +597,30 @@ const parseRealAIResponse = (aiResponse, courseData, goalData) => {
 };
 
 /**
+ * Calculate GPA from percentage (fallback function matching database logic)
+ */
+const calculateGPAFromPercentage = (percentage) => {
+  if (percentage >= 97) return 4.00;
+  if (percentage >= 93) return 3.70;
+  if (percentage >= 90) return 3.30;
+  if (percentage >= 87) return 3.00;
+  if (percentage >= 83) return 2.70;
+  if (percentage >= 80) return 2.30;
+  if (percentage >= 77) return 2.00;
+  if (percentage >= 73) return 1.70;
+  if (percentage >= 70) return 1.30;
+  if (percentage >= 67) return 1.00;
+  if (percentage >= 65) return 0.70;
+  return 0.00;
+};
+
+/**
  * Calculate current grade based on completed assessments
  */
 const calculateCurrentGrade = (grades, categories) => {
-  if (!grades || categories.length === 0) return 0;
+  if (!grades || categories.length === 0) {
+    return 0;
+  }
   
   // Handle both array and object formats for grades
   let gradesArray = [];
@@ -579,21 +631,55 @@ const calculateCurrentGrade = (grades, categories) => {
     gradesArray = Object.values(grades).flat();
   }
   
-  if (gradesArray.length === 0) return 0;
+  if (gradesArray.length === 0) {
+    return 0;
+  }
   
   let totalWeightedScore = 0;
   let totalWeight = 0;
   
   categories.forEach(category => {
-    const categoryGrades = gradesArray.filter(g => g.categoryName === category.categoryName);
+    // Filter grades by categoryId (more reliable than categoryName)
+    const categoryGrades = gradesArray.filter(g => g.categoryId === category.id);
+    
     if (categoryGrades.length > 0) {
-      const categoryAverage = categoryGrades.reduce((sum, g) => sum + g.percentage, 0) / categoryGrades.length;
-      totalWeightedScore += (categoryAverage * category.weight / 100);
-      totalWeight += category.weight;
+      // Filter out ungraded/placeholder assessments (0% scores)
+      const gradedAssessments = categoryGrades.filter(g => {
+        let percentage = g.percentage;
+        if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
+          percentage = (g.score / g.maxScore) * 100;
+        }
+        // Exclude assessments with 0% score (ungraded/placeholder)
+        return percentage > 0;
+      });
+      
+      if (gradedAssessments.length > 0) {
+        // Calculate percentage from score and maxScore if percentage is not available
+        const categoryAverage = gradedAssessments.reduce((sum, g) => {
+          let percentage = g.percentage;
+          if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
+            percentage = (g.score / g.maxScore) * 100;
+          }
+          return sum + (percentage || 0);
+        }, 0) / gradedAssessments.length;
+        
+        // Only include categories with valid grades
+        if (categoryAverage > 0) {
+          const weightedScore = (categoryAverage * category.weight / 100);
+          totalWeightedScore += weightedScore;
+          totalWeight += category.weight;
+        }
+      }
     }
   });
   
-  return totalWeight > 0 ? totalWeightedScore : 0;
+  // Calculate the final grade as a percentage
+  // Convert weighted score to percentage based on completed work
+  if (totalWeight > 0) {
+    return (totalWeightedScore / totalWeight) * 100;
+  }
+  
+  return 0;
 };
 
 /**
@@ -685,7 +771,7 @@ Be encouraging but realistic. Provide specific, actionable advice.`;
 /**
  * Parse the AI response into structured data
  */
-const parseAIResponse = (aiResponse, courseData, goalData) => {
+const parseAIResponse = async (aiResponse, courseData, goalData) => {
   try {
     // Extract JSON from the response
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -706,10 +792,10 @@ const parseAIResponse = (aiResponse, courseData, goalData) => {
       generatedAt: new Date().toISOString(),
       ...parsed
     };
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
-    return getFallbackRecommendations(courseData, goalData);
-  }
+    } catch (error) {
+      console.error('Error parsing AI response:', error);
+      return await getFallbackRecommendations(courseData, goalData);
+    }
 };
 
 /**
@@ -728,17 +814,40 @@ const determinePriority = (analysis) => {
 /**
  * Enhanced fallback recommendations when AI fails
  */
-const getFallbackRecommendations = (courseData, goalData) => {
+const getFallbackRecommendations = async (courseData, goalData) => {
   const { currentGPA, progress, grades, categories } = courseData;
   const { targetValue, goalType } = goalData;
 
   // Calculate current course grade from actual grades
   const currentGrade = calculateCurrentGrade(grades, categories);
   
-  // Convert target value to number for proper comparison
-  const targetGPA = parseFloat(targetValue) || 4.0;
-  const currentGPAValue = parseFloat(currentGPA) || 0;
-  const gpaGap = targetGPA - currentGPAValue;
+  // Use database CalculateGPA function for accurate GPA conversion
+  let currentGPAValue = parseFloat(currentGPA) || 0;
+  if (currentGrade > 0) {
+    try {
+      // Use static import instead of dynamic import
+      currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
+      console.log('✅ Database GPA calculation successful (fallback):', currentGPAValue);
+    } catch (error) {
+      console.warn('Failed to get database GPA, using fallback:', error);
+      // Fallback to local calculation if database call fails
+      currentGPAValue = calculateGPAFromPercentage(currentGrade);
+    }
+  }
+  
+  // Handle different goal types - convert target value appropriately
+  let targetGPA, gpaGap;
+  
+  if (goalType === 'COURSE_GRADE') {
+    // Target is a percentage (e.g., 100), convert to GPA for comparison
+    const targetPercentage = parseFloat(targetValue) || 100;
+    targetGPA = calculateGPAFromPercentage(targetPercentage);
+    gpaGap = targetGPA - currentGPAValue;
+  } else {
+    // Target is already a GPA (e.g., 4.0)
+    targetGPA = parseFloat(targetValue) || 4.0;
+    gpaGap = targetGPA - currentGPAValue;
+  }
   
   console.log('🎯 Enhanced fallback calculation:', {
     currentGPA: currentGPAValue,
@@ -787,7 +896,7 @@ const getFallbackRecommendations = (courseData, goalData) => {
   const predictedFinalGrade = calculatePredictedFinalGrade(currentGrade, categories, grades, gpaGap);
   
   // Generate assessment grade recommendations
-  const assessmentGradeRecommendations = generateAssessmentGradeRecommendations(categories, gpaGap, confidence);
+  const assessmentGradeRecommendations = generateAssessmentGradeRecommendations(categories, grades, gpaGap, confidence);
   
   // Generate status update
   const statusUpdate = generateStatusUpdate(currentGPAValue, targetGPA, progress, gpaGap);
@@ -1005,7 +1114,7 @@ const calculatePredictedFinalGrade = (currentGrade, categories, grades, gpaGap) 
 /**
  * Generate assessment grade recommendations for each category
  */
-const generateAssessmentGradeRecommendations = (categories, gpaGap, confidence) => {
+const generateAssessmentGradeRecommendations = (categories, grades, gpaGap, confidence) => {
   const recommendations = {};
   
   if (!categories || categories.length === 0) {
@@ -1207,19 +1316,15 @@ export const saveAIRecommendations = async (recommendations) => {
  */
 export const getAIRecommendations = async (userId, courseId = null) => {
   try {
-    console.log('Fetching AI recommendations for user:', userId, 'course:', courseId);
-    
     // Check if we have stored AI analysis for this course
     const storageKey = `${userId}-${courseId}`;
     const storedAnalysis = aiAnalysisStorage.get(storageKey);
     
     if (storedAnalysis) {
-      console.log('✅ Found stored AI analysis:', storedAnalysis.title);
       return [storedAnalysis];
     }
     
     // If no stored analysis, return empty array
-    console.log('No AI analysis found for this course');
     return [];
   } catch (error) {
     console.error('Error fetching AI recommendations:', error);

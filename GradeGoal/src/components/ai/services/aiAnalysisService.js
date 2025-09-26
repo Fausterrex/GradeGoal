@@ -45,11 +45,6 @@ export const subscribeToAIAnalysis = (listener) => {
  */
 export const getFocusIndicatorForCategory = (categoryName) => {
   if (!aiAnalysisData || !aiAnalysisData.content || !categoryName) {
-    console.log('Missing data for focus indicators:', { 
-      hasAnalysisData: !!aiAnalysisData, 
-      hasContent: !!aiAnalysisData?.content, 
-      categoryName 
-    });
     return null;
   }
   
@@ -58,9 +53,6 @@ export const getFocusIndicatorForCategory = (categoryName) => {
       ? JSON.parse(aiAnalysisData.content) 
       : aiAnalysisData.content;
     
-    console.log('AI Analysis content for focus indicators:', content);
-    console.log('Looking for category:', categoryName.toLowerCase());
-    console.log('Available focus indicators:', content.focusIndicators);
     
     // Try both singular and plural forms
     const categoryKey = categoryName.toLowerCase();
@@ -80,11 +72,6 @@ export const getFocusIndicatorForCategory = (categoryName) => {
  */
 export const getScorePredictionForAssessment = (assessmentName, categoryName) => {
   if (!aiAnalysisData || !aiAnalysisData.content || !categoryName) {
-    console.log('Missing data for score predictions:', { 
-      hasAnalysisData: !!aiAnalysisData, 
-      hasContent: !!aiAnalysisData?.content, 
-      categoryName 
-    });
     return null;
   }
   
@@ -93,28 +80,12 @@ export const getScorePredictionForAssessment = (assessmentName, categoryName) =>
       ? JSON.parse(aiAnalysisData.content) 
       : aiAnalysisData.content;
     
-    console.log('🔍 getScorePredictionForAssessment - Looking for:', {
-      assessmentName,
-      categoryName,
-      contentKeys: Object.keys(content),
-      scorePredictions: content.scorePredictions,
-      hasScorePredictions: !!content.scorePredictions,
-      fullContent: content
-    });
-    
     // Try both singular and plural forms
     const categoryKey = categoryName.toLowerCase();
     const pluralKey = categoryKey + 's';
     
     const categoryPredictions = content.scorePredictions?.[categoryKey] || 
                                content.scorePredictions?.[pluralKey];
-    
-    console.log('🔍 getScorePredictionForAssessment - Category predictions:', {
-      categoryKey,
-      pluralKey,
-      categoryPredictions,
-      found: !!categoryPredictions
-    });
     
     if (!categoryPredictions) return null;
     
@@ -124,7 +95,6 @@ export const getScorePredictionForAssessment = (assessmentName, categoryName) =>
       reasoning: `You need to get ${categoryPredictions.neededScore} on this assessment to achieve your target GPA. This will help you reach your academic goal.`
     };
     
-    console.log('🔍 getScorePredictionForAssessment - Returning result:', result);
     return result;
   } catch (error) {
     console.error('Error parsing score predictions:', error);
@@ -143,7 +113,6 @@ export const getAchievementProbability = () => {
       ? JSON.parse(aiAnalysisData.content) 
       : aiAnalysisData.content;
     
-    console.log('AI Analysis content for achievement probability:', content);
     
     // Check for new enhanced structure first
     if (content.targetGoalProbability) {

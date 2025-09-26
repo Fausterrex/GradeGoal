@@ -63,7 +63,7 @@ function UserProgress({ userProgress, course }) {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-600">{level_info.levelName}</span>
             <span className="text-sm font-bold text-gray-900">
-              {currentPoints} pts
+              {currentPoints || 0} pts
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">

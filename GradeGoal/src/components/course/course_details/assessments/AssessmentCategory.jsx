@@ -38,14 +38,9 @@ function AssessmentCategory({
 
   // Subscribe to AI analysis data changes
   useEffect(() => {
-    console.log('AssessmentCategory - category object:', category);
-    console.log('AssessmentCategory - categoryName:', category.categoryName);
-    console.log('AssessmentCategory - category name:', category.name);
-    
     const unsubscribe = subscribeToAIAnalysis((analysisData) => {
       if (analysisData) {
         const categoryName = category.categoryName || category.name;
-        console.log('Getting focus indicator for category:', categoryName);
         const indicator = getFocusIndicatorForCategory(categoryName);
         setFocusIndicator(indicator);
       }
@@ -53,7 +48,6 @@ function AssessmentCategory({
 
     // Get initial focus indicator
     const categoryName = category.categoryName || category.name;
-    console.log('Getting initial focus indicator for category:', categoryName);
     const indicator = getFocusIndicatorForCategory(categoryName);
     setFocusIndicator(indicator);
 
