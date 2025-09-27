@@ -4,7 +4,7 @@
 // Consolidated component that displays AI-generated recommendations
 
 import React, { useState, useEffect, useMemo } from "react";
-import { getAIRecommendations, saveAIRecommendations } from "../../../ai/services/geminiService";
+import { getAIRecommendations } from "../../../ai/services/geminiService";
 import { loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
 import { useAuth } from "../../../../context/AuthContext";
 import { 

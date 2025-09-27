@@ -5,7 +5,6 @@
 
 import React from "react";
 import { calculateGPAFromPercentage } from "../../../../backend/api";
-import AIAssessmentPrediction from "../../../ai/components/AIAssessmentPrediction";
 import AIScorePrediction from "../../../ai/components/AIScorePrediction";
 import { getScorePredictionForAssessment, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
 
@@ -221,16 +220,6 @@ function AssessmentCard({
                 {grade.note}
               </p>
             </div>
-          )}
-
-          {/* AI Prediction */}
-          {userId && targetGrade && (
-            <AIAssessmentPrediction
-              assessment={grade}
-              course={course}
-              userId={userId}
-              targetGrade={targetGrade}
-            />
           )}
 
           {/* AI Score Prediction for Pending Assessments */}

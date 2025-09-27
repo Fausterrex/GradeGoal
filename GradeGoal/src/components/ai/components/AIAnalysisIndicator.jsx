@@ -14,7 +14,6 @@ import {
   FaSync, 
   FaSpinner, 
   FaExclamationTriangle,
-  FaCheckCircle,
   FaBrain
 } from 'react-icons/fa';
 
@@ -31,8 +30,6 @@ const AIAnalysisIndicator = ({
   const { currentUser } = useAuth();
   const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [needsReanalysis, setNeedsReanalysis] = useState(false);
-  const [lastAnalysisData, setLastAnalysisData] = useState(null);
   const [showIndicator, setShowIndicator] = useState(false);
 
   // Create a hash of current course data to detect changes
@@ -90,20 +87,8 @@ const AIAnalysisIndicator = ({
         });
         setHasExistingAnalysis(exists);
         
-        // Get stored analysis data hash for comparison
-        const storedHash = localStorage.getItem(`ai-analysis-hash-${course.id}`);
-        
-        if (exists && storedHash && storedHash !== currentDataHash) {
-          // Data has changed since last analysis
-          setNeedsReanalysis(true);
-        } else {
-          // No changes detected or no analysis exists
-          setNeedsReanalysis(false);
-        }
-        
         // Always show the indicator (like Academic Goals cards)
         setShowIndicator(true);
-        setLastAnalysisData(storedHash);
       } catch (error) {
         console.error('Error checking analysis status:', error);
         setShowIndicator(true);
@@ -173,7 +158,6 @@ const AIAnalysisIndicator = ({
         
         // Update state
         setHasExistingAnalysis(true);
-        setNeedsReanalysis(false);
         // Keep showing the indicator (like Academic Goals cards)
         
         // Notify parent component

@@ -289,38 +289,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
   }
 };
 
-/**
- * Save AI recommendations to database
- */
-export const saveAIRecommendations = async (recommendations) => {
-  try {
-    // For now, we'll simulate saving to database by returning mock data
-    // This avoids the database connection issues
-    console.log('Simulating AI recommendation save:', recommendations);
-    
-    // Simulate a successful save
-    const mockSavedRecommendation = {
-      recommendationId: Date.now(),
-      userId: recommendations.userId || 1,
-      courseId: recommendations.courseId || 1,
-      title: recommendations.title || "AI Generated Recommendation",
-      content: recommendations.content || "This is a mock AI recommendation",
-      recommendationType: recommendations.recommendationType || "AI_ANALYSIS",
-      priority: recommendations.priority || "MEDIUM",
-      aiGenerated: true,
-      aiConfidence: 0.85,
-      aiModel: "gemini-2.0-flash-exp",
-      createdAt: new Date().toISOString(),
-      isRead: false,
-      isDismissed: false
-    };
-
-    return mockSavedRecommendation;
-  } catch (error) {
-    console.error('Error saving AI recommendations:', error);
-    throw error;
-  }
-};
 
 /**
  * Get AI recommendations from database

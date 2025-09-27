@@ -15,7 +15,6 @@ src/components/ai/
 │   ├── geminiService.js          # Gemini AI API integration
 │   └── aiAnalysisService.js      # AI analysis data service
 ├── utils/               # AI utility functions
-│   ├── aiHelpers.js             # Helper functions for AI features
 │   ├── achievementProbabilityUtils.js  # Achievement probability calculations
 │   ├── aiPredictionUtils.js     # AI prediction utilities
 │   ├── gradeCalculationUtils.js # Grade calculation utilities
@@ -127,11 +126,10 @@ source database/ai_recommendations_migration.sql
 ```
 
 ### 3. Backend API
-Ensure the Spring Boot backend has the AI recommendation endpoints:
-- `POST /api/ai-recommendations` - Save AI recommendations
-- `GET /api/ai-recommendations/{userId}` - Get user AI recommendations
-- `PUT /api/ai-recommendations/{id}/read` - Mark as read
-- `PUT /api/ai-recommendations/{id}/dismiss` - Dismiss recommendation
+Ensure the Spring Boot backend has the AI analysis endpoints:
+- `POST /api/ai-analysis` - Save AI analysis data
+- `GET /api/ai-analysis/{userId}/{courseId}/exists` - Check if analysis exists
+- `GET /api/ai-analysis/{userId}/{courseId}` - Get AI analysis data
 
 ## 📊 AI Output Types
 
