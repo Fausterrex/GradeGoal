@@ -3,13 +3,14 @@
 // ========================================
 // Main dashboard layout that organizes all course detail components
 
-import React from "react";
+import React, { useState } from "react";
 import UnifiedAnalytics from "./UnifiedAnalytics";
 import UnifiedProgress from "./UnifiedProgress";
 import UnifiedRecommendations from "./UnifiedRecommendations";
 import UnifiedGradeBreakdown from "./UnifiedGradeBreakdown";
 import UserProgress from "./UserProgress";
 import GoalProgress from "./GoalProgress";
+import AIAnalysisIndicator from "../../../ai/components/AIAnalysisIndicator";
 
 
 
@@ -24,10 +25,25 @@ function Dashboard({
   userAnalytics,
   onSetGoal = () => {} // Callback for setting goals
 }) {
+  const [aiAnalysisRefreshTrigger, setAiAnalysisRefreshTrigger] = useState(0);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100">
       <div className="w-full px-4 lg:px-6 py-8">
+        
+        {/* AI Analysis Indicator */}
+        <AIAnalysisIndicator
+          course={course}
+          grades={grades}
+          categories={categories}
+          targetGrade={targetGrade}
+          currentGrade={currentGrade}
+          onAnalysisComplete={(result) => {
+            console.log('AI Analysis completed:', result);
+            // Trigger refresh of AI recommendations
+            setAiAnalysisRefreshTrigger(prev => prev + 1);
+          }}
+        />
         
         {/* Two-Row Layout - Top: Sidebar + Main Content, Bottom: Full-Width Grade Breakdown */}
         <div className="space-y-8">
@@ -117,6 +133,7 @@ function Dashboard({
                   targetGrade={targetGrade}
                   currentGrade={currentGrade}
                   userAnalytics={userAnalytics}
+                  refreshTrigger={aiAnalysisRefreshTrigger}
                 />
               </div>
             </div>

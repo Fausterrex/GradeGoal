@@ -66,6 +66,15 @@ const AIFocusIndicator = ({ categoryName, focusData, isVisible = true }) => {
     }
   };
 
+  const getEmptyCategoryMessage = (priority) => {
+    switch (priority) {
+      case 'HIGH': return 'Critical - Add Assessments Now';
+      case 'MEDIUM': return 'Important - Add Assessments Soon';
+      case 'LOW': return 'Consider Adding Assessments';
+      default: return 'Empty Category';
+    }
+  };
+
   const colors = getPriorityColor(focusData.priority);
 
   return (
@@ -82,7 +91,7 @@ const AIFocusIndicator = ({ categoryName, focusData, isVisible = true }) => {
                 {focusData.priority} PRIORITY
               </span>
               <span className={`text-sm font-semibold ${colors.text}`}>
-                {getPriorityMessage(focusData.priority)}
+                {focusData.isEmptyCategory ? getEmptyCategoryMessage(focusData.priority) : getPriorityMessage(focusData.priority)}
               </span>
             </div>
             <div className={`text-sm ${colors.text} mt-1`}>
@@ -140,6 +149,28 @@ const AIFocusIndicator = ({ categoryName, focusData, isVisible = true }) => {
                       </li>
                     ))}
                   </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Empty Category Recommendations */}
+            {focusData.isEmptyCategory && focusData.recommendations && (
+              <div className="flex items-start space-x-3">
+                <div className={`p-1.5 rounded-lg ${colors.bg} ${colors.border} border`}>
+                  <Target className={`w-4 h-4 ${colors.icon}`} />
+                </div>
+                <div className="flex-1">
+                  <div className={`text-sm font-medium ${colors.text} mb-2`}>
+                    Recommended Actions
+                  </div>
+                  <div className="space-y-2">
+                    {focusData.recommendations.map((recommendation, index) => (
+                      <div key={index} className={`text-sm ${colors.text} opacity-90 leading-relaxed flex items-start space-x-2`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${colors.icon} mt-2 flex-shrink-0`}></span>
+                        <span>{recommendation}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

@@ -4,6 +4,7 @@
 // Service for integrating with Google Gemini AI API
 // Provides intelligent academic recommendations and predictions
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { setAIAnalysisData } from './aiAnalysisService';
 import { saveAIAnalysisData } from './aiDatabaseService';
 import DatabaseGradeService from '../../../services/databaseGradeService.js';
@@ -12,15 +13,23 @@ import DatabaseGradeService from '../../../services/databaseGradeService.js';
 import { 
   calculateCurrentGrade, 
   calculateGPAFromPercentage, 
-  postProcessAIResponse,
-  calculateEnhancedAchievementProbability 
+  postProcessAIResponse
 } from '../utils/achievementProbabilityUtils.js';
 import { getFallbackRecommendations } from '../utils/aiPredictionUtils.js';
 import { buildRealAnalysisPrompt, parseRealAIResponse } from '../utils/aiResponseUtils.js';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'your-gemini-api-key-here';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Initialize Google Generative AI
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.0-flash-exp",
+  generationConfig: {
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens: 2048,
+  }
+});
 
 // Cache for AI recommendations to avoid unnecessary API calls
 const aiRecommendationCache = new Map();
@@ -28,6 +37,30 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // In-memory storage for AI analysis (temporary solution)
 export const aiAnalysisStorage = new Map();
+
+/**
+ * Clear AI analysis cache for a specific course or all courses
+ */
+export const clearAIAnalysisCache = (userId = null, courseId = null) => {
+  if (userId && courseId) {
+    // Clear specific course cache
+    const storageKey = `${userId}-${courseId}`;
+    aiAnalysisStorage.delete(storageKey);
+    
+    // Clear from recommendation cache
+    for (const [key, value] of aiRecommendationCache.entries()) {
+      if (value.data.userId === userId && value.data.courseId === courseId) {
+        aiRecommendationCache.delete(key);
+      }
+    }
+    console.log(`🗑️ Cleared AI analysis cache for user ${userId}, course ${courseId}`);
+  } else {
+    // Clear all cache
+    aiAnalysisStorage.clear();
+    aiRecommendationCache.clear();
+    console.log('🗑️ Cleared all AI analysis cache');
+  }
+};
 
 /**
  * Generate a cache key for AI recommendations
@@ -47,161 +80,6 @@ const generateCacheKey = (courseData, goalData, priorityLevel) => {
  */
 const isCacheValid = (cacheEntry) => {
   return cacheEntry && (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
-};
-
-/**
- * Save AI analysis to database for persistence
- */
-const saveAIAnalysisToDatabase = async (aiResult, courseData, goalData) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/ai-analysis/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId: courseData.course?.userId || 1,
-        courseId: courseData.course?.id || 1,
-        analysisData: aiResult.content,
-        analysisType: 'COURSE_ANALYSIS',
-        aiModel: aiResult.aiModel || 'gemini-2.0-flash-exp',
-        confidence: aiResult.aiConfidence || 0.85
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save AI analysis: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('✅ AI analysis saved to database:', result);
-    return result;
-  } catch (error) {
-    console.error('❌ Error saving AI analysis to database:', error);
-    throw error;
-  }
-};
-
-/**
- * Get AI analysis from database
- */
-export const getAIAnalysisFromDatabase = async (userId, courseId) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/ai-analysis/course/${courseId}/user/${userId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get AI analysis: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success && result.hasAnalysis) {
-      console.log('✅ Retrieved AI analysis from database');
-      return result.analysis;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('❌ Error getting AI analysis from database:', error);
-    return null;
-  }
-};
-
-/**
- * Save AI assessment prediction to database
- */
-export const saveAssessmentPredictionToDatabase = async (userId, courseId, assessmentId, predictionData) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/ai-analysis/assessment-prediction/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        courseId,
-        assessmentId,
-        predictedScore: predictionData.predictedScore,
-        predictedPercentage: predictionData.predictedPercentage,
-        predictedGpa: predictionData.predictedGpa,
-        confidenceLevel: predictionData.confidenceLevel || 'MEDIUM',
-        recommendedScore: predictionData.recommendedScore,
-        recommendedPercentage: predictionData.recommendedPercentage,
-        analysisReasoning: predictionData.analysisReasoning
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save assessment prediction: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('✅ Assessment prediction saved to database:', result);
-    return result;
-  } catch (error) {
-    console.error('❌ Error saving assessment prediction to database:', error);
-    throw error;
-  }
-};
-
-/**
- * Get AI assessment predictions for a course
- */
-export const getAssessmentPredictionsFromDatabase = async (userId, courseId) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/ai-analysis/course/${courseId}/user/${userId}/predictions`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get assessment predictions: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      console.log('✅ Retrieved assessment predictions from database:', result.count);
-      return result.predictions;
-    }
-    
-    return [];
-  } catch (error) {
-    console.error('❌ Error getting assessment predictions from database:', error);
-    return [];
-  }
-};
-
-/**
- * Check if AI analysis exists in database
- */
-export const checkAIAnalysisExists = async (userId, courseId) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/exists`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to check AI analysis: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result.success && result.exists;
-  } catch (error) {
-    console.error('❌ Error checking AI analysis existence:', error);
-    return false;
-  }
-};
-
-/**
- * Clear AI recommendation cache
- */
-export const clearAIRecommendationCache = () => {
-  aiRecommendationCache.clear();
-  console.log('AI recommendation cache cleared');
-};
-
-/**
- * Get cache statistics
- */
-export const getCacheStats = () => {
-  return {
-    size: aiRecommendationCache.size,
-    entries: Array.from(aiRecommendationCache.keys())
-  };
 };
 
 /**
@@ -303,42 +181,58 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Build comprehensive prompt for real AI analysis
     const prompt = buildRealAnalysisPrompt(courseData, goalData, priorityLevel);
     
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2048,
+    let aiResponse;
+    const maxRetries = 3;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 [Gemini API] Attempt ${attempt}/${maxRetries}`);
+        // Use Google Generative AI package
+        const result = await model.generateContent(prompt);
+        aiResponse = result.response.text();
+        console.log(`✅ [Gemini API] Success on attempt ${attempt}`);
+        break; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        console.warn(`❌ [Gemini API] Attempt ${attempt} failed:`, error.name, error.message);
+        
+        // Handle package-specific errors
+        if (error.name === 'QuotaExceededError' || error.message?.includes('429')) {
+          console.warn(`🚫 Gemini API rate limit exceeded. Please wait before making more requests.`);
+          break; // Don't retry rate limit errors
+        } else if (error.name === 'ServiceUnavailableError' || error.message?.includes('503')) {
+          console.warn(`🚫 Gemini API service temporarily unavailable (attempt ${attempt}/${maxRetries})`);
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+            console.log(`⏳ Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // Retry
+          } else {
+            console.log('⏳ Max retries reached, falling back to enhanced local AI analysis...');
+          }
+        } else if (error.name === 'PermissionDeniedError' || error.message?.includes('403')) {
+          console.warn(`🚫 Gemini API permission denied. Please check your API key.`);
+          break; // Don't retry permission errors
+        } else {
+          console.warn(`Gemini API error: ${error.name || 'Unknown'} - ${error.message || 'No message'}`);
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            console.log(`⏳ Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // Retry
+          } else {
+            console.log('⏳ Max retries reached, falling back to local AI analysis...');
+          }
         }
-      })
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn(`🚫 Gemini API rate limit exceeded (429). Please wait before making more requests.`);
-        console.log('⏳ Falling back to enhanced local AI analysis...');
-      } else if (response.status === 503) {
-        console.warn(`🚫 Gemini API service temporarily unavailable (503). This is a temporary issue.`);
-        console.log('⏳ Falling back to enhanced local AI analysis...');
-      } else {
-        console.warn(`Gemini API error: ${response.status} - ${response.statusText}`);
-        console.log('Falling back to local AI analysis due to API error');
       }
+    }
+    
+    // If all retries failed, use fallback
+    if (!aiResponse) {
+      console.log('🔄 Using fallback recommendations after API failure');
       return await getFallbackRecommendations(courseData, goalData);
     }
-
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text;
     
     // Parse the AI response into structured data
     const parsedAnalysis = parseRealAIResponse(aiResponse, courseData, goalData);
@@ -394,25 +288,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     return getFallbackRecommendations(courseData, goalData);
   }
 };
-
-// buildRealAnalysisPrompt is now imported from aiResponseUtils.js
-
-// postProcessAIResponse is now imported from achievementProbabilityUtils.js
-
-
-// parseRealAIResponse is now imported from aiResponseUtils.js
-
-// calculateGPAFromPercentage, calculateCurrentGrade, and calculateRemainingWeight are now imported from utility modules
-
-// buildRecommendationPrompt is now imported from aiResponseUtils.js
-
-// parseAIResponse and determinePriority are now imported from aiResponseUtils.js
-
-// getFallbackRecommendations is now imported from aiPredictionUtils.js
-
-// All prediction and analysis functions are now imported from aiPredictionUtils.js
-
-// calculateEnhancedAchievementProbability is now imported from achievementProbabilityUtils.js
 
 /**
  * Save AI recommendations to database
@@ -606,3 +481,16 @@ export const getAIRecommendations = async (userId, courseId = null) => {
     return [];
   }
 };
+
+// buildRealAnalysisPrompt is now imported from aiResponseUtils.js
+
+// postProcessAIResponse is now imported from achievementProbabilityUtils.js
+
+
+// parseRealAIResponse is now imported from aiResponseUtils.js
+
+// calculateGPAFromPercentage, calculateCurrentGrade, and calculateRemainingWeight are now imported from utility modules
+
+// buildRecommendationPrompt is now imported from aiResponseUtils.js
+
+// parseAIResponse and determinePriority are now imported from aiResponseUtils.js

@@ -48,7 +48,7 @@ public class AIAnalysisPersistenceService {
             newAnalysis.setAnalysisData(analysisData);
             newAnalysis.setAiModel(aiModel);
             newAnalysis.setAiConfidence(confidence);
-            newAnalysis.setExpiresAt(LocalDateTime.now().plusHours(1)); // 1 hour cache
+            newAnalysis.setExpiresAt(LocalDateTime.now().plusDays(30)); // 30 days cache
             newAnalysis.setIsActive(true);
             
             AIAnalysis saved = aiAnalysisRepository.save(newAnalysis);

@@ -100,8 +100,8 @@ function AssessmentCategory({
           </button>
         </div>
         
-        {/* AI Focus Indicator - Only show if there are assessments to analyze */}
-        {focusIndicator && categoryGrades.length > 0 && (
+        {/* AI Focus Indicator - Show for both categories with assessments and empty categories */}
+        {focusIndicator && (
           <div className="mt-4 relative z-10">
             <AIFocusIndicator 
               categoryName={category.categoryName || category.name}

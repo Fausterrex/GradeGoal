@@ -18,6 +18,16 @@ export const getCurrentAIAnalysis = () => {
 };
 
 /**
+ * Clear AI analysis data
+ */
+export const clearAIAnalysisData = () => {
+  console.log('🗑️ [clearAIAnalysisData] Clearing AI analysis data');
+  aiAnalysisData = null;
+  // Notify listeners that data was cleared
+  aiAnalysisListeners.forEach(listener => listener(null));
+};
+
+/**
  * Set AI analysis data and notify listeners
  */
 export const setAIAnalysisData = (data) => {
@@ -55,14 +65,38 @@ export const getFocusIndicatorForCategory = (categoryName) => {
       ? JSON.parse(aiAnalysisData.content) 
       : aiAnalysisData.content;
     
-    
     // Try both singular and plural forms
     const categoryKey = categoryName.toLowerCase();
     const pluralKey = categoryKey + 's';
     
-    return content.focusIndicators?.[categoryKey] || 
-           content.focusIndicators?.[pluralKey] || 
-           null;
+    // First check standard focus indicators
+    const standardIndicator = content.focusIndicators?.[categoryKey] || 
+                             content.focusIndicators?.[pluralKey];
+    
+    if (standardIndicator) {
+      return standardIndicator;
+    }
+    
+    // Then check empty categories
+    if (content.focusIndicators?.emptyCategories && Array.isArray(content.focusIndicators.emptyCategories)) {
+      const emptyCategoryIndicator = content.focusIndicators.emptyCategories.find(
+        emptyCat => emptyCat.categoryName.toLowerCase() === categoryKey || 
+                   emptyCat.categoryName.toLowerCase() === pluralKey
+      );
+      
+      if (emptyCategoryIndicator) {
+        // Convert empty category format to standard focus indicator format
+        return {
+          needsAttention: emptyCategoryIndicator.needsAttention,
+          reason: emptyCategoryIndicator.reason,
+          priority: emptyCategoryIndicator.priority,
+          recommendations: emptyCategoryIndicator.recommendations,
+          isEmptyCategory: true
+        };
+      }
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error parsing focus indicators:', error);
     return null;
@@ -105,7 +139,7 @@ export const getScorePredictionForAssessment = (assessmentName, categoryName) =>
 };
 
 /**
- * Get achievement probability data
+ * Get achievement probability data from global aiAnalysisData
  */
 export const getAchievementProbability = () => {
   console.log('🎯 [getAchievementProbability] Starting calculation...');
@@ -121,30 +155,50 @@ export const getAchievementProbability = () => {
     return null;
   }
   
+  return getAchievementProbabilityFromData(aiAnalysisData);
+};
+
+/**
+ * Get achievement probability data from provided analysis data
+ */
+export const getAchievementProbabilityFromData = (analysisData) => {
+  console.log('🎯 [getAchievementProbabilityFromData] Starting calculation...');
+  console.log('🎯 [getAchievementProbabilityFromData] Analysis Data:', {
+    hasData: !!analysisData,
+    hasContent: !!analysisData?.content,
+    contentType: typeof analysisData?.content,
+    dataKeys: analysisData ? Object.keys(analysisData) : 'no data'
+  });
+  
+  if (!analysisData || !analysisData.content) {
+    console.log('🎯 [getAchievementProbabilityFromData] No analysis data available');
+    return null;
+  }
+  
   try {
-    const content = typeof aiAnalysisData.content === 'string' 
-      ? JSON.parse(aiAnalysisData.content) 
-      : aiAnalysisData.content;
+    const content = typeof analysisData.content === 'string' 
+      ? JSON.parse(analysisData.content) 
+      : analysisData.content;
     
-    console.log('🎯 [getAchievementProbability] Parsed content keys:', Object.keys(content));
+    console.log('🎯 [getAchievementProbabilityFromData] Parsed content keys:', Object.keys(content));
     
     // Check for new enhanced structure first
     if (content.targetGoalProbability) {
-      console.log('🎯 [getAchievementProbability] Found targetGoalProbability:', content.targetGoalProbability);
-      console.log('🎯 [getAchievementProbability] Probability value:', content.targetGoalProbability.probability);
+      console.log('🎯 [getAchievementProbabilityFromData] Found targetGoalProbability:', content.targetGoalProbability);
+      console.log('🎯 [getAchievementProbabilityFromData] Probability value:', content.targetGoalProbability.probability);
       return content.targetGoalProbability;
     }
     
     // Fallback to old structure
     if (content.achievementProbability) {
-      console.log('🎯 [getAchievementProbability] Found achievementProbability (fallback):', content.achievementProbability);
+      console.log('🎯 [getAchievementProbabilityFromData] Found achievementProbability (fallback):', content.achievementProbability);
       return content.achievementProbability;
     }
     
-    console.log('🎯 [getAchievementProbability] No probability data found in content');
+    console.log('🎯 [getAchievementProbabilityFromData] No probability data found in content');
     return null;
   } catch (error) {
-    console.error('🎯 [getAchievementProbability] Error parsing achievement probability:', error);
+    console.error('🎯 [getAchievementProbabilityFromData] Error parsing achievement probability:', error);
     return null;
   }
 };
@@ -152,12 +206,19 @@ export const getAchievementProbability = () => {
 /**
  * Load AI analysis data for a course (enhanced version that handles both database and generation)
  */
-export const loadAIAnalysisForCourse = async (userId, courseId) => {
+export const loadAIAnalysisForCourse = async (userId, courseId, forceRefresh = false) => {
   try {
     console.log('🔄 [loadAIAnalysisForCourse] Loading AI analysis for user:', userId, 'course:', courseId);
     
+    // If force refresh is requested, clear cache first
+    if (forceRefresh) {
+      const { clearAIAnalysisCache } = await import('./geminiService');
+      clearAIAnalysisCache(userId, courseId);
+      console.log('🔄 [loadAIAnalysisForCourse] Cache cleared for fresh analysis');
+    }
+    
     // First, check if we have cached analysis data in memory
-    if (aiAnalysisData && aiAnalysisData.userId === userId && aiAnalysisData.courseId === courseId) {
+    if (aiAnalysisData && aiAnalysisData.userId === userId && aiAnalysisData.courseId === courseId && !forceRefresh) {
       console.log('✅ [loadAIAnalysisForCourse] Using cached analysis data');
       return aiAnalysisData;
     }
@@ -175,31 +236,9 @@ export const loadAIAnalysisForCourse = async (userId, courseId) => {
       return dbAnalysisData;
     }
     
-    // If no analysis exists in database, generate new one
-    console.log('🤖 [loadAIAnalysisForCourse] No existing analysis found, generating new analysis...');
-    const recommendations = await getAIRecommendations(userId, courseId);
-    if (recommendations && recommendations.length > 0) {
-      const analysisData = recommendations[0]; // Get the first (most recent) analysis
-      
-      // Save to database for future use
-      try {
-        await saveAIAnalysisData(
-          userId, 
-          courseId, 
-          analysisData.content, 
-          'COURSE_ANALYSIS'
-        );
-        console.log('💾 [loadAIAnalysisForCourse] Saved new analysis to database');
-      } catch (saveError) {
-        console.warn('⚠️ [loadAIAnalysisForCourse] Failed to save analysis to database:', saveError);
-        // Continue with in-memory data even if save fails
-      }
-      
-      setAIAnalysisData(analysisData);
-      return analysisData;
-    }
-    
-    console.log('❌ [loadAIAnalysisForCourse] No analysis data available');
+    // If no analysis exists in database, clear any cached data for this course
+    console.log('❌ [loadAIAnalysisForCourse] No existing analysis found in database');
+    clearAIAnalysisData();
     return null;
   } catch (error) {
     console.error('❌ [loadAIAnalysisForCourse] Error loading AI analysis:', error);

@@ -43,9 +43,11 @@ export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
     
     // Check if analysis exists in database
     const existsResponse = await checkAIAnalysisExists(userId, courseId);
+    console.log('🔍 [loadAIAnalysisFromDatabase] Exists check response:', existsResponse);
     if (existsResponse.success && existsResponse.exists) {
       console.log('📊 [loadAIAnalysisForCourse] Found existing analysis in database, loading...');
       const analysisResponse = await getAIAnalysis(userId, courseId);
+      console.log('🔍 [loadAIAnalysisFromDatabase] Analysis response:', analysisResponse);
       
       if (analysisResponse.success && analysisResponse.hasAnalysis) {
         const dbAnalysis = analysisResponse.analysis;

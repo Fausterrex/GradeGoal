@@ -204,12 +204,6 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
     return courses.map((course) => {
       let status = "ON TRACK";
 
-      if (course.isActive === false) {
-        status = "ARCHIVED";
-      } else {
-        status = "ON TRACK";
-      }
-
       // Get target grade from academic goals
       const courseId = course.id || course.courseId;
       const targetGrade = targetGrades[courseId];
@@ -218,6 +212,34 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       // Get actual course GPA from gpaData
       const courseGPA = gpaData.courseGPAs[courseId] || 0;
       const gradeDisplay = courseGPA > 0 ? courseGPA.toFixed(2) : "N/A";
+
+      // Check if course is archived first
+      if (course.isActive === false) {
+        status = "ARCHIVED";
+      } else {
+        // Determine status based on target GPA and current GPA
+        if (!targetGrade || targetGrade === null || targetGrade === undefined) {
+          status = "Set Target GPA";
+        } else if (!courseGPA || courseGPA === 0 || courseGPA === null || courseGPA === undefined) {
+          status = "Status Not Available";
+        } else {
+          // Compare current GPA with target GPA
+          const currentGPAValue = parseFloat(courseGPA);
+          const targetGPAValue = parseFloat(targetGrade);
+          
+          // Check if course is completed (progress >= 100%)
+          const courseProgress = course.progress || 0;
+          const isCompleted = courseProgress >= 100;
+          
+          if (currentGPAValue >= targetGPAValue) {
+            status = "EXCELLENT";
+          } else if (isCompleted) {
+            status = "CAN BE IMPROVED";
+          } else {
+            status = "ON TRACK";
+          }
+        }
+      }
 
       return {
         course: course.name,
@@ -532,6 +554,14 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
                             ? "bg-orange-100 text-orange-800"
                             : course.status === "ONGOING"
                             ? "bg-yellow-100 text-yellow-800"
+                            : course.status === "Set Target GPA"
+                            ? "bg-purple-100 text-purple-800"
+                            : course.status === "Status Not Available"
+                            ? "bg-gray-100 text-gray-800"
+                            : course.status === "CAN BE IMPROVED"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : course.status === "NEEDS IMPROVEMENT"
+                            ? "bg-red-100 text-red-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >

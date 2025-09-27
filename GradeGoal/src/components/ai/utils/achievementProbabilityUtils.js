@@ -188,90 +188,6 @@ export const calculateRemainingWeight = (categories) => {
 };
 
 /**
- * Calculate achievement probability based on current progress and time remaining
- */
-export const calculateAchievementProbability = (currentGPA, targetGPA, courseProgress = 0, targetDate = null) => {
-  if (!targetGPA || targetGPA <= 0) return 0;
-  
-  // If goal is already achieved, return 100% probability
-  if (currentGPA >= targetGPA) return 100;
-  
-  // Base probability from current progress toward target
-  const gpaProgress = (currentGPA / targetGPA) * 100;
-  
-  // Course completion factor - but don't penalize too heavily for incomplete courses
-  const completionFactor = Math.max(0.3, Math.min(courseProgress / 100, 1)); // Minimum 30% factor
-  
-  // Time factor - if target date is set and approaching, adjust probability
-  let timeFactor = 1;
-  if (targetDate) {
-    const today = new Date();
-    const target = new Date(targetDate);
-    const daysRemaining = Math.max(0, (target - today) / (1000 * 60 * 60 * 24));
-    
-    if (daysRemaining < 30) {
-      timeFactor = 0.9; // Less harsh penalty for approaching deadlines
-    } else if (daysRemaining < 60) {
-      timeFactor = 0.95;
-    }
-  }
-  
-  // Calculate final probability with more optimistic baseline
-  let probability = gpaProgress * completionFactor * timeFactor;
-  
-  // Boost probability significantly if already making good progress
-  if (gpaProgress > 90) {
-    probability = Math.min(probability * 1.2, 100); // 20% boost for excellent progress
-  } else if (gpaProgress > 80) {
-    probability = Math.min(probability * 1.15, 100); // 15% boost for very good progress
-  } else if (gpaProgress > 70) {
-    probability = Math.min(probability * 1.1, 100); // 10% boost for good progress
-  }
-  
-  // Ensure minimum realistic probability for reasonable progress
-  if (gpaProgress > 50) {
-    probability = Math.max(probability, gpaProgress * 0.8); // At least 80% of progress ratio
-  }
-  
-  return Math.round(Math.max(0, Math.min(100, probability)));
-};
-
-/**
- * Calculate enhanced achievement probability using AI insights
- */
-export const calculateEnhancedAchievementProbability = (courseData, goalData, aiAnalysis) => {
-  const { currentGPA, progress } = courseData;
-  const { targetValue } = goalData;
-  
-  // If goal is already achieved, return 100% immediately
-  if (currentGPA >= targetValue) {
-    return 100;
-  }
-  
-  if (!aiAnalysis || !aiAnalysis.targetGoalProbability) {
-    // Fallback to basic calculation using the improved gpaConversionUtils function
-    return calculateAchievementProbability(currentGPA, targetValue, progress || 0);
-  }
-
-  const { achievable, probability } = aiAnalysis.targetGoalProbability;
-  
-  if (!achievable) {
-    return 0;
-  }
-
-  // Extract probability percentage from string
-  const probabilityMatch = probability.match(/(\d+)%/);
-  const probabilityValue = probabilityMatch ? parseInt(probabilityMatch[1]) : 50;
-  
-  // Don't penalize based on course progress - AI should be more optimistic
-  // Instead, use progress as a confidence booster
-  const progressBonus = Math.min(progress / 100, 1) * 0.1; // Up to 10% bonus
-  const adjustedProbability = Math.min(probabilityValue + (progressBonus * 100), 100);
-  
-  return Math.max(adjustedProbability, 0);
-};
-
-/**
  * Calculate realistic achievement probability based on assessment scenarios
  */
 export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, categories, grades) => {
@@ -299,23 +215,36 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
   const currentGrade = calculateCurrentGrade(gradesArray, categories);
   console.log('🎯 [RealisticProbability] Current grade:', currentGrade);
 
-  // Find remaining assessments (ungraded or 0% scores)
+  // Find remaining assessments (ungraded or 0% scores) and empty categories
   const remainingAssessments = [];
   categories.forEach(category => {
     const categoryGrades = gradesArray.filter(g => g.categoryId === category.id);
-    categoryGrades.forEach(grade => {
-      let percentage = grade.percentage;
-      if (!percentage && grade.score !== undefined && grade.maxScore !== undefined) {
-        percentage = (grade.score / grade.maxScore) * 100;
-      }
-      if (percentage === 0 || percentage === null || percentage === undefined) {
-        remainingAssessments.push({
-          ...grade,
-          categoryWeight: category.weight,
-          categoryName: category.categoryName || category.name
-        });
-      }
-    });
+    
+    // If category has no assessments at all, add it as a remaining opportunity
+    if (categoryGrades.length === 0) {
+      remainingAssessments.push({
+        categoryId: category.id,
+        categoryWeight: category.weight,
+        categoryName: category.categoryName || category.name,
+        isEmptyCategory: true,
+        potentialPoints: category.weight // Full weight available
+      });
+    } else {
+      // Check for ungraded or 0% scores in existing assessments
+      categoryGrades.forEach(grade => {
+        let percentage = grade.percentage;
+        if (!percentage && grade.score !== undefined && grade.maxScore !== undefined) {
+          percentage = (grade.score / grade.maxScore) * 100;
+        }
+        if (percentage === 0 || percentage === null || percentage === undefined) {
+          remainingAssessments.push({
+            ...grade,
+            categoryWeight: category.weight,
+            categoryName: category.categoryName || category.name
+          });
+        }
+      });
+    }
   });
 
   console.log('🎯 [RealisticProbability] Remaining assessments:', remainingAssessments.length);
@@ -324,7 +253,11 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
   if (remainingAssessments.length === 0) {
     const probability = currentGPA >= targetGPA ? 100 : 0;
     console.log('🎯 [RealisticProbability] No remaining assessments, probability:', probability);
-    return probability;
+    return {
+      probability,
+      bestPossibleGPA: currentGPA,
+      confidence: probability === 100 ? "HIGH" : "LOW"
+    };
   }
 
   // Calculate different scenarios
@@ -406,12 +339,12 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
           totalWeightedScore += (finalCategoryAverage * category.weight / 100);
           totalWeight += category.weight;
         } else {
-          // No graded assessments, use scenario performance
+          // No graded assessments (empty category), use scenario performance
           const scenarioPerformance = 100 * scenario.multiplier;
           totalWeightedScore += (scenarioPerformance * category.weight / 100);
           totalWeight += category.weight;
           
-          console.log(`🎯 [RealisticProbability] ${scenario.name} - ${category.categoryName || category.name}:`, {
+          console.log(`🎯 [RealisticProbability] ${scenario.name} - ${category.categoryName || category.name} (EMPTY):`, {
             scenarioPerformance: scenarioPerformance.toFixed(1),
             categoryWeight: category.weight,
             contribution: (scenarioPerformance * category.weight / 100).toFixed(1),

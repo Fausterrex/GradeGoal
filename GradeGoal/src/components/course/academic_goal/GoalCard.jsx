@@ -7,8 +7,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Edit2, Trash2, Target, Calendar, TrendingUp, TrendingDown, Book, Award, Clock } from "lucide-react";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "./goalProgress";
 import { getGoalTypeLabel, getPriorityColor, getCourseName, formatGoalDate } from "./goalUtils";
-import AIAnalysisButton from "../../ai/components/AIAnalysisButton";
-import { getAssessmentCategoriesByCourseId } from "../../../backend/api";
+import AIAnalysisIndicator from "../../ai/components/AIAnalysisIndicator";
+import AIAchievementProbability from "../../ai/components/AIAchievementProbability";
+import { getAssessmentCategoriesByCourseId, checkAIAnalysisExists } from "../../../backend/api";
+import { getAchievementProbability, getAchievementProbabilityFromData, loadAIAnalysisForCourse } from "../../ai/services/aiAnalysisService";
+import { useAuth } from "../../../context/AuthContext";
+import { getUserProfile } from "../../../backend/api";
 
 const GoalCard = ({
   goal,
@@ -36,6 +40,10 @@ const GoalCard = ({
 
   const [categories, setCategories] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [aiAchievementProbability, setAiAchievementProbability] = useState(null);
+  const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
+  
+  const { currentUser } = useAuth();
 
   // Memoize the goal progress calculation to prevent infinite loops
   const memoizedGoalProgress = useMemo(() => {
@@ -66,6 +74,63 @@ const GoalCard = ({
     Object.keys(grades).join(','),
     allGoals.length
   ]);
+
+  // Load existing AI analysis and achievement probability on mount
+  useEffect(() => {
+    const loadExistingAIAnalysis = async () => {
+      if (!goal || !currentUser?.email) return;
+      
+      try {
+        // Get user profile to get database user ID
+        const userProfile = await getUserProfile(currentUser.email);
+        if (!userProfile?.userId) return;
+        
+        // Determine course ID for analysis check
+        const courseId = goal.goalType === 'CUMMULATIVE_GPA' ? 0 : goal.courseId;
+        
+        // Check if AI analysis exists
+        const existsResponse = await checkAIAnalysisExists(userProfile.userId, courseId);
+        const exists = existsResponse.success && existsResponse.exists;
+        
+        console.log('🎯 [GoalCard] Checking existing AI analysis:', {
+          goalType: goal.goalType,
+          courseId,
+          exists
+        });
+        
+        setHasExistingAnalysis(exists);
+        
+        // If analysis exists, load the analysis data first, then get the achievement probability
+        if (exists) {
+          console.log('🎯 [GoalCard] Loading existing AI analysis data...');
+          try {
+            // Load the analysis data into memory first
+            const analysisData = await loadAIAnalysisForCourse(userProfile.userId, courseId);
+            if (analysisData) {
+              console.log('🎯 [GoalCard] Analysis data loaded, getting achievement probability...');
+              
+              // Get probability directly from the loaded analysis data
+              const probability = getAchievementProbabilityFromData(analysisData);
+              if (probability) {
+                console.log('🎯 [GoalCard] Loaded existing AI achievement probability:', probability);
+                setAiAchievementProbability(probability);
+              } else {
+                console.log('🎯 [GoalCard] No probability data found in analysis');
+              }
+            } else {
+              console.log('🎯 [GoalCard] Failed to load analysis data');
+            }
+          } catch (error) {
+            console.error('🎯 [GoalCard] Error loading analysis data:', error);
+          }
+        }
+      } catch (error) {
+        console.error('🎯 [GoalCard] Error loading existing AI analysis:', error);
+      }
+    };
+    
+    loadExistingAIAnalysis();
+  }, [goal, currentUser?.email]);
 
   // Fetch assessment categories for course goals
   useEffect(() => {
@@ -155,10 +220,42 @@ const GoalCard = ({
 
   const priorityStyles = getPriorityStyles(goal.priority);
 
+  // Get goal type specific colors
+  const getGoalTypeColors = (goalType) => {
+    switch (goalType) {
+      case 'COURSE_GRADE':
+        return {
+          cardBg: 'bg-green-50',
+          headerBg: 'bg-gradient-to-r from-green-500 to-green-600',
+          border: 'border-green-200'
+        };
+      case 'SEMESTER_GPA':
+        return {
+          cardBg: 'bg-purple-50',
+          headerBg: 'bg-gradient-to-r from-purple-500 to-purple-600',
+          border: 'border-purple-200'
+        };
+      case 'CUMMULATIVE_GPA':
+        return {
+          cardBg: 'bg-orange-50',
+          headerBg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+          border: 'border-orange-200'
+        };
+      default:
+        return {
+          cardBg: 'bg-white',
+          headerBg: priorityStyles.background,
+          border: priorityStyles.border
+        };
+    }
+  };
+
+  const goalTypeColors = getGoalTypeColors(goal.goalType);
+
   return (
-    <div className={`bg-white rounded-2xl shadow-md hover:shadow-lg border ${priorityStyles.border} transition-all duration-300 overflow-hidden`}>
+    <div className={`${goalTypeColors.cardBg} rounded-2xl shadow-md hover:shadow-lg border ${goalTypeColors.border} transition-all duration-300 overflow-hidden`}>
       {/* Clean Header */}
-      <div className={`${priorityStyles.background} p-4 relative`}>
+      <div className={`${goalTypeColors.headerBg} p-4 relative`}>
         {/* Action Buttons - Top Right */}
         <div className="absolute top-3 right-3 flex space-x-1">
           <button
@@ -332,30 +429,163 @@ const GoalCard = ({
 
 
         {/* AI Analysis Section - Clean & Centered */}
-        {!progressData.isCourseCompleted && !isCompact && (
+        {!isCompact && (
           <div className="mt-5 pt-4 border-t border-gray-100">
             <div className="text-center">
-              <AIAnalysisButton
-                course={courses.find(c => c.id === goal.courseId)}
-                goal={goal}
-                grades={(() => {
-                  // Get grades for this specific course by collecting all grades from categories
-                  if (!goal.courseId || !categories.length) return [];
-                  
-                  const courseGrades = [];
+              {/* Requirement Indicator */}
+              {(() => {
+                const getRequirementInfo = () => {
+                  if (goal.goalType === 'COURSE_GRADE') {
+                    // Count current assessments
+                    let assessmentCount = 0;
                   categories.forEach(category => {
                     const categoryGrades = grades[category.id] || [];
-                    courseGrades.push(...categoryGrades);
-                  });
+                      categoryGrades.forEach(grade => {
+                        if (grade.score !== null && grade.score !== undefined && grade.score > 0) {
+                          assessmentCount++;
+                        }
+                      });
+                    });
+                    
+                    const needed = Math.max(0, 2 - assessmentCount);
+                    return {
+                      current: assessmentCount,
+                      required: 2,
+                      type: 'assessments',
+                      message: needed > 0 
+                        ? `Need ${needed} more assessment${needed > 1 ? 's' : ''} for AI analysis`
+                        : 'Ready for AI analysis'
+                    };
+                  } else if (goal.goalType === 'SEMESTER_GPA') {
+                    // Count courses with assessments
+                    let coursesWithAssessments = 0;
+                    courses.forEach(course => {
+                      if (course.categories && course.categories.length > 0) {
+                        let hasValidAssessments = false;
+                        course.categories.forEach(category => {
+                          const categoryGrades = grades[category.id] || [];
+                          if (categoryGrades.some(grade => 
+                            grade.score !== null && grade.score !== undefined && grade.score > 0
+                          )) {
+                            hasValidAssessments = true;
+                          }
+                        });
+                        if (hasValidAssessments) {
+                          coursesWithAssessments++;
+                        }
+                      }
+                    });
+                    
+                    const needed = Math.max(0, 3 - coursesWithAssessments);
+                    return {
+                      current: coursesWithAssessments,
+                      required: 3,
+                      type: 'courses',
+                      message: needed > 0 
+                        ? `Need ${needed} more course${needed > 1 ? 's' : ''} with assessments for AI analysis`
+                        : 'Ready for AI analysis'
+                    };
+                  } else if (goal.goalType === 'CUMMULATIVE_GPA') {
+                    // Count courses with assessments (representing semesters)
+                    let coursesWithAssessments = 0;
+                    courses.forEach(course => {
+                      if (course.categories && course.categories.length > 0) {
+                        let hasValidAssessments = false;
+                        course.categories.forEach(category => {
+                          const categoryGrades = grades[category.id] || [];
+                          if (categoryGrades.some(grade => 
+                            grade.score !== null && grade.score !== undefined && grade.score > 0
+                          )) {
+                            hasValidAssessments = true;
+                          }
+                        });
+                        if (hasValidAssessments) {
+                          coursesWithAssessments++;
+                        }
+                      }
+                    });
+                    
+                    const needed = Math.max(0, 3 - coursesWithAssessments);
+                    return {
+                      current: coursesWithAssessments,
+                      required: 3,
+                      type: 'semesters',
+                      message: needed > 0 
+                        ? `Need ${needed} more semester${needed > 1 ? 's' : ''} with course data for AI analysis`
+                        : 'Ready for AI analysis'
+                    };
+                  }
                   
-                  return courseGrades;
+                  return {
+                    current: 0,
+                    required: 2,
+                    type: 'assessments',
+                    message: 'Need more data for AI analysis'
+                  };
+                };
+                
+                const requirementInfo = getRequirementInfo();
+                const isReady = requirementInfo.current >= requirementInfo.required;
+                
+                // Only show indicator if requirements are not met
+                if (isReady) {
+                  return null;
+                }
+                
+                return (
+                  <div className="mb-3">
+                    <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
+                      <span className="mr-1">⏳</span>
+                      {requirementInfo.message}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {requirementInfo.current} of {requirementInfo.required} {requirementInfo.type} available
+                    </div>
+                  </div>
+                );
                 })()}
+              
+              <AIAnalysisIndicator
+                course={goal.goalType === 'CUMMULATIVE_GPA' ? { id: 0, courseName: 'Cumulative GPA' } : courses.find(c => c.id === goal.courseId)}
+                grades={grades}
                 categories={categories}
-                onAnalysisComplete={(recommendations) => {
+                targetGrade={goal}
+                currentGrade={progressData.currentValue}
+                courses={courses}
+                onAnalysisComplete={async (recommendations) => {
                   // Handle the AI analysis completion
+                  console.log('🎯 [GoalCard] AI Analysis completed, fetching achievement probability...');
+                  
+                  // Get AI achievement probability after analysis completion
+                  try {
+                    const probability = getAchievementProbability();
+                    if (probability) {
+                      console.log('🎯 [GoalCard] Setting AI achievement probability:', probability);
+                      setAiAchievementProbability(probability);
+                    }
+                  } catch (error) {
+                    console.error('🎯 [GoalCard] Error fetching achievement probability:', error);
+                  }
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {/* AI Achievement Probability */}
+        {aiAchievementProbability && (
+          <div className="mt-4 mx-auto max-w-md">
+            <AIAchievementProbability
+              probability={aiAchievementProbability.probability}
+              confidence={aiAchievementProbability.confidence}
+              factors={aiAchievementProbability.factors}
+              bestPossibleGPA={aiAchievementProbability.bestPossibleGPA}
+              isVisible={true}
+              isCompact={isCompact}
+              currentGPA={progressData.currentValue}
+              targetGPA={goal.targetValue}
+              courseProgress={progressData.progressPercentage}
+            />
           </div>
         )}
 

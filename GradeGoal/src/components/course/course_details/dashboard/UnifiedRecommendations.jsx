@@ -23,7 +23,8 @@ function UnifiedRecommendations({
   categories, 
   targetGrade, 
   currentGrade,
-  userAnalytics 
+  userAnalytics,
+  refreshTrigger = 0
 }) {
   const { currentUser } = useAuth();
   const [aiRecommendations, setAiRecommendations] = useState([]);
@@ -60,7 +61,7 @@ function UnifiedRecommendations({
     };
 
     loadAIData();
-  }, [course?.id, course?.userId, currentUser?.uid]);
+  }, [course?.id, course?.userId, currentUser?.uid, refreshTrigger]);
 
   const handleDismissRecommendation = async (recommendationId) => {
     try {
