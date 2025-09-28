@@ -25,6 +25,7 @@ export function useAuth() {
 // Authentication provider component that wraps the entire application
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState();
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Creates a new user account with email and password
@@ -53,6 +54,10 @@ export function AuthProvider({ children }) {
       };
 
       setCurrentUser(updatedUser);
+      // Set user role if provided
+      if (userData.role) {
+        setUserRole(userData.role);
+      }
       return updatedUser;
     } else if (currentUser && userData) {
       const updatedUser = {
@@ -61,6 +66,10 @@ export function AuthProvider({ children }) {
       };
 
       setCurrentUser(updatedUser);
+      // Set user role if provided
+      if (userData.role) {
+        setUserRole(userData.role);
+      }
       return updatedUser;
     }
     return currentUser;
@@ -75,6 +84,7 @@ export function AuthProvider({ children }) {
 
   // Signs out the current user
   function logout() {
+    setUserRole(null);
     return signOut(auth);
   }
 
@@ -86,6 +96,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      if (!user) {
+        setUserRole(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -93,6 +106,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    userRole,
     loading,
     signup,
     login,

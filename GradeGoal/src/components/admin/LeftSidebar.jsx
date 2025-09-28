@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../drawables/logo.png';
+import logo from '../../drawables/logo.png';
 
 const LeftSidebar = ({ activeSection, onSectionChange, onLogout }) => {
   return (

@@ -10,7 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, facebookProvider } from "../../backend/firebase";
-import { loginUser, googleSignIn, facebookSignIn } from "../../backend/api";
+import { loginUser, googleSignIn, facebookSignIn, getUserProfile } from "../../backend/api";
 
 function Login() {
   const emailRef = useRef();
@@ -76,15 +76,25 @@ function Login() {
       const firebaseUser = cred.user;
       const userDataFromDB = await loginUser(firebaseUser.email);
 
+      // Get user profile to determine role
+      const userProfile = await getUserProfile(firebaseUser.email);
+
       const userData = {
         email: firebaseUser.email,
         displayName: userDataFromDB?.displayName || firebaseUser.email,
+        role: userProfile?.role || 'USER',
       };
 
       updateCurrentUserWithData(userData);
       setSuccess("Logged in successfully!");
+      
       setTimeout(() => {
-        navigate("/dashboard");
+        // Redirect based on role
+        if (userData.role === 'ADMIN') {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }, 1500);
     } catch (error) {
       if (error.code === "auth/invalid-credential") {
@@ -128,11 +138,26 @@ function Login() {
       };
 
       await googleSignIn(userData);
+      
+      // Get user profile to determine role for Google sign-in
+      try {
+        const userProfile = await getUserProfile(firebaseUser.email);
+        userData.role = userProfile?.role || 'USER';
+      } catch (error) {
+        // Default to USER role if profile fetch fails
+        userData.role = 'USER';
+      }
+      
       updateCurrentUserWithData(userData);
 
       setSuccess("Logged in with Google successfully!");
       setTimeout(() => {
-        navigate("/dashboard");
+        // Redirect based on role
+        if (userData.role === 'ADMIN') {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }, 1500);
     } catch (error) {
       setError("Failed to log in with Google: " + error.message);
@@ -163,11 +188,26 @@ function Login() {
       };
 
       await facebookSignIn(userData);
+      
+      // Get user profile to determine role for Facebook sign-in
+      try {
+        const userProfile = await getUserProfile(firebaseUser.email);
+        userData.role = userProfile?.role || 'USER';
+      } catch (error) {
+        // Default to USER role if profile fetch fails
+        userData.role = 'USER';
+      }
+      
       updateCurrentUserWithData(userData);
 
       setSuccess("Logged in with Facebook successfully!");
       setTimeout(() => {
-        navigate("/dashboard");
+        // Redirect based on role
+        if (userData.role === 'ADMIN') {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }, 1500);
     } catch (error) {
       setError("Failed to log in with Facebook: " + error.message);

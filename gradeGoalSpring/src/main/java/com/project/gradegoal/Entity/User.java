@@ -49,6 +49,10 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    private UserRole role = UserRole.USER;
+
     public User() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -166,6 +170,14 @@ public class User {
         this.lastLoginAt = lastLoginAt;
     }
 
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+
     public String getFullName() {
         return firstName + " " + lastName;
     }
@@ -184,6 +196,10 @@ public class User {
         WEB, MOBILE, BOTH
     }
 
+    public enum UserRole {
+        USER, ADMIN
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -192,6 +208,7 @@ public class User {
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", platformPreference=" + platformPreference +
+                ", role=" + role +
                 ", createdAt=" + createdAt +
                 '}';
     }

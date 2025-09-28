@@ -3,18 +3,6 @@
 -- Host: localhost    Database: gradegoal
 -- ------------------------------------------------------
 -- Server version	8.0.43
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
 --
 -- Table structure for table `academic_goals`
 --
@@ -668,6 +656,7 @@ CREATE TABLE `users` (
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `platform_preference` enum('BOTH','MOBILE','WEB') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `role` enum('USER','ADMIN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'USER',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -679,7 +668,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (_binary '',_binary '','2025-09-26 10:25:43.042745',NULL,'2025-09-26 10:25:43.042745',1,NULL,'pinpinramirez@gmail.com','analiza','ramirez',NULL,'$2a$10$d00dBxfNRza1yQCeJj9oZudHXJ9W1/Twiatmq7YHIDsrBcKGYW58.','WEB');
+INSERT INTO `users` VALUES (_binary '',_binary '','2025-09-26 10:25:43.042745',NULL,'2025-09-26 10:25:43.042745',1,NULL,'pinpinramirez@gmail.com','analiza','ramirez',NULL,'$2a$10$d00dBxfNRza1yQCeJj9oZudHXJ9W1/Twiatmq7YHIDsrBcKGYW58.','WEB','USER'),(_binary '',_binary '','2025-09-29 00:00:00.000000',NULL,'2025-09-29 00:00:00.000000',2,NULL,'admin@gradegoal.com','Admin','User',NULL,'$2a$10$d00dBxfNRza1yQCeJj9oZudHXJ9W1/Twiatmq7YHIDsrBcKGYW58.','WEB','ADMIN');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 

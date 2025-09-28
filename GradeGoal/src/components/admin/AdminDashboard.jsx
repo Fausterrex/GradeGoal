@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import LeftSidebar from './components/LeftSidebar';
-import MainContent from './components/MainContent';
-import RightSidebar from './components/RightSidebar';
-import EditProfileModal from './components/EditProfileModal';
-import './index.css';
-
-// Dummy credentials array
-const DUMMY_CREDENTIALS = [
-  { email: 'admin@gmail.com', password: 'admin123' },
-];
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import LeftSidebar from './LeftSidebar';
+import MainContent from './MainContent';
+import RightSidebar from './RightSidebar';
+import EditProfileModal from './EditProfileModal';
 
 // Sample data arrays
 const SAMPLE_DATA = {
@@ -27,9 +21,9 @@ const SAMPLE_DATA = {
   activities: ['Quiz1', 'Activity1', 'Exam1', 'Lab1']
 };
 
-function App() {
-  const [currentView, setCurrentView] = useState('login');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function AdminDashboard() {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [activeStudent, setActiveStudent] = useState(null);
   const [activeCourse, setActiveCourse] = useState(null);
@@ -48,60 +42,37 @@ function App() {
   });
 
   // Add this function to handle profile updates
-const handleSaveProfileChanges = (updatedData, studentId) => {
-  if (studentId) {
-    // Update student profile
-    setDashboardData(prev => ({
-      ...prev,
-      students: {
-        ...prev.students,
-        [studentId]: {
-          ...prev.students[studentId],
-          name: updatedData.name,
-          email: updatedData.email,
-          joinDate: updatedData.joinDate,
-          lastLogin: updatedData.lastLogin
+  const handleSaveProfileChanges = (updatedData, studentId) => {
+    if (studentId) {
+      // Update student profile
+      setDashboardData(prev => ({
+        ...prev,
+        students: {
+          ...prev.students,
+          [studentId]: {
+            ...prev.students[studentId],
+            name: updatedData.name,
+            email: updatedData.email,
+            joinDate: updatedData.joinDate,
+            lastLogin: updatedData.lastLogin
+          }
         }
-      }
-    }));
-  } else {
-    // Update admin profile (you can add admin state if needed)
-    console.log('Admin profile updated:', updatedData);
-    // For demo, we'll just show an alert since we don't have admin state
-    alert(`Admin profile updated to: ${updatedData.firstName} ${updatedData.lastName}`);
-  }
-};
-
-  // Authentication handlers
-  const handleLogin = async (email, password) => {
-    const isValidCredential = DUMMY_CREDENTIALS.some(
-      cred => cred.email === email && cred.password === password
-    );
-
-    if (isValidCredential) {
-      setIsAuthenticated(true);
-      setCurrentView('dashboard');
-      return true;
+      }));
+    } else {
+      // Update admin profile (you can add admin state if needed)
+      console.log('Admin profile updated:', updatedData);
+      // For demo, we'll just show an alert since we don't have admin state
+      alert(`Admin profile updated to: ${updatedData.firstName} ${updatedData.lastName}`);
     }
-    return false;
-  };
-
-  const handleSignup = async (formData) => {
-    if (formData.email && formData.password) {
-      setIsAuthenticated(true);
-      setCurrentView('dashboard');
-      return true;
-    }
-    return false;
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    setCurrentView('login');
+    logout();
+    navigate('/login');
   };
 
-  const switchToSignup = () => setCurrentView('signup');
-  const switchToLogin = () => setCurrentView('login');
+  const switchToSignup = () => navigate('/signup');
+  const switchToLogin = () => navigate('/login');
 
   // Toggle functions
   const toggleStudent = (studentId) => {
@@ -229,27 +200,16 @@ const handleSaveProfileChanges = (updatedData, studentId) => {
       setLoading(false);
     };
 
-    if (isAuthenticated) {
-      setLoading(true);
-      // Simulate API call delay
-      setTimeout(initializeData, 1000);
-    }
-  }, [isAuthenticated]);
-
-  // Render authentication screens
-  if (!isAuthenticated) {
-    if (currentView === 'login') {
-      return <Login onLogin={handleLogin} switchToSignup={switchToSignup} />;
-    } else if (currentView === 'signup') {
-      return <Signup onSignup={handleSignup} switchToLogin={switchToLogin} />;
-    }
-  }
+    setLoading(true);
+    // Simulate API call delay
+    setTimeout(initializeData, 1000);
+  }, []);
 
   // Render loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#493f82]">
-        <div className="text-white text-xl">Loading Dashboard...</div>
+        <div className="text-white text-xl">Loading Admin Dashboard...</div>
       </div>
     );
   }
@@ -258,11 +218,11 @@ const handleSaveProfileChanges = (updatedData, studentId) => {
   return (
     <div className="min-h-screen flex flex-col p-4 bg-[#493f82]">
       <div className="flex flex-col lg:flex-row gap-6 flex-1 container mx-auto">
-      <LeftSidebar
-  activeSection={activeSection}
-  onSectionChange={handleSectionChange}
-  onLogout={handleLogout}
-/>
+        <LeftSidebar
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+          onLogout={handleLogout}
+        />
         
         <MainContent
           activeSection={activeSection}
@@ -277,21 +237,21 @@ const handleSaveProfileChanges = (updatedData, studentId) => {
         />
         
         <RightSidebar
-        dashboardData={dashboardData}
-        onLogout={handleLogout} 
+          dashboardData={dashboardData}
+          onLogout={handleLogout} 
         />
       </div>
 
       {/* Edit Profile Modal */}
       <EditProfileModal
-  isOpen={showEditProfile}
-  onClose={closeEditProfile}
-  studentData={editingStudent}
-  isAdmin={!editingStudent} // If no student provided, it's admin profile
-  onSaveChanges={handleSaveProfileChanges}
-/>
+        isOpen={showEditProfile}
+        onClose={closeEditProfile}
+        studentData={editingStudent}
+        isAdmin={!editingStudent} // If no student provided, it's admin profile
+        onSaveChanges={handleSaveProfileChanges}
+      />
     </div>
   );
 }
 
-export default App;
+export default AdminDashboard;
