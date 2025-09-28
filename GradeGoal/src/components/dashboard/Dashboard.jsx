@@ -16,8 +16,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Search, Bell, User } from "lucide-react";
-// Removed GradeService import
 import EnhancedGradeTrends from "./EnhancedGradeTrends";
+import GoalsOverview from "./GoalsOverview";
+import RecentActivities from "./RecentActivities";
+import AIRecommendations from "./AIRecommendations";
 import ProfileEdit from "../auth/ProfileEdit";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
@@ -135,13 +137,6 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
           summerSemesterGPA
         });
         
-        console.log("📊 Loaded semester GPAs:", {
-          first: firstSemesterGPA,
-          second: secondSemesterGPA,
-          third: thirdSemesterGPA,
-          summer: summerSemesterGPA,
-          cumulative: cumulativeGPA
-        });
       } else {
         console.error("Failed to fetch semester GPA data");
         // Fallback to original method
@@ -354,7 +349,9 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         </div>
       </div>
 
-      {}
+      {/* ========================================
+          GRADE TRENDS SECTION
+          ======================================== */}
       <div className="mb-8 flex-shrink-0">
         <EnhancedGradeTrends
           courses={courses}
@@ -367,7 +364,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
       {/* ========================================
           COURSE BREAKDOWN SECTION
           ======================================== */}
-      <div className="w-full bg-white p-8 rounded-3xl shadow-xl flex-1 min-h-0 border border-gray-100">
+      <div className="w-full bg-white p-8 rounded-3xl shadow-xl flex-1 min-h-0 border border-gray-100 mb-8">
         {/* ========================================
             COURSE BREAKDOWN HEADER
             ======================================== */}
@@ -575,6 +572,39 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
           )}
         </div>
       </div>
+
+      {/* ========================================
+          GOALS OVERVIEW SECTION
+          ======================================== */}
+      <div className="mb-8 flex-shrink-0">
+        <GoalsOverview
+          courses={courses}
+          gpaData={gpaData}
+          onGoalUpdate={() => {
+            // Refresh goals data when needed
+            loadUserAndTargetGrades();
+          }}
+        />
+      </div>
+
+      {/* ========================================
+          AI RECOMMENDATIONS SECTION
+          ======================================== */}
+      <div className="mb-8 flex-shrink-0">
+        <AIRecommendations
+          courses={courses}
+        />
+      </div>
+
+      {/* ========================================
+          RECENT ACTIVITIES SECTION
+          ======================================== */}
+      <div className="mb-8 flex-shrink-0">
+        <RecentActivities
+          courses={courses}
+        />
+      </div>
+
       {/* Profile Edit Modal */}
       <ProfileEdit
         isOpen={showProfileEdit}

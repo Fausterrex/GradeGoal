@@ -31,12 +31,6 @@ export const clearAIAnalysisData = () => {
  * Set AI analysis data and notify listeners
  */
 export const setAIAnalysisData = (data) => {
-  console.log('🔧 setAIAnalysisData called with:', {
-    hasData: !!data,
-    hasContent: !!data?.content,
-    contentType: typeof data?.content,
-    dataKeys: data ? Object.keys(data) : 'no data'
-  });
   aiAnalysisData = data;
   aiAnalysisListeners.forEach(listener => listener(data));
 };
@@ -162,16 +156,8 @@ export const getAchievementProbability = () => {
  * Get achievement probability data from provided analysis data
  */
 export const getAchievementProbabilityFromData = (analysisData) => {
-  console.log('🎯 [getAchievementProbabilityFromData] Starting calculation...');
-  console.log('🎯 [getAchievementProbabilityFromData] Analysis Data:', {
-    hasData: !!analysisData,
-    hasContent: !!analysisData?.content,
-    contentType: typeof analysisData?.content,
-    dataKeys: analysisData ? Object.keys(analysisData) : 'no data'
-  });
   
   if (!analysisData || !analysisData.content) {
-    console.log('🎯 [getAchievementProbabilityFromData] No analysis data available');
     return null;
   }
   
@@ -180,22 +166,17 @@ export const getAchievementProbabilityFromData = (analysisData) => {
       ? JSON.parse(analysisData.content) 
       : analysisData.content;
     
-    console.log('🎯 [getAchievementProbabilityFromData] Parsed content keys:', Object.keys(content));
     
     // Check for new enhanced structure first
     if (content.targetGoalProbability) {
-      console.log('🎯 [getAchievementProbabilityFromData] Found targetGoalProbability:', content.targetGoalProbability);
-      console.log('🎯 [getAchievementProbabilityFromData] Probability value:', content.targetGoalProbability.probability);
       return content.targetGoalProbability;
     }
     
     // Fallback to old structure
     if (content.achievementProbability) {
-      console.log('🎯 [getAchievementProbabilityFromData] Found achievementProbability (fallback):', content.achievementProbability);
       return content.achievementProbability;
     }
     
-    console.log('🎯 [getAchievementProbabilityFromData] No probability data found in content');
     return null;
   } catch (error) {
     console.error('🎯 [getAchievementProbabilityFromData] Error parsing achievement probability:', error);
@@ -208,18 +189,15 @@ export const getAchievementProbabilityFromData = (analysisData) => {
  */
 export const loadAIAnalysisForCourse = async (userId, courseId, forceRefresh = false) => {
   try {
-    console.log('🔄 [loadAIAnalysisForCourse] Loading AI analysis for user:', userId, 'course:', courseId);
     
     // If force refresh is requested, clear cache first
     if (forceRefresh) {
       const { clearAIAnalysisCache } = await import('./geminiService');
       clearAIAnalysisCache(userId, courseId);
-      console.log('🔄 [loadAIAnalysisForCourse] Cache cleared for fresh analysis');
     }
     
     // First, check if we have cached analysis data in memory
     if (aiAnalysisData && aiAnalysisData.userId === userId && aiAnalysisData.courseId === courseId && !forceRefresh) {
-      console.log('✅ [loadAIAnalysisForCourse] Using cached analysis data');
       return aiAnalysisData;
     }
     
@@ -237,7 +215,6 @@ export const loadAIAnalysisForCourse = async (userId, courseId, forceRefresh = f
     }
     
     // If no analysis exists in database, clear any cached data for this course
-    console.log('❌ [loadAIAnalysisForCourse] No existing analysis found in database');
     clearAIAnalysisData();
     return null;
   } catch (error) {

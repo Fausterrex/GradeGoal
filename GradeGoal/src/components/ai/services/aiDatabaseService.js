@@ -39,15 +39,11 @@ export const saveAIAnalysisData = async (userId, courseId, analysisData, analysi
  */
 export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
   try {
-    console.log('🔄 [loadAIAnalysisForCourse] Loading AI analysis for user:', userId, 'course:', courseId);
     
     // Check if analysis exists in database
     const existsResponse = await checkAIAnalysisExists(userId, courseId);
-    console.log('🔍 [loadAIAnalysisFromDatabase] Exists check response:', existsResponse);
     if (existsResponse.success && existsResponse.exists) {
-      console.log('📊 [loadAIAnalysisForCourse] Found existing analysis in database, loading...');
       const analysisResponse = await getAIAnalysis(userId, courseId);
-      console.log('🔍 [loadAIAnalysisFromDatabase] Analysis response:', analysisResponse);
       
       if (analysisResponse.success && analysisResponse.hasAnalysis) {
         const dbAnalysis = analysisResponse.analysis;
@@ -62,12 +58,10 @@ export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
           updatedAt: dbAnalysis.updatedAt
         };
         
-        console.log('✅ [loadAIAnalysisForCourse] Loaded analysis from database');
         return analysisData;
       }
     }
     
-    console.log('❌ [loadAIAnalysisForCourse] No analysis data available in database');
     return null;
   } catch (error) {
     console.error('❌ [loadAIAnalysisForCourse] Error loading AI analysis:', error);
