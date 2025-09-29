@@ -45,6 +45,13 @@ public class Assessment {
     @JsonIgnoreProperties("assessment")
     private List<Grade> grades;
 
+    // Transient fields for calendar display
+    @Transient
+    private String courseName;
+    
+    @Transient
+    private String categoryName;
+
     public Assessment() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -86,6 +93,13 @@ public class Assessment {
 
     public List<Grade> getGrades() { return grades; }
     public void setGrades(List<Grade> grades) { this.grades = grades; }
+
+    // Getters and setters for transient fields
+    public String getCourseName() { return courseName; }
+    public void setCourseName(String courseName) { this.courseName = courseName; }
+    
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
     @PreUpdate
     public void preUpdate() {

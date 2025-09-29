@@ -17,6 +17,16 @@ public class AssessmentController {
     @Autowired
     private AssessmentService assessmentService;
 
+    @GetMapping
+    public ResponseEntity<List<Assessment>> getAllAssessments() {
+        try {
+            List<Assessment> assessments = assessmentService.getAllAssessmentsWithCourseInfo();
+            return ResponseEntity.ok(assessments);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
     @GetMapping("/{assessmentId}")
     public ResponseEntity<Assessment> getAssessmentById(@PathVariable Long assessmentId) {
         try {

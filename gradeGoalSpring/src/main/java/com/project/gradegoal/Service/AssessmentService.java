@@ -2,15 +2,19 @@ package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.Assessment;
 import com.project.gradegoal.Entity.AssessmentCategory;
+import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
+import com.project.gradegoal.Repository.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Assessment Service
@@ -26,6 +30,9 @@ public class AssessmentService {
     
     @Autowired
     private AssessmentCategoryRepository assessmentCategoryRepository;
+    
+    @Autowired
+    private CourseRepository courseRepository;
     
     /**
      * Create a new assessment
@@ -49,6 +56,52 @@ public class AssessmentService {
             return assessmentRepository.save(assessment);
         }
         throw new RuntimeException("Assessment category not found with ID: " + categoryId);
+    }
+    
+    /**
+     * Get all assessments
+     * @return List of all assessments
+     */
+    public List<Assessment> getAllAssessments() {
+        return assessmentRepository.findAll();
+    }
+    
+    /**
+     * Get all assessments with course information for calendar
+     * @return List of assessments with course details
+     */
+    public List<Assessment> getAllAssessmentsWithCourseInfo() {
+        // Use custom query to fetch assessments with grades eagerly
+        List<Assessment> assessments = assessmentRepository.findAllWithGrades();
+        return assessments.stream()
+            .filter(assessment -> assessment.getDueDate() != null) // Only include assessments with due dates
+            .map(assessment -> {
+                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
+                if (categoryOpt.isPresent()) {
+                    AssessmentCategory category = categoryOpt.get();
+                    Optional<Course> courseOpt = courseRepository.findById(category.getCourseId());
+                    if (courseOpt.isPresent()) {
+                        Course course = courseOpt.get();
+                        assessment.setCourseName(course.getCourseName());
+                        assessment.setCategoryName(category.getCategoryName());
+                    }
+                }
+                
+                // Check if assessment has scores and mark as COMPLETED
+                // Only mark as COMPLETED if this specific assessment has grades with actual scores
+                if (assessment.getGrades() != null && !assessment.getGrades().isEmpty()) {
+                    // Check if any of the grades have actual scores (not null and not 0.00)
+                    boolean hasActualScores = assessment.getGrades().stream()
+                        .anyMatch(grade -> grade.getScore() != null && grade.getScore().compareTo(BigDecimal.ZERO) > 0);
+                    
+                    if (hasActualScores) {
+                        assessment.setStatus(Assessment.AssessmentStatus.COMPLETED);
+                    }
+                }
+                
+                return assessment;
+            })
+            .collect(Collectors.toList());
     }
     
     /**

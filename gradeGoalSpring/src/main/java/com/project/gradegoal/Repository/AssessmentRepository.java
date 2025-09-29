@@ -41,5 +41,11 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     @Query("SELECT DISTINCT a FROM Assessment a LEFT JOIN FETCH a.grades WHERE a.categoryId = :categoryId AND SIZE(a.grades) > 0")
     List<Assessment> findAssessmentsWithGrades(@Param("categoryId") Long categoryId);
 
+    @Query("SELECT DISTINCT a FROM Assessment a LEFT JOIN FETCH a.grades")
+    List<Assessment> findAllWithGrades();
+
+    @Query("SELECT a FROM Assessment a LEFT JOIN FETCH AssessmentCategory ac ON a.categoryId = ac.categoryId WHERE a.dueDate IS NOT NULL")
+    List<Assessment> findAllWithCourseInfo();
+
     void deleteByCategoryId(Long categoryId);
 }
