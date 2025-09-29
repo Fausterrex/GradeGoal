@@ -18,7 +18,19 @@ import AdminDashboard from "./admin/AdminDashboard";
 
 // Role-based routing component
 function AppRoutes() {
-  const { userRole } = useAuth();
+  const { userRole, loading } = useAuth();
+
+  // Show loading spinner while determining user role
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -179,6 +191,21 @@ function AppRoutes() {
                     <Header />
                     <div className="flex-1 overflow-hidden">
                       <ForgotPassword />
+                    </div>
+                  </div>
+                }
+              />
+              
+              {/* ========================================
+                  FALLBACK ROUTE (for unauthenticated users)
+                  ======================================== */}
+              <Route
+                path="*"
+                element={
+                  <div className="flex flex-col h-screen w-full">
+                    <Header />
+                    <div className="flex-1 overflow-hidden w-1xl mx-auto">
+                      <Landingpage />
                     </div>
                   </div>
                 }

@@ -144,8 +144,20 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   // COMPUTED VALUES
   // ========================================
   const activeGoals = useMemo(() => {
-    return goals.filter(goal => !goal.isAchieved);
-  }, [goals]);
+    return goals.filter(goal => {
+      // Filter out achieved goals
+      if (goal.isAchieved) return false;
+      
+      // For course goals, check if the course is archived
+      if (goal.goalType === 'COURSE_GRADE' && goal.courseId) {
+        const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        // Hide goal if course is archived (isActive === false)
+        if (course && course.isActive === false) return false;
+      }
+      
+      return true;
+    });
+  }, [goals, courses]);
 
 
   // ========================================
@@ -157,15 +169,6 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
       case 'SEMESTER_GPA': return <BarChart3 className="w-4 h-4" />;
       case 'CUMMULATIVE_GPA': return <Trophy className="w-4 h-4" />;
       default: return <Target className="w-4 h-4" />;
-    }
-  };
-
-  const getGoalTypeLabel = (goalType) => {
-    switch (goalType) {
-      case 'COURSE_GRADE': return 'Course Goal';
-      case 'SEMESTER_GPA': return 'Semester GPA';
-      case 'CUMMULATIVE_GPA': return 'Cumulative GPA';
-      default: return 'Academic Goal';
     }
   };
 
@@ -192,6 +195,18 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
     if (diffDays <= 7) return `${diffDays} days left`;
     if (diffDays <= 30) return `${Math.ceil(diffDays / 7)} weeks left`;
     return `${Math.ceil(diffDays / 30)} months left`;
+  };
+
+  const getGoalTypeLabel = (goalType, goal, courses) => {
+    switch (goalType) {
+      case 'COURSE_GRADE': 
+        // Find the course name for this goal
+        const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        return course ? course.name : 'Course Goal';
+      case 'SEMESTER_GPA': return 'Semester GPA';
+      case 'CUMMULATIVE_GPA': return 'Cumulative GPA';
+      default: return 'Academic Goal';
+    }
   };
 
   if (isLoading) {
@@ -314,7 +329,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
                     <div>
                       <div className="font-medium text-gray-900">{goal.goalTitle}</div>
                       <div className="text-sm text-gray-600">
-                        {getGoalTypeLabel(goal.goalType)} • {formatTargetValue(goal)}
+                        {getGoalTypeLabel(goal.goalType, goal, courses)} • {formatTargetValue(goal)}
                       </div>
                     </div>
                   </div>
@@ -382,7 +397,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">{achievement.goalTitle}</div>
                     <div className="text-sm text-gray-600">
-                      {formatTargetValue(achievement)} • {getGoalTypeLabel(achievement.goalType)}
+                      {formatTargetValue(achievement)} • {getGoalTypeLabel(achievement.goalType, achievement, courses)}
                     </div>
                     <div className="text-xs text-green-600 mt-1">
                       Achieved on {new Date(achievement.achievedDate).toLocaleDateString()}
@@ -407,6 +422,19 @@ const GoalCard = ({ goal, courses, gpaData }) => {
   const [aiAchievementProbability, setAiAchievementProbability] = useState(null);
   const [categories, setCategories] = useState([]);
   const { currentUser } = useAuth();
+
+  // Helper function to get goal type label with course name
+  const getGoalTypeLabel = (goalType, goal, courses) => {
+    switch (goalType) {
+      case 'COURSE_GRADE': 
+        // Find the course name for this goal
+        const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        return course ? course.name : 'Course Goal';
+      case 'SEMESTER_GPA': return 'Semester GPA';
+      case 'CUMMULATIVE_GPA': return 'Cumulative GPA';
+      default: return 'Academic Goal';
+    }
+  };
 
   useEffect(() => {
     const calculateProgress = async () => {
@@ -510,9 +538,7 @@ const GoalCard = ({ goal, courses, gpaData }) => {
           <div>
             <h4 className="font-semibold text-gray-900">{goal.goalTitle}</h4>
             <p className="text-sm text-gray-600">
-              {goal.goalType === 'COURSE_GRADE' ? 'Course Goal' :
-               goal.goalType === 'SEMESTER_GPA' ? 'Semester GPA' :
-               'Cumulative GPA'} • {formatTargetValue(goal)}
+              {getGoalTypeLabel(goal.goalType, goal, courses)} • {formatTargetValue(goal)}
             </p>
           </div>
         </div>

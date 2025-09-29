@@ -17,7 +17,7 @@ import {
   AlertCircle,
   Star
 } from "lucide-react";
-import { getUserProfile, getAcademicGoalsByUserId, getGradesByCourseId, getAssessmentCategoriesByCourseId, getAIAnalysis } from "../../backend/api";
+import { getUserProfile, getAcademicGoalsByUserId, getGradesByCourseId, getAssessmentCategoriesByCourseId, getAIAnalysis, logUserActivities } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
 
 const RecentActivities = ({ courses }) => {
@@ -84,6 +84,9 @@ const RecentActivities = ({ courses }) => {
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       setActivities(allActivities.slice(0, 20)); // Limit to 20 most recent
+
+      // Save activities to database
+      await saveActivitiesToDatabase(userProfile.userId, allActivities);
 
     } catch (error) {
       console.error("Error loading recent activities:", error);
@@ -318,6 +321,35 @@ const RecentActivities = ({ courses }) => {
     } catch (error) {
       console.error("Error fetching recent AI analysis:", error);
       return [];
+    }
+  };
+
+  // ========================================
+  // DATABASE SAVING
+  // ========================================
+  const saveActivitiesToDatabase = async (userId, activities) => {
+    try {
+      // Convert activities to database format
+      const activitiesToSave = activities.map(activity => ({
+        userId,
+        activityType: activity.type,
+        context: JSON.stringify({
+          title: activity.title,
+          description: activity.description,
+          courseName: activity.courseName,
+          score: activity.score,
+          goalType: activity.goalType,
+          analysisType: activity.analysisType,
+          notificationType: activity.notificationType,
+          priority: activity.priority
+        })
+      }));
+
+      // Save to database in batch
+      await logUserActivities(activitiesToSave);
+    } catch (error) {
+      console.error("Error saving activities to database:", error);
+      // Don't throw error - this shouldn't break the UI
     }
   };
 

@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
       // Set user role if provided
       if (userData.role) {
         setUserRole(userData.role);
+        localStorage.setItem('userRole', userData.role);
       }
       return updatedUser;
     } else if (currentUser && userData) {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }) {
       // Set user role if provided
       if (userData.role) {
         setUserRole(userData.role);
+        localStorage.setItem('userRole', userData.role);
       }
       return updatedUser;
     }
@@ -85,6 +87,7 @@ export function AuthProvider({ children }) {
   // Signs out the current user
   function logout() {
     setUserRole(null);
+    localStorage.removeItem('userRole');
     return signOut(auth);
   }
 
@@ -94,10 +97,30 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (!user) {
         setUserRole(null);
+        localStorage.removeItem('userRole');
+      } else {
+        // Try to get user role from localStorage first
+        const storedRole = localStorage.getItem('userRole');
+        if (storedRole) {
+          setUserRole(storedRole);
+        } else {
+          // Fetch user role from database
+          try {
+            const { getUserProfile } = await import('../backend/api');
+            const userProfile = await getUserProfile(user.email);
+            const role = userProfile?.role || 'USER';
+            setUserRole(role);
+            localStorage.setItem('userRole', role);
+          } catch (error) {
+            console.error('Failed to fetch user role:', error);
+            setUserRole('USER'); // Default to USER
+            localStorage.setItem('userRole', 'USER');
+          }
+        }
       }
       setLoading(false);
     });

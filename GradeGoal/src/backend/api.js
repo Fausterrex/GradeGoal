@@ -1064,3 +1064,94 @@ export async function getAIAssessmentPredictions(userId, courseId) {
   return response.json();
 }
 
+// ========================================
+// USER ACTIVITY LOG API FUNCTIONS
+// ========================================
+
+/**
+ * Save a single activity to the database
+ */
+export async function logUserActivity(userId, activityType, context, ipAddress = null) {
+  const response = await fetch(`${API_BASE_URL}/api/user-activity/log`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      activityType,
+      context,
+      ipAddress
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to log activity with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Save multiple activities to the database in batch
+ */
+export async function logUserActivities(activities) {
+  const response = await fetch(`${API_BASE_URL}/api/user-activity/log-batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      activities
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to log activities with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get recent activities for a user
+ */
+export async function getRecentUserActivities(userId, days = 7) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/user-activity/user/${userId}/recent?days=${days}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get recent activities with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get activity statistics for a user
+ */
+export async function getUserActivityStats(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/user-activity/user/${userId}/stats`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get activity stats with status ${response.status}`);
+  }
+  return response.json();
+}
+
