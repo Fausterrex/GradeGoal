@@ -3,7 +3,12 @@
 -- Host: localhost    Database: gradegoal
 -- ------------------------------------------------------
 -- Server version	8.0.43
---
+
+SET FOREIGN_KEY_CHECKS=0;
+SET SQL_MODE='';
+
+USE `gradegoal`;
+
 -- Table structure for table `academic_goals`
 --
 
@@ -28,9 +33,7 @@ CREATE TABLE `academic_goals` (
   `semester` enum('FIRST','SECOND','THIRD') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`goal_id`),
   KEY `FKdtcq2dk59cvthkf4whgwy2aa8` (`course_id`),
-  KEY `FKmhnd6knfsmobeir1nu2fwt9o0` (`user_id`),
-  CONSTRAINT `FKdtcq2dk59cvthkf4whgwy2aa8` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`),
-  CONSTRAINT `FKmhnd6knfsmobeir1nu2fwt9o0` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+  KEY `FKmhnd6knfsmobeir1nu2fwt9o0` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -177,9 +180,7 @@ CREATE TABLE `alert_rules` (
   PRIMARY KEY (`rule_id`),
   KEY `course_id` (`course_id`),
   KEY `idx_user_enabled` (`user_id`,`is_enabled`),
-  KEY `idx_trigger_type` (`trigger_type`),
-  CONSTRAINT `alert_rules_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `alert_rules_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
+  KEY `idx_trigger_type` (`trigger_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -247,8 +248,7 @@ CREATE TABLE `assessments` (
   KEY `FK4kbcb2x7nlbys293dd0vjysdm` (`category_id`),
   KEY `idx_ai_predicted_score` (`ai_predicted_score`),
   KEY `idx_ai_confidence` (`ai_confidence`),
-  KEY `idx_ai_analysis_updated` (`ai_analysis_updated_at`),
-  CONSTRAINT `FK4kbcb2x7nlbys293dd0vjysdm` FOREIGN KEY (`category_id`) REFERENCES `assessment_categories` (`category_id`)
+  KEY `idx_ai_analysis_updated` (`ai_analysis_updated_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -286,9 +286,7 @@ CREATE TABLE `calendar_events` (
   KEY `assessment_id` (`assessment_id`),
   KEY `idx_user_date` (`user_id`,`event_start`),
   KEY `idx_sync_status` (`sync_status`),
-  KEY `idx_google_id` (`google_calendar_event_id`),
-  CONSTRAINT `calendar_events_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `calendar_events_ibfk_2` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`assessment_id`) ON DELETE CASCADE
+  KEY `idx_google_id` (`google_calendar_event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -329,8 +327,7 @@ CREATE TABLE `courses` (
   `max_points` int DEFAULT '100',
   `handle_missing` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`course_id`),
-  KEY `FK51k53m6m5gi9n91fnlxkxgpmv` (`user_id`),
-  CONSTRAINT `FK51k53m6m5gi9n91fnlxkxgpmv` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+  KEY `FK51k53m6m5gi9n91fnlxkxgpmv` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -365,8 +362,7 @@ CREATE TABLE `export_logs` (
   PRIMARY KEY (`export_id`),
   KEY `idx_user_type` (`user_id`,`export_type`),
   KEY `idx_status` (`status`),
-  KEY `idx_expires` (`expires_at`),
-  CONSTRAINT `export_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+  KEY `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -400,8 +396,7 @@ CREATE TABLE `grades` (
   `score_type` enum('PERCENTAGE','POINTS') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `extra_credit_points` decimal(8,2) DEFAULT '0.00',
   PRIMARY KEY (`grade_id`),
-  KEY `FKr3vxme485so9o2jlqhtbdu85x` (`assessment_id`),
-  CONSTRAINT `FKr3vxme485so9o2jlqhtbdu85x` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`assessment_id`)
+  KEY `FKr3vxme485so9o2jlqhtbdu85x` (`assessment_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -438,9 +433,7 @@ CREATE TABLE `notifications` (
   KEY `course_id` (`course_id`),
   KEY `idx_user_unread` (`user_id`,`is_read`),
   KEY `idx_type_priority` (`notification_type`,`priority`),
-  KEY `idx_created_date` (`created_at`),
-  CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
+  KEY `idx_created_date` (`created_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=90 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -486,9 +479,7 @@ CREATE TABLE `recommendations` (
   KEY `idx_ai_generated` (`ai_generated`),
   KEY `idx_ai_confidence` (`ai_confidence`),
   KEY `idx_ai_model` (`ai_model`),
-  KEY `idx_created_ai` (`created_at`,`ai_generated`),
-  CONSTRAINT `recommendations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `recommendations_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
+  KEY `idx_created_ai` (`created_at`,`ai_generated`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -518,9 +509,7 @@ CREATE TABLE `user_achievements` (
   UNIQUE KEY `uk_user_achievement` (`user_id`,`achievement_id`),
   KEY `achievement_id` (`achievement_id`),
   KEY `idx_earned_date` (`earned_at`),
-  KEY `idx_user_date` (`user_id`,`earned_at`),
-  CONSTRAINT `user_achievements_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `user_achievements_ibfk_2` FOREIGN KEY (`achievement_id`) REFERENCES `achievements` (`achievement_id`) ON DELETE CASCADE
+  KEY `idx_user_date` (`user_id`,`earned_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -548,8 +537,7 @@ CREATE TABLE `user_activity_log` (
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`activity_id`),
-  KEY `idx_user_activity` (`user_id`,`activity_type`,`created_at`),
-  CONSTRAINT `user_activity_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+  KEY `idx_user_activity` (`user_id`,`activity_type`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -586,9 +574,7 @@ CREATE TABLE `user_analytics` (
   PRIMARY KEY (`analytics_id`),
   KEY `idx_user_date` (`user_id`,`analytics_date`),
   KEY `idx_course_date` (`course_id`,`analytics_date`),
-  KEY `idx_user_analytics_due_date` (`due_date`),
-  CONSTRAINT `user_analytics_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `user_analytics_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE
+  KEY `idx_user_analytics_due_date` (`due_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -620,8 +606,7 @@ CREATE TABLE `user_progress` (
   `cummulative_gpa` decimal(3,2) DEFAULT '0.00',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `cumulative_gpa` double DEFAULT NULL,
-  PRIMARY KEY (`user_id`),
-  CONSTRAINT `user_progress_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+  PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1687,14 +1672,50 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+-- Add Foreign Key Constraints After All Tables Are Created
+ALTER TABLE `academic_goals` 
+  ADD CONSTRAINT `FKdtcq2dk59cvthkf4whgwy2aa8` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`),
+  ADD CONSTRAINT `FKmhnd6knfsmobeir1nu2fwt9o0` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+ALTER TABLE `alert_rules` 
+  ADD CONSTRAINT `alert_rules_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `alert_rules_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE;
 
--- Dump completed on 2025-09-29  6:03:59
+ALTER TABLE `notifications` 
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE;
+
+ALTER TABLE `recommendations` 
+  ADD CONSTRAINT `recommendations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `recommendations_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE;
+
+ALTER TABLE `user_analytics` 
+  ADD CONSTRAINT `user_analytics_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `user_analytics_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE;
+
+ALTER TABLE `assessments` 
+  ADD CONSTRAINT `FK4kbcb2x7nlbys293dd0vjysdm` FOREIGN KEY (`category_id`) REFERENCES `assessment_categories` (`category_id`);
+
+ALTER TABLE `calendar_events` 
+  ADD CONSTRAINT `calendar_events_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `calendar_events_ibfk_2` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`assessment_id`) ON DELETE CASCADE;
+
+ALTER TABLE `courses` 
+  ADD CONSTRAINT `FK51k53m6m5gi9n91fnlxkxgpmv` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+
+ALTER TABLE `export_logs` 
+  ADD CONSTRAINT `export_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+ALTER TABLE `grades` 
+  ADD CONSTRAINT `FKr3vxme485so9o2jlqhtbdu85x` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`assessment_id`);
+
+ALTER TABLE `user_achievements` 
+  ADD CONSTRAINT `user_achievements_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `user_achievements_ibfk_2` FOREIGN KEY (`achievement_id`) REFERENCES `achievements` (`achievement_id`) ON DELETE CASCADE;
+
+ALTER TABLE `user_activity_log` 
+  ADD CONSTRAINT `user_activity_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+ALTER TABLE `user_progress` 
+  ADD CONSTRAINT `user_progress_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+

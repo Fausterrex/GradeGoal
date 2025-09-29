@@ -152,3 +152,4 @@ public class UserActivityLogController {
         public void setActivities(List<ActivityLogRequest> activities) { this.activities = activities; }
     }
 }
+

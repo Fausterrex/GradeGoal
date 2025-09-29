@@ -43,3 +43,4 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
     @Query("SELECT COUNT(ual) FROM UserActivityLog ual WHERE ual.userId = :userId AND ual.activityType = :activityType")
     Long countByUserIdAndActivityType(@Param("userId") Long userId, @Param("activityType") String activityType);
 }
+

@@ -73,3 +73,4 @@ public class UserActivityLogService {
         return userActivityLogRepository.saveAll(activities);
     }
 }
+
