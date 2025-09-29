@@ -13,6 +13,7 @@ import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
+import MyCalendar from "../calendar/Calendar"
 import {
   getGradesByCourseId,
   getCoursesByUid,
@@ -831,17 +832,8 @@ function MainDashboard({ initialTab = "overview" }) {
               )}
 
               {activeTab === "calendar" && (
-                <div className="w-full p-6 bg-gray-100">
-                  <div className="w-full flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                        Calendar
-                      </h3>
-                      <p className="text-gray-600">
-                        Academic calendar and deadlines coming soon...
-                      </p>
-                    </div>
-                  </div>
+                <div className="w-full p-6 bg-gray-100 flex  min-h-screen">
+                  <MyCalendar/>
                 </div>
               )}
             </>
