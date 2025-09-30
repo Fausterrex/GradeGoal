@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa";
 import { getCourseColorScheme } from "../../utils/courseColors";
 import { calculateCourseProgress } from "../course/course_details/utils/gradeEntryCourse";
+import RealtimeNotificationService from "../../services/realtimeNotificationService";
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -97,6 +98,7 @@ function MainDashboard({ initialTab = "overview" }) {
       loadCoursesAndGrades();
     }
   }, [currentUser]);
+
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;

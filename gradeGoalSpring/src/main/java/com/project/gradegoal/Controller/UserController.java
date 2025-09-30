@@ -19,20 +19,30 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
         try {
+            System.out.println("Registration request received:");
+            System.out.println("Email: " + request.getEmail());
+            System.out.println("Password: " + (request.getPassword() != null ? "[PROVIDED]" : "[NULL]"));
+            System.out.println("FirstName: " + request.getFirstName());
+            System.out.println("LastName: " + request.getLastName());
+            
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password cannot be null or empty");
+            }
+            
             User createdUser = userService.createUser(
-                user.getEmail(),
-                user.getPassword(),
-                user.getFirstName(),
-                user.getLastName()
+                request.getEmail(),
+                request.getPassword(),
+                request.getFirstName(),
+                request.getLastName()
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
         }
     }
 
@@ -84,8 +94,7 @@ public class UserController {
             User user = userService.updateProfile(
                 userId,
                 request.getFirstName(),
-                request.getLastName(),
-                request.getPlatformPreference()
+                request.getLastName()
             );
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
@@ -203,14 +212,11 @@ public class UserController {
     public static class ProfileUpdateRequest {
         private String firstName;
         private String lastName;
-        private User.PlatformPreference platformPreference;
 
         public String getFirstName() { return firstName; }
         public void setFirstName(String firstName) { this.firstName = firstName; }
         public String getLastName() { return lastName; }
         public void setLastName(String lastName) { this.lastName = lastName; }
-        public User.PlatformPreference getPlatformPreference() { return platformPreference; }
-        public void setPlatformPreference(User.PlatformPreference platformPreference) { this.platformPreference = platformPreference; }
     }
 
     public static class PasswordUpdateRequest {

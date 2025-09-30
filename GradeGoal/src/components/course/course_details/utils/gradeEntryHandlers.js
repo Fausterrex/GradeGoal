@@ -26,6 +26,7 @@ import {
 import {
   calculateAndStoreCourseGrade,
 } from "./gradeEntryCalculations";
+import RealtimeNotificationService from "../../../../services/realtimeNotificationService";
 
 /**
  * Handle score submission for adding new scores to assessments
@@ -96,6 +97,88 @@ export const createScoreSubmitHandler = (
             if (currentUserId) {
               await awardPointsAndCheckAchievements(currentUserId, 10, 'GRADE_ADDED');
             }
+
+            // Check if grade alert should be sent (real-time notification)
+            if (currentUser && currentUser.email && selectedGrade) {
+              const percentage = (score / selectedGrade.maxScore) * 100;
+              if (percentage < 70) {
+                try {
+                  await RealtimeNotificationService.sendGradeAlert(
+                    currentUser.email,
+                    course.courseName || course.name || 'Unknown Course',
+                    selectedGrade.name || selectedGrade.assessmentName || 'Assessment',
+                    score,
+                    selectedGrade.maxScore
+                  );
+                  console.log('Grade alert notification sent for low score');
+                } catch (error) {
+                  console.error('Failed to send grade alert notification:', error);
+                }
+              }
+            }
+
+            // Check if course is completed (all assessments graded) - real-time notification
+            // Add delay to allow goal achievement notification to be processed first
+            setTimeout(async () => {
+              if (currentUser && currentUser.email && course) {
+                console.log('🔍 Checking course completion for:', course.courseName || course.name);
+                console.log('📧 User email:', currentUser.email);
+                console.log('📊 Course GPA:', course.courseGpa);
+                
+                // Reload grades to get latest state
+                const updatedGradesResult = await loadCourseGrades(course.id);
+                if (updatedGradesResult.success) {
+                  const allAssessments = Object.values(updatedGradesResult.grades).flat();
+                  console.log('📝 All assessments:', allAssessments.length);
+                  console.log('📋 Assessment details:', allAssessments.map(a => ({
+                    name: a.name || a.assessmentName,
+                    hasGrades: a.grades && a.grades.length > 0,
+                    grades: a.grades,
+                    score: a.score,
+                    pointsEarned: a.pointsEarned
+                  })));
+                  
+                  const isCourseCompleted = RealtimeNotificationService.isCourseCompleted(allAssessments);
+                  console.log('✅ Course completed?', isCourseCompleted);
+                  
+                  // Manual trigger for testing - if all assessments have scores, send notification
+                  const allHaveScores = allAssessments.every(a => 
+                    (a.score && a.score > 0) || 
+                    (a.pointsEarned && a.pointsEarned > 0) ||
+                    (a.grades && a.grades.length > 0 && a.grades.some(g => g.score > 0))
+                  );
+                  
+                  if (isCourseCompleted || allHaveScores) {
+                    console.log('🎓 Sending course completion notification...');
+                    try {
+                      // Use calculated GPA from the course or default to 4.0 if not available yet
+                      const courseGpa = course.courseGpa && course.courseGpa > 0 ? course.courseGpa : 4.0;
+                      
+                      await RealtimeNotificationService.sendCourseCompletion(
+                        currentUser.email,
+                        course.courseName || course.name || 'Unknown Course',
+                        courseGpa.toFixed(2),
+                        course.semester || 'Current Semester'
+                      );
+                      console.log('✅ Course completion notification sent successfully');
+                    } catch (error) {
+                      console.error('❌ Failed to send course completion notification:', error);
+                    }
+                  } else {
+                    console.log('❌ Course completion notification not sent. Reasons:');
+                    console.log('  - Course completed?', isCourseCompleted);
+                    console.log('  - All have scores?', allHaveScores);
+                  }
+                } else {
+                  console.error('❌ Failed to reload grades for course completion check');
+                }
+              } else {
+                console.log('❌ Course completion check skipped. Missing:');
+                console.log('  - Current user?', !!currentUser);
+                console.log('  - User email?', !!(currentUser && currentUser.email));
+                console.log('  - Course?', !!course);
+              }
+            }, 2000); // 2-second delay to allow goal achievement notification to be processed first
 
       // Update grades state using utility function with complete extra credit data
       const completeGradeUpdate = {
@@ -210,6 +293,25 @@ export const createEditScoreSubmitHandler = (
             // Calculate and store course grade and GPA using utility function
             if (course?.id) {
               await calculateAndStoreCourseGrade(course.id);
+            }
+
+            // Check if grade alert should be sent (real-time notification)
+            if (currentUser && currentUser.email && selectedGrade) {
+              const percentage = (score / selectedGrade.maxScore) * 100;
+              if (percentage < 70) {
+                try {
+                  await RealtimeNotificationService.sendGradeAlert(
+                    currentUser.email,
+                    course.courseName || course.name || 'Unknown Course',
+                    selectedGrade.name || selectedGrade.assessmentName || 'Assessment',
+                    score,
+                    selectedGrade.maxScore
+                  );
+                  console.log('Grade alert notification sent for low score (edit)');
+                } catch (error) {
+                  console.error('Failed to send grade alert notification:', error);
+                }
+              }
             }
 
       // Update grades state using utility function with complete extra credit data

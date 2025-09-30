@@ -172,65 +172,8 @@ const RecentActivities = ({ courses }) => {
 
   const fetchRecentNotifications = async (userId, startDate, endDate) => {
     try {
-      // Since there's no notifications API endpoint, we'll create mock notifications
-      // based on recent activities and achievements
-      const mockNotifications = [];
-      
-      // Add achievement notifications for recent goal completions
-      const recentGoalAchievements = goals.filter(goal => {
-        if (!goal.isAchieved || !goal.achievedDate) return false;
-        const achievedDate = new Date(goal.achievedDate);
-        return achievedDate >= startDate && achievedDate <= endDate;
-      });
-      
-      recentGoalAchievements.forEach(goal => {
-        mockNotifications.push({
-          id: `notification-achievement-${goal.goalId}`,
-          type: 'notification',
-          title: 'Goal Achieved!',
-          description: `Congratulations! You achieved your goal: ${goal.goalTitle}`,
-          timestamp: goal.achievedDate,
-          notificationType: 'ACHIEVEMENT',
-          priority: 'HIGH',
-          icon: 'Award',
-          color: 'green'
-        });
-      });
-      
-      // Add grade alert notifications for recent low grades
-      const recentLowGrades = [];
-      for (const course of courses) {
-        if (course.isActive === false) continue;
-        
-        try {
-          const grades = await getGradesByCourseId(course.id || course.courseId);
-          const recentGrades = grades.filter(grade => {
-            const gradeDate = new Date(grade.createdAt || grade.updatedAt);
-            return gradeDate >= startDate && gradeDate <= endDate;
-          });
-          
-          recentGrades.forEach(grade => {
-            const score = grade.percentageScore || (grade.pointsEarned / grade.pointsPossible * 100);
-            if (score < 70) {
-              recentLowGrades.push({
-                id: `notification-grade-${grade.gradeId}`,
-                type: 'notification',
-                title: 'Grade Alert',
-                description: `Low grade in ${course.name}: ${score.toFixed(1)}%`,
-                timestamp: grade.createdAt || grade.updatedAt,
-                notificationType: 'GRADE_ALERT',
-                priority: 'MEDIUM',
-                icon: 'AlertCircle',
-                color: 'red'
-              });
-            }
-          });
-        } catch (error) {
-          console.warn(`Failed to check grades for course ${course.id}:`, error);
-        }
-      }
-      
-      return [...mockNotifications, ...recentLowGrades];
+      // Return empty array - no mock notifications
+      return [];
     } catch (error) {
       console.error("Error fetching recent notifications:", error);
       return [];

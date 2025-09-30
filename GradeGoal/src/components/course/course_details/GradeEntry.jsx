@@ -48,6 +48,7 @@ import {
   assessmentHasScore,
 } from "./utils/gradeEntryAssessments";
 import { generateAssessmentName } from "./assessments/AssessmentUtils";
+import RealtimeNotificationService from "../../../services/realtimeNotificationService";
 import {
   getCourseColors,
   loadCourseTargetGrade,

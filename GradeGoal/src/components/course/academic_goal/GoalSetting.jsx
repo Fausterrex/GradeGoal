@@ -11,6 +11,7 @@ import GoalHeader from "./GoalHeader";
 import GoalFilter from "./GoalFilter";
 import GoalCard from "./GoalCard";
 import GoalModal from "./GoalModal";
+import RealtimeNotificationService from "../../../services/realtimeNotificationService";
 
 const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }) => {
   // ========================================
@@ -82,8 +83,70 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     if (Object.keys(grades).length > 0 && goals.length > 0) {
       // Progress will be recalculated by individual GoalCard components
       // No need to trigger additional calculations here
+      
+        // Check for goal achievements (update database only, no email notification)
+        goals.forEach(async (goal) => {
+          console.log('🔍 Checking goal achievement for:', {
+            goalId: goal.goalId,
+            goalTitle: goal.goalTitle,
+            goalType: goal.goalType,
+            currentProgress: goal.currentProgress,
+            targetValue: goal.targetValue,
+            isAchieved: goal.isAchieved,
+            achievedDate: goal.achievedDate
+          });
+          
+          if (goal.currentProgress && goal.targetValue) {
+            const isAchieved = RealtimeNotificationService.isGoalAchieved(
+              goal.currentProgress,
+              goal.targetValue,
+              goal.goalType
+            );
+            
+            // Only update database if just achieved (not already marked as achieved in database)
+            if (isAchieved && !goal.isAchieved) {
+              console.log('🎉 Goal achieved! Updating database...');
+              try {
+                // Update goal in database with proper fields
+                const updateData = {
+                  ...goal,
+                  isAchieved: 1,
+                  achievedDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+                  status: 'completed'
+                };
+                
+                console.log('📝 Updating goal in database:', updateData);
+                
+                const response = await fetch(`http://localhost:8080/api/academic-goals/${goal.goalId}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updateData)
+                });
+                
+                if (response.ok) {
+                  const updatedGoal = await response.json();
+                  setGoals(prev => prev.map(g => g.goalId === goal.goalId ? updatedGoal : g));
+                  console.log('✅ Goal database updated for:', goal.goalTitle);
+                } else {
+                  console.error('❌ Failed to update goal in database:', response.status, response.statusText);
+                }
+              } catch (error) {
+                console.error('❌ Failed to update goal in database:', error);
+              }
+            } else if (isAchieved && goal.isAchieved) {
+              console.log('✅ Goal already achieved and marked in database:', goal.goalTitle);
+            } else {
+              console.log('⏳ Goal not yet achieved:', goal.goalTitle);
+            }
+          } else {
+            console.log('⚠️ Goal missing required data:', {
+              hasCurrentProgress: !!goal.currentProgress,
+              hasTargetValue: !!goal.targetValue
+            });
+          }
+        });
     }
-  }, [grades, courses, goals]);
+  }, [grades, courses, goals, userEmail]);
 
   // ========================================
   // GOAL COUNT CALCULATION
