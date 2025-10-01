@@ -466,6 +466,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               colorScheme={colorScheme}
               userProgress={userProgress}
               userAnalytics={userAnalytics}
+              userId={userId}
               onSetGoal={() => {
                 // Clear the selected course and close course manager first, then navigate
                 if (onClearSelectedCourse) {

@@ -1,13 +1,22 @@
 package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.UserProgress;
+import com.project.gradegoal.Entity.UserAchievement;
+import com.project.gradegoal.Entity.Achievement;
 import com.project.gradegoal.Repository.UserProgressRepository;
 import com.project.gradegoal.Repository.UserRepository;
+import com.project.gradegoal.Repository.UserAchievementRepository;
+import com.project.gradegoal.Repository.AchievementRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class UserProgressService {
@@ -17,6 +26,13 @@ public class UserProgressService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private UserAchievementRepository userAchievementRepository;
+    
+    @Autowired
+    private AchievementRepository achievementRepository;
+    
     
     /**
      * Get user progress by user ID
@@ -91,12 +107,35 @@ public class UserProgressService {
         progress.setTotalPoints(progress.getTotalPoints() + points);
         
         // Check for level up
-        checkLevelUp(progress);
+        boolean leveledUp = checkLevelUp(progress);
         
         // Update last activity date
         progress.setLastActivityDate(LocalDate.now());
         
         return userProgressRepository.save(progress);
+    }
+    
+    /**
+     * Award points to user and check for level up, returning level up status
+     * @param userId the user ID
+     * @param points the points to award
+     * @return LevelUpResult containing progress and level up status
+     */
+    public LevelUpResult awardPointsWithLevelUpCheck(Long userId, Integer points) {
+        UserProgress progress = getUserProgress(userId);
+        
+        // Update total points
+        progress.setTotalPoints(progress.getTotalPoints() + points);
+        
+        // Check for level up
+        boolean leveledUp = checkLevelUp(progress);
+        
+        // Update last activity date
+        progress.setLastActivityDate(LocalDate.now());
+        
+        UserProgress savedProgress = userProgressRepository.save(progress);
+        
+        return new LevelUpResult(savedProgress, leveledUp);
     }
     
     /**
@@ -119,25 +158,110 @@ public class UserProgressService {
     /**
      * Check if user should level up and update accordingly
      * @param progress the user progress
+     * @return true if user leveled up
      */
-    private void checkLevelUp(UserProgress progress) {
+    private boolean checkLevelUp(UserProgress progress) {
         Integer totalPoints = progress.getTotalPoints();
         Integer currentLevel = progress.getCurrentLevel();
         
-        // Calculate required points for next level (simple formula: level * 100)
-        Integer requiredPoints = currentLevel * 100;
+        // Calculate required points for next level using progressive formula
+        Integer requiredPoints = calculatePointsRequiredForLevel(currentLevel + 1);
         
         if (totalPoints >= requiredPoints) {
             // Level up
             progress.setCurrentLevel(currentLevel + 1);
-            progress.setPointsToNextLevel((currentLevel + 1) * 100);
+            progress.setPointsToNextLevel(calculatePointsRequiredForLevel(currentLevel + 2) - totalPoints);
             
             // Award bonus points for leveling up
             progress.setTotalPoints(totalPoints + 50);
+            
+            return true; // User leveled up
         } else {
             // Update points to next level
             progress.setPointsToNextLevel(requiredPoints - totalPoints);
+            return false; // No level up
         }
+    }
+    
+    /**
+     * Calculate points required to reach a specific level using much harder progressive formula
+     * Formula: (level - 1) * 500 + (level - 2) * 250 for level > 1, and 0 for level 1
+     * This makes leveling significantly harder:
+     * Level 1: 0 points
+     * Level 2: 500 points  
+     * Level 3: 1,250 points
+     * Level 4: 2,000 points
+     * Level 5: 2,750 points
+     * Level 10: 6,500 points
+     * Level 20: 14,000 points
+     * Level 50: 36,500 points
+     * Level 100: 74,000 points
+     * @param level the target level
+     * @return points required to reach that level
+     */
+    public Integer calculatePointsRequiredForLevel(Integer level) {
+        if (level <= 1) return 0;
+        return (level - 1) * 500 + (level - 2) * 250;
+    }
+    
+    /**
+     * Get user's recent achievements (limited to specified count)
+     * @param userId User ID
+     * @param limit Maximum number of achievements to return
+     * @return List of recent achievements with details
+     */
+    public List<Map<String, Object>> getRecentAchievements(Long userId, Integer limit) {
+        List<UserAchievement> userAchievements = userAchievementRepository.findByUserIdOrderByEarnedAtDesc(userId);
+        
+        return userAchievements.stream()
+            .limit(limit)
+            .map(ua -> {
+                Achievement achievement = achievementRepository.findById(ua.getAchievementId()).orElse(null);
+                if (achievement != null) {
+                    Map<String, Object> achievementData = new HashMap<>();
+                    achievementData.put("userAchievementId", ua.getUserAchievementId());
+                    achievementData.put("achievementId", achievement.getAchievementId());
+                    achievementData.put("name", achievement.getAchievementName());
+                    achievementData.put("description", achievement.getDescription());
+                    achievementData.put("category", achievement.getCategory());
+                    achievementData.put("rarity", achievement.getRarity());
+                    achievementData.put("points", achievement.getPointsValue());
+                    achievementData.put("earnedAt", ua.getEarnedAt());
+                    achievementData.put("iconUrl", achievement.getIconUrl());
+                    return achievementData;
+                }
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get user rank title based on level
+     * @param level the user's current level
+     * @return rank title
+     */
+    public String getUserRankTitle(Integer level) {
+        if (level == null || level <= 0) return "Newcomer";
+        
+        if (level >= 1 && level <= 4) return "Beginner Scholar";
+        if (level >= 5 && level <= 9) return "Rising Scholar";
+        if (level >= 10 && level <= 14) return "Dedicated Student";
+        if (level >= 15 && level <= 19) return "Academic Achiever";
+        if (level >= 20 && level <= 24) return "Honor Student";
+        if (level >= 25 && level <= 29) return "Excellence Scholar";
+        if (level >= 30 && level <= 34) return "Distinguished Scholar";
+        if (level >= 35 && level <= 39) return "Elite Academic";
+        if (level >= 40 && level <= 44) return "Master Scholar";
+        if (level >= 45 && level <= 49) return "Academic Virtuoso";
+        if (level >= 50 && level <= 59) return "GradeGoal Expert";
+        if (level >= 60 && level <= 69) return "Academic Legend";
+        if (level >= 70 && level <= 79) return "GradeGoal Master";
+        if (level >= 80 && level <= 89) return "Academic Grandmaster";
+        if (level >= 90 && level <= 99) return "GradeGoal Champion";
+        if (level >= 100) return "Ultimate Scholar";
+        
+        return "Beginner Scholar";
     }
     
     /**
@@ -153,5 +277,26 @@ public class UserProgressService {
         UserProgress newProgress = new UserProgress(userId);
         newProgress.setLastActivityDate(LocalDate.now());
         return userProgressRepository.save(newProgress);
+    }
+    
+    /**
+     * Result class for level up operations
+     */
+    public static class LevelUpResult {
+        private final UserProgress progress;
+        private final boolean leveledUp;
+        
+        public LevelUpResult(UserProgress progress, boolean leveledUp) {
+            this.progress = progress;
+            this.leveledUp = leveledUp;
+        }
+        
+        public UserProgress getProgress() {
+            return progress;
+        }
+        
+        public boolean isLeveledUp() {
+            return leveledUp;
+        }
     }
 }

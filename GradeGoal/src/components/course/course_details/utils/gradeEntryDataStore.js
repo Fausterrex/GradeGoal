@@ -20,6 +20,7 @@ import {
   awardPoints,
   checkGoalProgress,
   checkGradeAlerts,
+  checkAchievements,
 } from "../../../../backend/api";
 
 /**
@@ -224,6 +225,10 @@ export const awardPointsAndCheckAchievements = async (userId, points, activityTy
     await awardPoints(userId, points, activityType);
     await checkGoalProgress(userId);
     await checkGradeAlerts(userId);
+    
+    // Check for achievements (this will award achievements and send notifications)
+    await checkAchievements(userId);
+    
     return { success: true };
   } catch (error) {
     console.error('Failed to process achievements/points:', error);

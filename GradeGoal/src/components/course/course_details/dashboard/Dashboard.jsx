@@ -23,6 +23,7 @@ function Dashboard({
   colorScheme,
   userProgress,
   userAnalytics,
+  userId,
   onSetGoal = () => {} // Callback for setting goals
 }) {
   const [aiAnalysisRefreshTrigger, setAiAnalysisRefreshTrigger] = useState(0);
@@ -72,6 +73,7 @@ function Dashboard({
                 <UserProgress 
                   userProgress={userProgress}
                   course={course}
+                  userId={userId}
                 />
               </div>
             </div>

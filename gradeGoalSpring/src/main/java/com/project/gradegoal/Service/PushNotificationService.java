@@ -256,6 +256,24 @@ public class PushNotificationService {
     }
     
     /**
+     * Send achievement notification
+     * @param userEmail User's email address
+     * @param achievementName Achievement name
+     * @param description Achievement description
+     * @param pointsValue Points earned
+     * @return true if notification sent successfully
+     */
+    public boolean sendAchievementNotification(String userEmail, String achievementName, String description, int pointsValue) {
+        String title = "🏆 Achievement Unlocked!";
+        String body = String.format("You earned '%s'! +%d points", achievementName, pointsValue);
+        
+        String data = String.format("{\"type\":\"achievement\",\"name\":\"%s\",\"description\":\"%s\",\"points\":%d}", 
+            achievementName, description, pointsValue);
+        
+        return sendNotificationToUser(userEmail, title, body, data);
+    }
+    
+    /**
      * Check if user has push notifications enabled
      * @param userEmail User's email address
      * @return true if enabled

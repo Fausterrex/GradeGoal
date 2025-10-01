@@ -183,7 +183,7 @@ public class UserService {
         user.setIsActive(true);
         user.setRole("USER"); // Default role for new OAuth users
         user.setEmailNotificationsEnabled(true); // Enable email notifications by default
-        user.setPushNotificationsEnabled(false); // Disable push notifications by default (user can enable later)
+        user.setPushNotificationsEnabled(true); // Disable push notifications by default (user can enable later)
 
         return userRepository.save(user);
     }

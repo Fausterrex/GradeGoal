@@ -151,7 +151,7 @@ public class EmailNotificationService {
      * @param subject Email subject
      * @param content Email content
      */
-    private void sendEmail(String toEmail, String subject, String content) {
+    public void sendEmail(String toEmail, String subject, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

@@ -30,6 +30,8 @@ const RecentActivities = ({ courses }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [goals, setGoals] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [userAchievements, setUserAchievements] = useState([]);
   const [timeFilter, setTimeFilter] = useState(7); // 7 or 14 days
   const [activityFilter, setActivityFilter] = useState('all'); // all, grade_entry, notification, goal_achievement, goal_created
 
@@ -42,13 +44,134 @@ const RecentActivities = ({ courses }) => {
     }
   }, [currentUser, courses.length, timeFilter]);
 
+  // Fetch notifications when userId changes
+  useEffect(() => {
+    if (userId) {
+      fetchNotifications();
+    }
+  }, [userId]);
+
+  // Listen for notification filter event from notification bell
+  useEffect(() => {
+    const handleSetNotificationFilter = () => {
+      setActivityFilter('notification');
+    };
+
+    window.addEventListener('setNotificationFilter', handleSetNotificationFilter);
+    return () => window.removeEventListener('setNotificationFilter', handleSetNotificationFilter);
+  }, []);
+
   // Filter activities based on selected filter
   const filteredActivities = useMemo(() => {
+    if (activityFilter === 'notification') {
+      return notifications;
+    }
+    if (activityFilter === 'achievement') {
+      return userAchievements;
+    }
     if (activityFilter === 'all') {
-      return activities;
+      return [...activities, ...notifications, ...userAchievements];
     }
     return activities.filter(activity => activity.type === activityFilter);
-  }, [activities, activityFilter]);
+  }, [activities, notifications, userAchievements, activityFilter]);
+
+  // Fetch notifications from database
+  const fetchNotifications = async () => {
+    if (!userId) return;
+    
+    try {
+      const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? '' : 'http://localhost:8080');
+      
+      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Convert notifications to activity format
+        const notificationActivities = data.map(notification => ({
+          id: `notification-${notification.notificationId}`,
+          type: 'notification',
+          title: notification.title,
+          description: notification.message,
+          timestamp: new Date(notification.createdAt),
+          icon: 'Bell',
+          color: 'blue',
+          isRead: notification.isRead,
+          notificationId: notification.notificationId,
+          notificationType: notification.notificationType,
+          actionData: notification.actionData
+        }));
+        
+        setNotifications(notificationActivities);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // Fetch user achievements from database
+  const fetchUserAchievements = async () => {
+    if (!userId) return;
+    
+    try {
+      const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? '' : 'http://localhost:8080');
+      
+      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}/recent-achievements`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Convert user achievements to activity format
+        const achievementActivities = data.map(achievement => ({
+          id: `achievement-${achievement.userAchievementId}`,
+          type: 'achievement',
+          title: achievement.name,
+          description: achievement.description,
+          timestamp: new Date(achievement.earnedAt),
+          icon: 'Award',
+          color: 'yellow',
+          rarity: achievement.rarity,
+          points: achievement.points,
+          category: achievement.category
+        }));
+        
+        setUserAchievements(achievementActivities);
+      }
+    } catch (error) {
+      console.error('Error fetching user achievements:', error);
+    }
+  };
+
+  // Fetch user achievements from database with userId parameter
+  const fetchUserAchievementsWithUserId = async (userIdParam) => {
+    try {
+      const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? '' : 'http://localhost:8080');
+      
+      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userIdParam}/all-achievements`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Convert user achievements to activity format
+        const achievementActivities = data.map(achievement => ({
+          id: `achievement-${achievement.userAchievementId}`,
+          type: 'achievement',
+          title: achievement.name,
+          description: achievement.description,
+          timestamp: new Date(achievement.earnedAt),
+          icon: 'Award',
+          color: 'yellow',
+          rarity: achievement.rarity,
+          points: achievement.points,
+          category: achievement.category
+        }));
+        
+        setUserAchievements(achievementActivities);
+      }
+    } catch (error) {
+      console.error('Error fetching user achievements:', error);
+    }
+  };
 
   const loadRecentActivities = async () => {
     try {
@@ -57,6 +180,12 @@ const RecentActivities = ({ courses }) => {
       // Get user profile
       const userProfile = await getUserProfile(currentUser.email);
       setUserId(userProfile.userId);
+      
+      // Fetch notifications and user achievements with userId
+      await Promise.all([
+        fetchNotifications(),
+        fetchUserAchievementsWithUserId(userProfile.userId)
+      ]);
 
       // Load goals
       const allGoals = await getAcademicGoalsByUserId(userProfile.userId);
@@ -380,7 +509,7 @@ const RecentActivities = ({ courses }) => {
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+    <div id="recent-activities" className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
       {/* ========================================
           HEADER SECTION
           ======================================== */}
@@ -487,6 +616,65 @@ const RecentActivities = ({ courses }) => {
                       </span>
                     </div>
                   )}
+
+                  {/* Notification specific info */}
+                  {activity.type === 'notification' && activity.notificationType === 'ACHIEVEMENT' && activity.actionData && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {(() => {
+                        try {
+                          const data = JSON.parse(activity.actionData);
+                          return (
+                            <>
+                              <span className={`px-2 py-0.5 rounded-full text-xs text-white ${
+                                data.rarity === 'LEGENDARY' ? 'bg-yellow-500' :
+                                data.rarity === 'EPIC' ? 'bg-purple-500' :
+                                data.rarity === 'RARE' ? 'bg-blue-500' :
+                                data.rarity === 'UNCOMMON' ? 'bg-green-500' :
+                                'bg-gray-500'
+                              }`}>
+                                {data.rarity}
+                              </span>
+                              <span className="text-xs text-[#8168C5] font-semibold">
+                                +{data.points} points
+                              </span>
+                            </>
+                          );
+                        } catch {
+                          return null;
+                        }
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Achievement details for user achievements */}
+                  {activity.type === 'achievement' && activity.rarity && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs text-white ${
+                        activity.rarity === 'LEGENDARY' ? 'bg-yellow-500' :
+                        activity.rarity === 'EPIC' ? 'bg-purple-500' :
+                        activity.rarity === 'RARE' ? 'bg-blue-500' :
+                        activity.rarity === 'UNCOMMON' ? 'bg-green-500' :
+                        'bg-gray-500'
+                      }`}>
+                        {activity.rarity}
+                      </span>
+                      <span className="text-xs text-[#8168C5] font-semibold">
+                        +{activity.points} points
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {activity.category}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Unread indicator for notifications */}
+                  {activity.type === 'notification' && !activity.isRead && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        Unread
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -497,7 +685,7 @@ const RecentActivities = ({ courses }) => {
       {/* ========================================
           ACTIVITY TYPE FILTER
           ======================================== */}
-      {activities.length > 0 && (
+      {(activities.length > 0 || notifications.length > 0 || userAchievements.length > 0) && (
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="flex items-center justify-center space-x-2 mb-6">
             <button
@@ -538,6 +726,26 @@ const RecentActivities = ({ courses }) => {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
+              Goal Achieved
+            </button>
+            <button
+              onClick={() => setActivityFilter('goal_created')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activityFilter === 'goal_created' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              New Goal
+            </button>
+            <button
+              onClick={() => setActivityFilter('achievement')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activityFilter === 'achievement' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
               Achievements
             </button>
             <button
@@ -557,36 +765,48 @@ const RecentActivities = ({ courses }) => {
       {/* ========================================
           SUMMARY STATS
           ======================================== */}
-      {activities.length > 0 && (
+      {(activities.length > 0 || notifications.length > 0 || userAchievements.length > 0) && (
         <div className="mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {filteredActivities.filter(a => a.type === 'grade_entry').length}
+                {activityFilter === 'all' ? filteredActivities.filter(a => a.type === 'grade_entry').length : 
+                 activityFilter === 'grade_entry' ? filteredActivities.length : 0}
               </div>
               <div className="text-sm text-gray-600">Grade Entries</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {filteredActivities.filter(a => a.type === 'goal_achievement').length}
+                {activityFilter === 'all' ? filteredActivities.filter(a => a.type === 'goal_achievement').length : 
+                 activityFilter === 'goal_achievement' ? filteredActivities.length : 0}
               </div>
               <div className="text-sm text-gray-600">Goals Achieved</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {filteredActivities.filter(a => a.type === 'goal_created').length}
+                {activityFilter === 'all' ? filteredActivities.filter(a => a.type === 'goal_created').length : 
+                 activityFilter === 'goal_created' ? filteredActivities.length : 0}
               </div>
               <div className="text-sm text-gray-600">New Goals</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {filteredActivities.filter(a => a.type === 'notification').length}
+                {activityFilter === 'all' ? notifications.length : 
+                 activityFilter === 'notification' ? filteredActivities.length : 0}
               </div>
               <div className="text-sm text-gray-600">Notifications</div>
             </div>
             <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {activityFilter === 'all' ? userAchievements.length : 
+                 activityFilter === 'achievement' ? filteredActivities.length : 0}
+              </div>
+              <div className="text-sm text-gray-600">Achievements</div>
+            </div>
+            <div className="text-center">
               <div className="text-2xl font-bold text-indigo-600">
-                {filteredActivities.filter(a => a.type === 'ai_analysis').length}
+                {activityFilter === 'all' ? filteredActivities.filter(a => a.type === 'ai_analysis').length : 
+                 activityFilter === 'ai_analysis' ? filteredActivities.length : 0}
               </div>
               <div className="text-sm text-gray-600">AI Analysis</div>
             </div>

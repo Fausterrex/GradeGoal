@@ -1174,3 +1174,229 @@ export async function updateUserPreferences(email, preferences) {
   return response.json();
 }
 
+// ========================================
+// ACHIEVEMENT API FUNCTIONS
+// ========================================
+
+/**
+ * Get user's recent achievements (limited to 2 most recent)
+ * @param {number} userId - User ID
+ */
+export async function getRecentAchievements(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/user-progress/${userId}/recent-achievements`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get recent achievements with status ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Get user progress with rank information
+ * @param {number} userId - User ID
+ */
+export async function getUserProgressWithRank(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/user-progress/${userId}/with-rank`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get user progress with rank with status ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Check and award achievements for a user
+ * @param {number} userId - User ID
+ */
+export async function checkAchievements(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/check/${userId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to check achievements with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get all achievements for a user (earned)
+ * @param {number} userId - User ID
+ */
+export async function getUserAchievements(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/user/${userId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get user achievements with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get all achievements with progress (locked and unlocked)
+ * @param {number} userId - User ID
+ */
+export async function getAllAchievementsWithProgress(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/user/${userId}/all`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get all achievements with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get notifications for a user
+ * @param {number} userId - User ID
+ */
+export async function getNotifications(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/notifications/${userId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get notifications with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get unread notifications for a user
+ * @param {number} userId - User ID
+ */
+export async function getUnreadNotifications(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/notifications/${userId}/unread`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get unread notifications with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get unread notification count
+ * @param {number} userId - User ID
+ */
+export async function getUnreadCount(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/notifications/${userId}/unread-count`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get unread count with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Mark notification as read
+ * @param {number} notificationId - Notification ID
+ */
+export async function markNotificationAsRead(notificationId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/notifications/${notificationId}/read`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to mark notification as read with status ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Mark all notifications as read for a user
+ * @param {number} userId - User ID
+ */
+export async function markAllNotificationsAsRead(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/achievements/notifications/${userId}/mark-all-read`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to mark all notifications as read with status ${response.status}`);
+  }
+  return response.json();
+}
+

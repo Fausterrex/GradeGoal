@@ -48,6 +48,67 @@ public class UserProgressController {
             return ResponseEntity.status(500).body("Failed to fetch user progress");
         }
     }
+    
+    /**
+     * Get user's recent achievements (limited to 2 most recent)
+     * @param userId User ID
+     * @return List of recent achievements
+     */
+    @GetMapping("/{userId}/recent-achievements")
+    public ResponseEntity<?> getRecentAchievements(@PathVariable Long userId) {
+        try {
+            List<Map<String, Object>> recentAchievements = userProgressService.getRecentAchievements(userId, 2);
+            return ResponseEntity.ok(recentAchievements);
+        } catch (Exception e) {
+            System.err.println("Error fetching recent achievements: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to fetch recent achievements");
+        }
+    }
+
+    /**
+     * Get all user achievements
+     * @param userId User ID
+     * @return List of all user achievements
+     */
+    @GetMapping("/{userId}/all-achievements")
+    public ResponseEntity<?> getAllUserAchievements(@PathVariable Long userId) {
+        try {
+            List<Map<String, Object>> allAchievements = userProgressService.getRecentAchievements(userId, 1000); // Get all achievements
+            return ResponseEntity.ok(allAchievements);
+        } catch (Exception e) {
+            System.err.println("Error fetching all user achievements: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to fetch all user achievements");
+        }
+    }
+
+    /**
+     * Get user progress with rank information
+     * @param userId User ID
+     * @return UserProgress with rank title and level requirements
+     */
+    @GetMapping("/{userId}/with-rank")
+    public ResponseEntity<?> getUserProgressWithRank(@PathVariable Long userId) {
+        try {
+            UserProgress userProgress = userProgressService.getUserProgress(userId);
+            if (userProgress != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("userProgress", userProgress);
+                response.put("rankTitle", userProgressService.getUserRankTitle(userProgress.getCurrentLevel()));
+                response.put("pointsRequiredForNextLevel", userProgressService.calculatePointsRequiredForLevel(userProgress.getCurrentLevel() + 1));
+                response.put("pointsRequiredForCurrentLevel", userProgressService.calculatePointsRequiredForLevel(userProgress.getCurrentLevel()));
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(404).body("User progress not found");
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching user progress with rank: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to fetch user progress with rank");
+        }
+    }
 
     /**
      * Update user progress with accurate GPA values

@@ -13,7 +13,6 @@ import {
   FaCalendarAlt,
   FaCog,
 } from "react-icons/fa";
-
 const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
   // Navigation items configuration
   const navItems = [
@@ -29,7 +28,7 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
     <div className="w-60 h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-between px-2 py-6 z-10 rounded-tr-4xl rounded-br-4xl overflow-hidden">
       <div className="space-y-6">
         {/* ========================================
-            LOGO AND BRANDING
+            LOGO AND BRANDING WITH NOTIFICATION BELL
             ======================================== */}
         <div className="flex flex-col items-center justify-center text-2xl font-bold mb-6">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-2">

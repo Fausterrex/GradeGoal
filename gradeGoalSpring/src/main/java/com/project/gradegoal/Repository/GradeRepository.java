@@ -51,6 +51,12 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE a.categoryId IN (SELECT ac.categoryId FROM AssessmentCategory ac WHERE ac.courseId IN (SELECT c.courseId FROM Course c WHERE c.userId = :userId))")
     List<Grade> findGradesByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE a.categoryId IN (SELECT ac.categoryId FROM AssessmentCategory ac WHERE ac.courseId IN (SELECT c.courseId FROM Course c WHERE c.userId = :userId)) ORDER BY g.gradeDate DESC")
+    List<Grade> findByUserIdOrderByDateDesc(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(g) FROM Grade g JOIN g.assessment a WHERE a.categoryId IN (SELECT ac.categoryId FROM AssessmentCategory ac WHERE ac.courseId IN (SELECT c.courseId FROM Course c WHERE c.userId = :userId))")
+    long countByUserId(@Param("userId") Long userId);
+
     // ========================================
     // DATABASE PROCEDURE CALLS
     // ========================================

@@ -3,11 +3,45 @@
 // ========================================
 // Displays user progress, level, points, and achievements
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { getUserProgressWithRank, getRecentAchievements } from "../../../../backend/api";
+import PointsSystemModal from "../../../common/PointsSystemModal";
 
-function UserProgress({ userProgress, course }) {
+function UserProgress({ userProgress, course, userId }) {
+  const [progressData, setProgressData] = useState(null);
+  const [recentAchievements, setRecentAchievements] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showPointsModal, setShowPointsModal] = useState(false);
 
-  if (!userProgress) {
+  useEffect(() => {
+    const fetchProgressWithRank = async () => {
+      if (userId) {
+        try {
+          setIsLoading(true);
+          const [progressResponse, achievementsResponse] = await Promise.all([
+            getUserProgressWithRank(userId),
+            getRecentAchievements(userId)
+          ]);
+          setProgressData(progressResponse);
+          setRecentAchievements(achievementsResponse);
+        } catch (error) {
+          console.error("Error fetching user progress with rank:", error);
+          // Fallback to passed userProgress
+          setProgressData({ userProgress, rankTitle: "Beginner Scholar" });
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // Fallback to passed userProgress
+        setProgressData({ userProgress, rankTitle: "Beginner Scholar" });
+        setIsLoading(false);
+      }
+    };
+
+    fetchProgressWithRank();
+  }, [userId, userProgress]);
+
+  if (isLoading) {
     return (
       <div className="bg-white rounded border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">User Progress</h3>
@@ -19,20 +53,56 @@ function UserProgress({ userProgress, course }) {
     );
   }
 
-  // Set default values for level_info if userProgress is undefined or incomplete
-  const level_info = userProgress?.level_info || {
-    level: userProgress?.currentLevel || 1,
-    levelName: "Beginner Scholar", 
-    totalPoints: userProgress?.totalPoints || 0,
-    pointsToNextLevel: userProgress?.pointsToNextLevel || 100,
-    isMaxLevel: false
+  if (!progressData?.userProgress) {
+    return (
+      <div className="bg-white rounded border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">User Progress</h3>
+        <div className="text-center py-8">
+          <span className="text-4xl text-gray-300">🎯</span>
+          <p className="text-gray-500 mt-2">No progress data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentProgress = progressData.userProgress;
+  const rankTitle = progressData.rankTitle || "Beginner Scholar";
+  const pointsRequiredForNextLevel = progressData.pointsRequiredForNextLevel || 100;
+  const pointsRequiredForCurrentLevel = progressData.pointsRequiredForCurrentLevel || 0;
+
+  // Calculate progress within current level
+  const currentLevel = currentProgress.currentLevel || 1;
+  const totalPoints = currentProgress.totalPoints || 0;
+  
+  // Determine what the user is working towards
+  const isWorkingTowardsCurrentLevel = totalPoints < pointsRequiredForCurrentLevel;
+  const pointsNeededForCurrentLevel = pointsRequiredForCurrentLevel - totalPoints;
+  const pointsNeededForNextLevel = pointsRequiredForNextLevel - totalPoints;
+  
+  // Calculate progress percentage correctly
+  // If user hasn't reached current level yet, show progress towards current level
+  // If user has reached current level, show progress towards next level
+  let progressPercentage;
+  
+  if (totalPoints < pointsRequiredForCurrentLevel) {
+    // User hasn't reached current level yet - show progress towards current level
+    progressPercentage = pointsRequiredForCurrentLevel > 0 ? Math.min((totalPoints / pointsRequiredForCurrentLevel) * 100, 100) : 0;
+  } else {
+    // User has reached current level - show progress towards next level
+    const pointsInCurrentLevel = totalPoints - pointsRequiredForCurrentLevel;
+    const pointsNeededForCurrentLevel = pointsRequiredForNextLevel - pointsRequiredForCurrentLevel;
+    progressPercentage = pointsNeededForCurrentLevel > 0 ? Math.min((pointsInCurrentLevel / pointsNeededForCurrentLevel) * 100, 100) : 0;
+  }
+
+  // Set level_info with dynamic rank
+  const level_info = {
+    level: currentLevel,
+    levelName: rankTitle,
+    totalPoints: totalPoints,
+    pointsToNextLevel: isWorkingTowardsCurrentLevel ? pointsNeededForCurrentLevel : pointsNeededForNextLevel,
+    isMaxLevel: currentLevel >= 100
   };
   
-  // Calculate actual progress percentage based on points to next level
-  const currentPoints = userProgress?.totalPoints || 0;
-  const pointsToNext = userProgress?.pointsToNextLevel || 100;
-  const pointsInCurrentLevel = currentPoints % 100; // Points within current level (0-99)
-  const progressPercentage = Math.min((pointsInCurrentLevel / 100) * 100, 100);
 
 
   const getSemesterMessage = (gpa) => {
@@ -63,7 +133,7 @@ function UserProgress({ userProgress, course }) {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-600">{level_info.levelName}</span>
             <span className="text-sm font-bold text-gray-900">
-              {currentPoints || 0} pts
+              {totalPoints || 0} pts
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
@@ -74,7 +144,10 @@ function UserProgress({ userProgress, course }) {
           </div>
           {!level_info.isMaxLevel && (
             <div className="text-xs text-gray-500 mt-1">
-              {pointsToNext} points to next level
+              {isWorkingTowardsCurrentLevel 
+                ? `${pointsNeededForCurrentLevel} points to reach Level ${currentLevel}`
+                : `${pointsNeededForNextLevel} points to next level`
+              }
             </div>
           )}
         </div>
@@ -100,7 +173,7 @@ function UserProgress({ userProgress, course }) {
             <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
               {/* Front */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-full border border-gray-300 shadow-xl text-center [backface-visibility:hidden]">
-                <div className="text-xl font-bold text-gray-900">{userProgress.streak_days}</div>
+                <div className="text-xl font-bold text-gray-900">{currentProgress.streakDays || 0}</div>
                 <div className="text-xs font-semibold  text-gray-600">Day Streak</div>
               </div>
               {/* Back */}
@@ -114,14 +187,14 @@ function UserProgress({ userProgress, course }) {
             <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
               {/* Front */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-full border border-gray-300 shadow-xl text-center [backface-visibility:hidden]">
-                <div className="text-xl font-bold text-gray-900">{(userProgress.semesterGpa || userProgress.semester_gpa || 0).toFixed(2)}</div>
+                <div className="text-xl font-bold text-gray-900">{(currentProgress.semesterGpa || 0).toFixed(2)}</div>
                 <div className="text-xs font-semibold text-gray-600">Semester GPA</div>
               </div>
               {/* Back */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-yellow-200 rounded-full border border-gray-300 shadow-xl text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
                 <div className="text-xl font-bold text-gray-900">📘</div>
                 <div className="text-xs text-gray-700">
-                  {getSemesterMessage(userProgress.semesterGpa || userProgress.semester_gpa || 0)}
+                  {getSemesterMessage(currentProgress.semesterGpa || 0)}
                 </div>
               </div>
             </div>
@@ -131,60 +204,72 @@ function UserProgress({ userProgress, course }) {
             <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
               {/* Front */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-full border border-gray-300 shadow-xl text-center [backface-visibility:hidden]">
-                <div className="text-xl font-bold text-gray-900">{(userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0).toFixed(2)}</div>
+                <div className="text-xl font-bold text-gray-900">{(currentProgress.cumulativeGpa || 0).toFixed(2)}</div>
                 <div className="text-xs font-semibold text-gray-600">Cumulative GPA</div>
               </div>
               {/* Back */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-pink-200 rounded-full border border-gray-300 shadow-xl text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
                 <div className="text-xl font-bold text-gray-900">🏆</div>
                 <div className="text-xs text-gray-700">
-                  {getGpaMessage(userProgress.cumulativeGpa || userProgress.cumulative_gpa || 0)}
+                  {getGpaMessage(currentProgress.cumulativeGpa || 0)}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* View Points System Button */}
+        <div className="text-center mb-5">
+          <button
+            onClick={() => setShowPointsModal(true)}
+            className="px-6 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+          >
+            View Points System
+          </button>
+        </div>
 
         {/* Achievements */}
         <div className="bg-white rounded-xl border border-gray-300 p-6 shadow mb-5">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Recent Achievements</h4>
           <div className="space-y-3">
-            {/* Level Achievement */}
-            {level_info.level >= 5 && (
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded border border-yellow-200">
-                <span className="text-2xl">⭐</span>
-                <div>
-                  <div className="font-medium text-gray-900">Rising Star</div>
-                  <div className="text-sm text-gray-600">Reached level {level_info.level}</div>
+            {/* Display recent achievements from database */}
+            {recentAchievements.length > 0 ? (
+              recentAchievements.map((achievement, index) => (
+                <div key={achievement.userAchievementId} className={`flex items-center gap-3 p-3 rounded border ${
+                  achievement.rarity === 'LEGENDARY' ? 'bg-yellow-50 border-yellow-200' :
+                  achievement.rarity === 'EPIC' ? 'bg-purple-50 border-purple-200' :
+                  achievement.rarity === 'RARE' ? 'bg-blue-50 border-blue-200' :
+                  achievement.rarity === 'UNCOMMON' ? 'bg-green-50 border-green-200' :
+                  'bg-gray-50 border-gray-200'
+                }`}>
+                  <span className="text-2xl">
+                    {achievement.rarity === 'LEGENDARY' ? '👑' :
+                     achievement.rarity === 'EPIC' ? '💎' :
+                     achievement.rarity === 'RARE' ? '⭐' :
+                     achievement.rarity === 'UNCOMMON' ? '🔸' :
+                     '🏆'}
+                  </span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{achievement.name}</div>
+                    <div className="text-sm text-gray-600">{achievement.description}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`px-2 py-0.5 rounded-full text-xs text-white ${
+                        achievement.rarity === 'LEGENDARY' ? 'bg-yellow-500' :
+                        achievement.rarity === 'EPIC' ? 'bg-purple-500' :
+                        achievement.rarity === 'RARE' ? 'bg-blue-500' :
+                        achievement.rarity === 'UNCOMMON' ? 'bg-green-500' :
+                        'bg-gray-500'
+                      }`}>
+                        {achievement.rarity}
+                      </span>
+                      <span className="text-xs text-[#8168C5] font-semibold">
+                        +{achievement.points} points
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Streak Achievement */}
-            {userProgress.streak_days >= 7 && (
-              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded border border-orange-200">
-                <span className="text-2xl">🔥</span>
-                <div>
-                  <div className="font-medium text-gray-900">Week Warrior</div>
-                  <div className="text-sm text-gray-600">{userProgress.streak_days} day streak</div>
-                </div>
-              </div>
-            )}
-
-            {/* GPA Achievement */}
-            {(userProgress.semesterGpa || userProgress.semester_gpa || 0) >= 3.5 && (
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded border border-green-200">
-                <span className="text-2xl">🎓</span>
-                <div>
-                  <div className="font-medium text-gray-900">Honor Roll</div>
-                  <div className="text-sm text-gray-600">{(userProgress.semesterGpa || userProgress.semester_gpa || 0).toFixed(2)} GPA</div>
-                </div>
-              </div>
-            )}
-
-            {/* Default message if no achievements */}
-            {level_info.level < 5 && userProgress.streak_days < 7 && (userProgress.semesterGpa || userProgress.semester_gpa || 0) < 3.5 && (
+              ))
+            ) : (
               <div className="text-center py-4 text-gray-500">
                 <span className="text-2xl">🎯</span>
                 <p className="mt-2">Keep going to unlock achievements!</p>
@@ -199,21 +284,30 @@ function UserProgress({ userProgress, course }) {
             <h4 className="text-lg font-semibold text-gray-900 mb-3">Next Milestone</h4>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 mb-2">
-                Level {level_info.level + 1}
+                {isWorkingTowardsCurrentLevel ? `Level ${currentLevel}` : `Level ${level_info.level + 1}`}
               </div>
               <div className="text-sm text-gray-600 mb-3">
-                {level_info.pointsToNextLevel} points needed
+                {isWorkingTowardsCurrentLevel 
+                  ? `${pointsNeededForCurrentLevel} points needed to reach Level ${currentLevel}`
+                  : `${pointsNeededForNextLevel} points needed`
+                }
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-green-500 h-2 rounded-full"
-                  style={{ width: `${(level_info.totalPoints / (level_info.totalPoints + level_info.pointsToNextLevel)) * 100}%` }}
+                  style={{ width: `${progressPercentage}%` }}
                 />
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Points System Modal */}
+      <PointsSystemModal 
+        isOpen={showPointsModal} 
+        onClose={() => setShowPointsModal(false)} 
+      />
     </div>
   );
 }

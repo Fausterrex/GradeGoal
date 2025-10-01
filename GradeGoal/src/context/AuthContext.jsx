@@ -114,6 +114,7 @@ export function AuthProvider({ children }) {
         // Merge Firebase user data with database profile data
         const enhancedUser = {
           ...user,
+          userId: userProfile?.userId || null, // Add userId from database
           firstName: userProfile?.firstName || '',
           lastName: userProfile?.lastName || '',
           displayName: userProfile?.firstName && userProfile?.lastName 

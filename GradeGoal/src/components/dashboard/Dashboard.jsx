@@ -20,8 +20,10 @@ import EnhancedGradeTrends from "./EnhancedGradeTrends";
 import GoalsOverview from "./GoalsOverview";
 import RecentActivities from "./RecentActivities";
 import AIRecommendations from "./AIRecommendations";
+import NotificationBell from "./NotificationBell";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
+import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
 
 const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
   const { currentUser } = useAuth();
@@ -67,8 +69,9 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
               goal.courseId === (course.id || course.courseId)
           );
           if (courseGradeGoal) {
-            targetGradesMap[course.id || course.courseId] =
-              courseGradeGoal.targetValue;
+            // Convert percentage to GPA for display
+            const targetGPA = percentageToGPA(courseGradeGoal.targetValue);
+            targetGradesMap[course.id || course.courseId] = targetGPA;
           }
         } catch (error) {
           console.error(
@@ -200,23 +203,31 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
       // Get target grade from academic goals
       const courseId = course.id || course.courseId;
       const targetGrade = targetGrades[courseId];
-      let targetGradeDisplay = targetGrade ? targetGrade.toString() : "Not Set";
+      let targetGradeDisplay = targetGrade ? targetGrade.toFixed(2) : "Not Available";
 
       // Get actual course GPA from gpaData
       const courseGPA = gpaData.courseGPAs[courseId] || 0;
-      const gradeDisplay = courseGPA > 0 ? courseGPA.toFixed(2) : "N/A";
+      const gradeDisplay = courseGPA > 0 ? courseGPA.toFixed(2) : "Not Available";
 
       // Check if course is archived first
       if (course.isActive === false) {
         status = "ARCHIVED";
       } else {
         // Determine status based on target GPA and current GPA
-        if (!targetGrade || targetGrade === null || targetGrade === undefined) {
+        const hasTargetGrade = targetGrade && targetGrade !== null && targetGrade !== undefined;
+        const hasCurrentGPA = courseGPA && courseGPA > 0 && courseGPA !== null && courseGPA !== undefined;
+        
+        if (!hasCurrentGPA && !hasTargetGrade) {
+          // Both current GPA and target GPA are not available
+          status = "Status Not Available";
+        } else if (!hasTargetGrade) {
+          // Only target GPA is not available (current GPA is available)
           status = "Set Target GPA";
-        } else if (!courseGPA || courseGPA === 0 || courseGPA === null || courseGPA === undefined) {
+        } else if (!hasCurrentGPA) {
+          // Only current GPA is not available (target GPA is available)
           status = "Status Not Available";
         } else {
-          // Compare current GPA with target GPA
+          // Both are available - compare current GPA with target GPA
           const currentGPAValue = parseFloat(courseGPA);
           const targetGPAValue = parseFloat(targetGrade);
           
@@ -296,10 +307,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
             {/* ========================================
                 NOTIFICATION BELL ICON
                 ======================================== */}
-            <div className="relative">
-              <Bell className="w-5 h-5 text-white cursor-pointer hover:text-white/80 transition-colors" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-            </div>
+            <NotificationBell userId={userId} />
           </div>
         </div>
       </div>

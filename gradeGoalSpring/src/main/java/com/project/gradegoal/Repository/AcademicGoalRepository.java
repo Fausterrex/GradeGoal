@@ -20,6 +20,8 @@ public interface AcademicGoalRepository extends JpaRepository<AcademicGoal, Long
 
     List<AcademicGoal> findByUserIdAndIsAchieved(Long userId, Boolean isAchieved);
 
+    List<AcademicGoal> findByUserIdAndIsAchievedOrderByAchievedDateDesc(Long userId, Boolean isAchieved);
+
     List<AcademicGoal> findByUserIdAndPriority(Long userId, AcademicGoal.Priority priority);
 
     List<AcademicGoal> findByTargetDate(LocalDate targetDate);
