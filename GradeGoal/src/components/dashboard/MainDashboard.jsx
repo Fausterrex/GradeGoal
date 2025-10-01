@@ -105,10 +105,10 @@ function MainDashboard({ initialTab = "overview" }) {
     : currentUser?.displayName || currentUser?.email || "Unknown User";
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.email) {
       loadCoursesAndGrades();
     }
-  }, [currentUser]);
+  }, [currentUser?.email]); // Only reload when email changes, not on profile updates
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;

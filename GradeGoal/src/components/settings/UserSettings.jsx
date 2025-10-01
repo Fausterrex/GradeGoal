@@ -74,9 +74,8 @@ const UserSettings = () => {
     }
   };
 
-  const handleEmailNotificationToggle = async (enabled) => {
+  const handleEmailNotificationToggle = (enabled) => {
     setEmailNotificationsEnabled(enabled);
-    await savePreferences();
   };
 
   const handlePushNotificationToggle = async (enabled) => {
@@ -85,7 +84,7 @@ const UserSettings = () => {
     } else {
       await disablePushNotifications();
     }
-    await savePreferences();
+    // Remove auto-save - user must click "Save Settings" button
   };
 
   const savePreferences = async () => {
