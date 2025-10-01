@@ -82,6 +82,7 @@ function MainDashboard({ initialTab = "overview" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [grades, setGrades] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [isCourseManagerExpanded, setIsCourseManagerExpanded] = useState(false);
   const [isClosingOverlay, setIsClosingOverlay] = useState(false);
   const [isOpeningOverlay, setIsOpeningOverlay] = useState(false);
@@ -104,16 +105,21 @@ function MainDashboard({ initialTab = "overview" }) {
     ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
     : currentUser?.displayName || currentUser?.email || "Unknown User";
 
-  useEffect(() => {
-    if (currentUser?.email) {
-      loadCoursesAndGrades();
-    }
-  }, [currentUser?.email]); // Only reload when email changes, not on profile updates
+    useEffect(() => {
+      if (currentUser?.email) {
+        loadCoursesAndGrades();
+      }
+    }, [currentUser?.email]); // Only reload when email changes, not on profile updates
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
-
+    
+    // Prevent concurrent calls
+    if (isLoadingCourses) {
+      return;
+    }
     try {
+      setIsLoadingCourses(true);
       setIsLoading(true);
 
       const coursesData = await getCoursesByUid(currentUser.email);
@@ -156,15 +162,118 @@ function MainDashboard({ initialTab = "overview" }) {
         })
       );
 
-      setCourses(coursesWithCategories);
+      // Don't set courses immediately - wait for loadAllGrades to complete
+      // setCourses(coursesWithCategories);
 
       if (coursesWithCategories.length > 0 && (activeTab === "overview" || activeTab === "goals")) {
         await loadAllGrades(coursesWithCategories);
       } else {
+        // If no grades to load, still calculate progress for courses with categories
+        const allGrades = {};
+        
+        const gradePromises = coursesWithCategories.map(async (course) => {
+          try {
+            const courseGrades = await getGradesByCourseId(course.id);
+            
+            if (courseGrades && courseGrades.length > 0) {
+              courseGrades.forEach((grade) => {
+                const categoryId = grade.categoryId || grade.category?.id || grade.category_id;
+                if (categoryId) {
+                  if (!allGrades[categoryId]) {
+                    allGrades[categoryId] = [];
+                  }
+                  allGrades[categoryId].push(grade);
+                }
+              });
+            }
+          } catch (courseError) {
+            console.error(`Error fetching grades for course ${course.name}:`, courseError);
+          }
+        });
+        
+        await Promise.all(gradePromises);
+        
+        // Calculate progress for courses with categories using actual grades
+        const coursesWithProgress = coursesWithCategories.map(course => {
+          let progress = 0;
+          let courseGrade = 0.00;
+          let hasGrades = false;
+
+          if (course.categories && course.categories.length > 0) {
+            // Calculate progress using the same logic as loadAllGrades
+            progress = calculateCourseProgress(course.categories, allGrades);
+            
+            // Check if course has any grades to determine hasGrades
+            hasGrades = course.categories.some(category => 
+              category.assessments && category.assessments.some(assessment =>
+                assessment.grades && assessment.grades.length > 0 &&
+                assessment.grades.some(grade => 
+                  grade.percentageScore !== null && grade.percentageScore !== undefined
+                )
+              )
+            );
+
+            // Always try to get course grade, even if no grades yet
+            try {
+              // Try to get course grade from the course data first
+              if (course.courseGpa && course.courseGpa > 0) {
+                courseGrade = course.courseGpa;
+              } else if (course.currentGrade && typeof course.currentGrade === 'number') {
+                courseGrade = course.currentGrade;
+              } else if (hasGrades) {
+                // Calculate from assessments only if there are actual grades
+                let totalWeightedGrade = 0;
+                let totalWeight = 0;
+
+                for (const category of course.categories) {
+                  if (category.assessments && category.assessments.length > 0) {
+                    for (const assessment of category.assessments) {
+                      if (assessment.grades && assessment.grades.length > 0) {
+                        const categoryWeight = category.weight || 0;
+                        
+                        let assessmentTotal = 0;
+                        let assessmentCount = 0;
+                        
+                        for (const grade of assessment.grades) {
+                          if (grade.percentageScore !== null && grade.percentageScore !== undefined) {
+                            assessmentTotal += grade.percentageScore;
+                            assessmentCount++;
+                          }
+                        }
+                        if (assessmentCount > 0) {
+                          totalWeightedGrade += (assessmentTotal / assessmentCount) * (categoryWeight / 100);
+                          totalWeight += (categoryWeight / 100);
+                        }
+                      }
+                    }
+                  }
+                }
+                if (totalWeight > 0) {
+                  courseGrade = (totalWeightedGrade / totalWeight) / 25; // Convert percentage to GPA
+                }
+              }
+            } catch (gradeError) {
+              console.error(`Error calculating course grade for ${course.name}:`, gradeError);
+              courseGrade = 0.00;
+            }
+          }
+
+          return {
+            ...course,
+            progress: progress,
+            currentGrade: courseGrade,
+            hasGrades: hasGrades,
+          };
+        });
+
+        setCourses(coursesWithProgress);
         setIsLoading(false);
+        setIsLoadingCourses(false);
       }
     } catch (error) {
+      console.error('Error loading courses and grades:', error);
       setIsLoading(false);
+      setIsLoadingCourses(false);
     }
   };
 
@@ -178,8 +287,8 @@ function MainDashboard({ initialTab = "overview" }) {
   }, [isOpeningOverlay]);
 
   const loadAllGrades = useCallback(
-    async (coursesData = courses) => {
-      if (!currentUser || coursesData.length === 0) {
+    async (coursesData) => {
+      if (!currentUser || !coursesData || coursesData.length === 0) {
         setIsLoading(false);
         return;
       }
@@ -303,13 +412,18 @@ function MainDashboard({ initialTab = "overview" }) {
 
         const coursesWithProgress = await Promise.all(coursesWithProgressPromises);
 
+        
+
         setCourses(coursesWithProgress);
         setIsLoading(false);
+        setIsLoadingCourses(false);
       } catch (error) {
+        console.error('Error loading courses and grades:', error);
         setIsLoading(false);
+        setIsLoadingCourses(false);
       }
     },
-    [currentUser, courses]
+    [currentUser, isLoadingCourses] // Add isLoadingCourses to dependencies
   );
 
   useEffect(() => {
@@ -319,7 +433,7 @@ function MainDashboard({ initialTab = "overview" }) {
 
   const refreshGrades = async () => {
     if (courses.length > 0) {
-      await loadAllGrades();
+      await loadAllGrades(courses);
     }
   };
 
@@ -329,14 +443,14 @@ function MainDashboard({ initialTab = "overview" }) {
       Object.keys(grades).length === 0 &&
       activeTab === "overview"
     ) {
-      loadAllGrades();
+      loadAllGrades(courses);
     }
   }, [courses, activeTab, loadAllGrades]);
 
   // Load grades when switching to goals tab
   useEffect(() => {
     if (activeTab === "goals" && courses.length > 0 && Object.keys(grades).length === 0) {
-      loadAllGrades();
+      loadAllGrades(courses);
     }
   }, [activeTab, courses, grades, loadAllGrades]);
 
@@ -411,7 +525,29 @@ function MainDashboard({ initialTab = "overview" }) {
   }, [selectedCourse]);
 
   const handleCourseUpdate = (updatedCourses) => {
-    setCourses(updatedCourses);
+    // Preserve progress data when updating courses
+    setCourses(prevCourses => {
+      return updatedCourses.map(updatedCourse => {
+        const existingCourse = prevCourses.find(c => c.id === updatedCourse.id);
+        if (existingCourse) {
+          // Preserve progress, currentGrade, and hasGrades from existing course
+          return {
+            ...updatedCourse,
+            progress: existingCourse.progress,
+            currentGrade: existingCourse.currentGrade,
+            hasGrades: existingCourse.hasGrades
+          };
+        }
+        // For new courses, set default values
+        return {
+          ...updatedCourse,
+          progress: 0,
+          currentGrade: 0.00,
+          hasGrades: false
+        };
+      });
+    });
+    
     if (
       selectedCourse &&
       !updatedCourses.find((c) => c.id === selectedCourse.id)
@@ -451,11 +587,8 @@ function MainDashboard({ initialTab = "overview" }) {
 
         // Recalculate progress for ALL courses with the updated grades
         setCourses(prevCourses => {
-          // Use the previous courses state to avoid stale closure
-          const currentCourses = prevCourses;
-          
-          // Process courses asynchronously but return current state immediately
-          Promise.all(currentCourses.map(async (course) => {
+          // Process courses asynchronously and update state when complete
+          Promise.all(prevCourses.map(async (course) => {
             try {
               // Calculate progress using the same logic as loadAllGrades
               let progress = 0;
@@ -547,11 +680,11 @@ function MainDashboard({ initialTab = "overview" }) {
             // Update the courses state with recalculated progress
             setCourses(updatedCourses);
           }).catch(error => {
-            console.error('Error recalculating course progress:', error);
+            console.error('🔄 [MainDashboard] handleGradeUpdate Error recalculating course progress:', error);
           });
 
-          // Return current state immediately to avoid blocking
-          return currentCourses;
+          // Don't return anything - let the async update handle the state change
+          return prevCourses;
         });
 
         return mergedGrades;
@@ -588,7 +721,13 @@ function MainDashboard({ initialTab = "overview" }) {
     
     // Reset sidebar flag
     setIsFromSidebar(false);
+    
+    // Refresh course data to get updated progress after assessment changes
+    if (currentUser?.email) {
+      loadCoursesAndGrades();
+    }
   };
+
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -610,6 +749,10 @@ function MainDashboard({ initialTab = "overview" }) {
     if (tab === "courses" && !selectedCourse) {
       setIsOpeningOverlay(true);
       setIsCourseManagerExpanded(true);
+      // Refresh course data when opening course manager to ensure up-to-date progress
+      if (currentUser?.email) {
+        loadCoursesAndGrades();
+      }
     } else {
       if (isCourseManagerExpanded) {
         setIsClosingOverlay(true);
@@ -624,6 +767,10 @@ function MainDashboard({ initialTab = "overview" }) {
 
     if (tab === "overview") {
       navigate("/dashboard");
+      // Refresh course data when returning to overview to ensure up-to-date progress
+      if (currentUser?.email) {
+        loadCoursesAndGrades();
+      }
     } else {
       navigate(`/dashboard/${tab}`);
     }

@@ -26,6 +26,7 @@ function CourseManager({
 }) {
   const { currentUser } = useAuth();
 
+
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -238,7 +239,9 @@ function CourseManager({
               BACK TO DASHBOARD BUTTON
               ======================================== */}
           <button
-            onClick={onBack}
+            onClick={() => {
+              onBack();
+            }}
             className="w-12 h-12 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
             title="Back to Dashboard"
           >
@@ -361,6 +364,8 @@ function CourseManager({
               const courseGrade = course.currentGrade || "Ongoing";
               const progress = course.progress || 0;
               const hasGrades = course.hasGrades || false;
+              
+              // Debug: Log progress values in CourseManager
               const isOngoing = !hasGrades;
 
               // Progress and grade are now pre-calculated in MainDashboard

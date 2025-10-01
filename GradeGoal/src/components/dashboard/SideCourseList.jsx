@@ -104,6 +104,7 @@ const SideCourseList = ({
               // Calculate course progress
               let totalProgress = course.progress || 0;
 
+
               // Ensure progress is valid
               if (isNaN(totalProgress) || !isFinite(totalProgress)) {
                 totalProgress = 0;

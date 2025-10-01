@@ -565,6 +565,15 @@ export const createDeleteAssessmentHandler = (
             onGradeUpdate(updatedGrades);
           }
 
+          // Trigger analytics refresh after assessment deletion
+          // This ensures the trajectory chart updates to remove the deleted assessment
+          setTimeout(() => {
+            // Dispatch a custom event to trigger analytics refresh
+            window.dispatchEvent(new CustomEvent('refreshAnalytics', { 
+              detail: { courseId: course?.id, userId: course?.userId } 
+            }));
+          }, 200); // Small delay to ensure database operations complete
+
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
           alert("Failed to delete assessment. Please try again.");

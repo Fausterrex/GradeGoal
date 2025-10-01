@@ -14,6 +14,8 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByCategoryId(Long categoryId);
 
+    List<Assessment> findByCategoryIdIn(List<Long> categoryIds);
+
     List<Assessment> findByCategoryIdAndStatus(Long categoryId, Assessment.AssessmentStatus status);
 
     List<Assessment> findByDueDate(LocalDate dueDate);

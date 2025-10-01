@@ -36,6 +36,8 @@ public class DatabaseCalculationService {
     @Autowired
     private UserProgressRepository userProgressRepository;
     
+    @Autowired
+    private AssessmentService assessmentService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -342,11 +344,27 @@ public class DatabaseCalculationService {
     public void updateCourseGrades(Long courseId) {
         try {
             System.out.println("🔄 Calling UpdateCourseGrades for course: " + courseId);
-            // Call the database procedure UpdateCourseGrades using entityManager
-            entityManager.createNativeQuery("CALL UpdateCourseGrades(:courseId)")
-                .setParameter("courseId", courseId)
-                .executeUpdate();
-            System.out.println("✅ UpdateCourseGrades completed successfully for course: " + courseId);
+            
+            // Get the course to find the user ID
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+            if (!courseOpt.isPresent()) {
+                System.err.println("❌ Course not found: " + courseId);
+                return;
+            }
+            
+            Course course = courseOpt.get();
+            Long userId = course.getUserId();
+            
+            if (userId == null) {
+                System.err.println("❌ User ID not found for course: " + courseId);
+                return;
+            }
+            
+            // Use our smart analytics logic instead of the stored procedure
+            System.out.println("🔄 Using smart analytics logic for course: " + courseId + ", user: " + userId);
+            assessmentService.regenerateAnalyticsForCourse(userId, courseId);
+            
+            System.out.println("✅ Smart analytics update completed successfully for course: " + courseId);
         } catch (Exception e) {
             System.err.println("❌ Error updating course grades for course " + courseId + ": " + e.getMessage());
             e.printStackTrace();

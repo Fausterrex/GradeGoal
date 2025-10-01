@@ -597,8 +597,27 @@ public class DatabaseCalculationController {
             }
             
             if (analyticsList.isEmpty()) {
-                System.out.println("⚠️ [DatabaseCalculationController] No analytics found, returning empty array");
-                return ResponseEntity.ok(new java.util.ArrayList<>());
+                System.out.println("⚠️ [DatabaseCalculationController] No analytics found, triggering recalculation");
+                
+                // Try to trigger analytics recalculation by updating course grades
+                try {
+                    System.out.println("🔄 [DatabaseCalculationController] Triggering analytics recalculation for course: " + courseId);
+                    databaseCalculationService.updateCourseGrades(courseId);
+                    
+                    // Fetch analytics again after recalculation
+                    if (semester != null && !semester.isEmpty()) {
+                        analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdAndSemesterOrderByAnalyticsDateDesc(userId, courseId, semester);
+                    } else {
+                        analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
+                    }
+                    
+                    System.out.println("📊 [DatabaseCalculationController] After recalculation, found " + analyticsList.size() + " analytics records");
+                } catch (Exception e) {
+                    System.err.println("⚠️ [DatabaseCalculationController] Failed to trigger analytics recalculation: " + e.getMessage());
+                }
+                
+                // Return whatever we have (empty or recalculated)
+                return ResponseEntity.ok(analyticsList);
             }
             
             // Log the analytics data for debugging

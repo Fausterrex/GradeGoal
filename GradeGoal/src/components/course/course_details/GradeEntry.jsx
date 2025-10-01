@@ -77,6 +77,10 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  // Debug log when GradeEntry component mounts/renders
+  useEffect(() => {
+  }, [course]);
+
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -155,6 +159,23 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       loadUserAnalytics();
     }
   }, [userId, course, grades, categories, targetGrade]);
+
+  // Listen for analytics refresh events (triggered after assessment deletion)
+  useEffect(() => {
+    const handleRefreshAnalytics = (event) => {
+      const { courseId, userId: eventUserId } = event.detail;
+      // Only refresh if the event is for this course and user
+      if (courseId === course?.id && eventUserId === userId) {
+        loadUserAnalytics();
+      }
+    };
+
+    window.addEventListener('refreshAnalytics', handleRefreshAnalytics);
+    
+    return () => {
+      window.removeEventListener('refreshAnalytics', handleRefreshAnalytics);
+    };
+  }, [course?.id, userId]);
 
   // Update course grade when grades change
   useEffect(() => {
@@ -340,6 +361,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
 
   // Create handler using utility function
   const handleAssessmentClick = createAssessmentClickHandler(setSelectedGrade, setShowScoreInput);
+  
 
   // Create handler using utility function
   const handleScoreSubmit = createScoreSubmitHandler(

@@ -47,7 +47,7 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
               icon={item.icon}
               label={item.label}
               isActive={activeTab === item.tab}
-              onClick={() => onTabClick(item.tab)}
+        onClick={() => onTabClick(item.tab)}
             />
           ))}
         </div>

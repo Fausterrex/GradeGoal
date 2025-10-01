@@ -3,14 +3,19 @@ package com.project.gradegoal.Service;
 import com.project.gradegoal.Entity.Assessment;
 import com.project.gradegoal.Entity.AssessmentCategory;
 import com.project.gradegoal.Entity.Course;
+import com.project.gradegoal.Entity.Grade;
+import com.project.gradegoal.Entity.UserAnalytics;
 import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
 import com.project.gradegoal.Repository.CourseRepository;
+import com.project.gradegoal.Repository.UserAnalyticsRepository;
+import com.project.gradegoal.Repository.GradeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +38,12 @@ public class AssessmentService {
     
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private UserAnalyticsRepository userAnalyticsRepository;
+    
+    @Autowired
+    private GradeRepository gradesRepository;
     
     /**
      * Create a new assessment
@@ -195,16 +206,364 @@ public class AssessmentService {
     }
     
     /**
-     * Delete assessment by ID
+     * Delete assessment by ID and clean up related user analytics
      * @param assessmentId Assessment's ID
      * @return true if deletion was successful, false otherwise
      */
+    @Transactional
     public boolean deleteAssessment(Long assessmentId) {
         if (assessmentRepository.existsById(assessmentId)) {
+            // Get assessment details before deletion for analytics cleanup
+            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
+            if (assessmentOpt.isPresent()) {
+                Assessment assessment = assessmentOpt.get();
+                
+                // Get course information for analytics cleanup
+                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
+                if (categoryOpt.isPresent()) {
+                    AssessmentCategory category = categoryOpt.get();
+                    Long courseId = category.getCourseId();
+                    
+                    // Get user information for analytics cleanup
+                    Optional<Course> courseOpt = courseRepository.findById(courseId);
+                    if (courseOpt.isPresent()) {
+                        Course course = courseOpt.get();
+                        Long userId = course.getUserId();
+                        
+                        // Clean up user analytics records for this course
+                        cleanupUserAnalyticsForAssessment(userId, courseId);
+                    }
+                }
+            }
+            
+            // Delete the assessment
             assessmentRepository.deleteById(assessmentId);
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Clean up user analytics records when an assessment is deleted
+     * This method removes analytics records that may have been affected by the deleted assessment
+     * @param userId User ID
+     * @param courseId Course ID
+     */
+    private void cleanupUserAnalyticsForAssessment(Long userId, Long courseId) {
+        try {
+            // Find all analytics records for this user and course
+            List<UserAnalytics> analyticsRecords = userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
+            System.out.println("🔍 Found " + analyticsRecords.size() + " analytics records for User: " + userId + ", Course: " + courseId);
+            
+            // Delete all analytics records for this course to force recalculation
+            int deletedCount = 0;
+            for (UserAnalytics analytics : analyticsRecords) {
+                System.out.println("🔍 Analytics record - Completed: " + analytics.getAssignmentsCompleted() + 
+                                 ", Pending: " + analytics.getAssignmentsPending() + 
+                                 ", Current Grade: " + analytics.getCurrentGrade() + 
+                                 ", Date: " + analytics.getAnalyticsDate());
+                
+                userAnalyticsRepository.delete(analytics);
+                deletedCount++;
+                System.out.println("🗑️ Deleted analytics record with ID: " + analytics.getAnalyticsId());
+            }
+            
+            System.out.println("✅ Cleaned up " + deletedCount + " user analytics records for assessment deletion - User: " + userId + ", Course: " + courseId);
+            
+            // Immediately regenerate analytics for all remaining assessments
+            try {
+                System.out.println("🔄 Regenerating analytics for remaining assessments...");
+                regenerateAnalyticsForCourse(userId, courseId);
+                System.out.println("✅ Analytics regeneration completed");
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to regenerate analytics: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to cleanup user analytics for assessment deletion: " + e.getMessage());
+            e.printStackTrace();
+            // Don't throw exception - assessment deletion should still proceed
+        }
+    }
+    
+    /**
+     * Regenerate analytics records for all assessments in a course
+     * This creates one analytics record per assessment to support the trajectory chart
+     * It updates existing records instead of creating duplicates
+     */
+    public void regenerateAnalyticsForCourse(Long userId, Long courseId) {
+        try {
+            // Get all assessment categories for this course
+            List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
+            List<Long> categoryIds = categories.stream()
+                .map(category -> category.getCategoryId())
+                .collect(Collectors.toList());
+            
+            // Get all assessments for these categories
+            List<Assessment> assessments = assessmentRepository.findByCategoryIdIn(categoryIds);
+            
+            System.out.println("🔍 Found " + assessments.size() + " assessments for course " + courseId);
+            
+            // Get existing analytics for this course
+            List<UserAnalytics> existingAnalytics = userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
+            System.out.println("🔍 Found " + existingAnalytics.size() + " existing analytics records");
+            
+            // Get the course to get semester info
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+            if (!courseOpt.isPresent()) {
+                System.err.println("⚠️ Course not found: " + courseId);
+                return;
+            }
+            
+            Course course = courseOpt.get();
+            
+            // Calculate current course grade for overall analytics
+            BigDecimal currentCourseGrade = course.getCalculatedCourseGrade();
+            BigDecimal currentGPA = currentCourseGrade != null ? 
+                currentCourseGrade.divide(BigDecimal.valueOf(25.0), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO; // Convert percentage to GPA
+            
+            // Count completed and pending assignments
+            long completedCount = assessments.stream()
+                .mapToLong(assessment -> gradesRepository.findByAssessmentId(assessment.getAssessmentId()).size())
+                .sum();
+            long totalAssessments = assessments.size();
+            long pendingCount = totalAssessments - completedCount;
+            
+            // Check if we should update existing analytics or create new ones
+            if (existingAnalytics.isEmpty()) {
+                // No existing analytics - create one record per assessment
+                System.out.println("📊 No existing analytics found - creating new records for each assessment");
+                
+                for (Assessment assessment : assessments) {
+                    try {
+                        UserAnalytics analytics = createAnalyticsRecord(userId, courseId, course, assessment, currentGPA, completedCount, pendingCount);
+                        userAnalyticsRepository.save(analytics);
+                        BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+                        System.out.println("✅ Created analytics record for assessment: " + assessment.getAssessmentName() + 
+                                         " (Due: " + assessment.getDueDate() + ", GPA: " + assessmentGPA + ")");
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to create analytics for assessment " + assessment.getAssessmentName() + ": " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                // Update existing analytics instead of creating new ones
+                System.out.println("📊 Updating existing analytics records instead of creating duplicates");
+                
+                // Check if we need to adjust the number of analytics records
+                int targetAnalyticsCount = assessments.size();
+                int currentAnalyticsCount = existingAnalytics.size();
+                
+                System.out.println("📊 Target analytics count: " + targetAnalyticsCount + ", Current analytics count: " + currentAnalyticsCount);
+                
+                if (currentAnalyticsCount > targetAnalyticsCount) {
+                    // We have more analytics records than assessments - delete excess ones
+                    System.out.println("📊 Deleting " + (currentAnalyticsCount - targetAnalyticsCount) + " excess analytics records");
+                    
+                    // Sort by calculatedAt descending and delete the oldest ones
+                    existingAnalytics.sort((a, b) -> b.getCalculatedAt().compareTo(a.getCalculatedAt()));
+                    
+                    for (int i = targetAnalyticsCount; i < currentAnalyticsCount; i++) {
+                        UserAnalytics analyticsToDelete = existingAnalytics.get(i);
+                        userAnalyticsRepository.delete(analyticsToDelete);
+                        System.out.println("🗑️ Deleted excess analytics record with ID: " + analyticsToDelete.getAnalyticsId());
+                    }
+                    
+                    // Update the remaining analytics records
+                    for (int i = 0; i < targetAnalyticsCount; i++) {
+                        UserAnalytics analytics = existingAnalytics.get(i);
+                        Assessment assessment = assessments.get(i);
+                        
+                        // Calculate GPA for this specific assessment
+                        BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+                        BigDecimal assessmentGrade = calculateAssessmentGrade(assessment);
+                        
+                        // Update the analytics record
+                        analytics.setCurrentGrade(assessmentGPA);
+                        analytics.setAssignmentsCompleted((int) completedCount);
+                        analytics.setAssignmentsPending((int) pendingCount);
+                        analytics.setCalculatedAt(java.time.LocalDateTime.now());
+                        analytics.setDueDate(assessment.getDueDate());
+                        
+                        // Update performance metrics using assessment's grade
+                        String performanceMetrics = String.format(
+                            "{\"completion_rate\": %.1f, \"percentage_score\": %.1f, \"study_hours_logged\": 0.0}",
+                            totalAssessments > 0 ? (completedCount * 100.0 / totalAssessments) : 0.0,
+                            assessmentGrade != null ? assessmentGrade.doubleValue() : 0.0
+                        );
+                        analytics.setPerformanceMetrics(performanceMetrics);
+                        
+                        userAnalyticsRepository.save(analytics);
+                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
+                    }
+                    
+                } else if (currentAnalyticsCount < targetAnalyticsCount) {
+                    // We have fewer analytics records than assessments - create additional ones
+                    System.out.println("📊 Creating " + (targetAnalyticsCount - currentAnalyticsCount) + " additional analytics records");
+                    
+                    // Update existing analytics records first
+                    for (int i = 0; i < currentAnalyticsCount; i++) {
+                        UserAnalytics analytics = existingAnalytics.get(i);
+                        Assessment assessment = assessments.get(i);
+                        
+                        // Calculate GPA for this specific assessment
+                        BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+                        BigDecimal assessmentGrade = calculateAssessmentGrade(assessment);
+                        
+                        // Update the analytics record
+                        analytics.setCurrentGrade(assessmentGPA);
+                        analytics.setAssignmentsCompleted((int) completedCount);
+                        analytics.setAssignmentsPending((int) pendingCount);
+                        analytics.setCalculatedAt(java.time.LocalDateTime.now());
+                        analytics.setDueDate(assessment.getDueDate());
+                        
+                        // Update performance metrics using assessment's grade
+                        String performanceMetrics = String.format(
+                            "{\"completion_rate\": %.1f, \"percentage_score\": %.1f, \"study_hours_logged\": 0.0}",
+                            totalAssessments > 0 ? (completedCount * 100.0 / totalAssessments) : 0.0,
+                            assessmentGrade != null ? assessmentGrade.doubleValue() : 0.0
+                        );
+                        analytics.setPerformanceMetrics(performanceMetrics);
+                        
+                        userAnalyticsRepository.save(analytics);
+                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
+                    }
+                    
+                    // Create additional analytics records for new assessments
+                    for (int i = currentAnalyticsCount; i < targetAnalyticsCount; i++) {
+                        Assessment assessment = assessments.get(i);
+                        try {
+                            UserAnalytics analytics = createAnalyticsRecord(userId, courseId, course, assessment, currentGPA, completedCount, pendingCount);
+                            userAnalyticsRepository.save(analytics);
+                            BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+                            System.out.println("✅ Created additional analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
+                        } catch (Exception e) {
+                            System.err.println("⚠️ Failed to create additional analytics for assessment " + assessment.getAssessmentName() + ": " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                } else {
+                    // Perfect match - just update existing analytics records
+                    System.out.println("📊 Perfect match - updating existing analytics records");
+                    
+                    for (int i = 0; i < currentAnalyticsCount; i++) {
+                        UserAnalytics analytics = existingAnalytics.get(i);
+                        Assessment assessment = assessments.get(i);
+                        
+                        // Calculate GPA for this specific assessment
+                        BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+                        BigDecimal assessmentGrade = calculateAssessmentGrade(assessment);
+                        
+                        // Update the analytics record
+                        analytics.setCurrentGrade(assessmentGPA);
+                        analytics.setAssignmentsCompleted((int) completedCount);
+                        analytics.setAssignmentsPending((int) pendingCount);
+                        analytics.setCalculatedAt(java.time.LocalDateTime.now());
+                        analytics.setDueDate(assessment.getDueDate());
+                        
+                        // Update performance metrics using assessment's grade
+                        String performanceMetrics = String.format(
+                            "{\"completion_rate\": %.1f, \"percentage_score\": %.1f, \"study_hours_logged\": 0.0}",
+                            totalAssessments > 0 ? (completedCount * 100.0 / totalAssessments) : 0.0,
+                            assessmentGrade != null ? assessmentGrade.doubleValue() : 0.0
+                        );
+                        analytics.setPerformanceMetrics(performanceMetrics);
+                        
+                        userAnalyticsRepository.save(analytics);
+                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to regenerate analytics for course: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Helper method to create a new analytics record
+     */
+    private UserAnalytics createAnalyticsRecord(Long userId, Long courseId, Course course, Assessment assessment, 
+                                               BigDecimal currentGPA, long completedCount, long pendingCount) {
+        UserAnalytics analytics = new UserAnalytics();
+        analytics.setUserId(userId);
+        analytics.setCourseId(courseId);
+        analytics.setAnalyticsDate(java.time.LocalDate.now());
+        
+        // Calculate GPA for this specific assessment
+        BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
+        analytics.setCurrentGrade(assessmentGPA);
+        
+        analytics.setGradeTrend(BigDecimal.ZERO); // Will be calculated properly in future iterations
+        analytics.setAssignmentsCompleted((int) completedCount);
+        analytics.setAssignmentsPending((int) pendingCount);
+        analytics.setStudyHoursLogged(BigDecimal.ZERO);
+        analytics.setCalculatedAt(java.time.LocalDateTime.now());
+        analytics.setDueDate(assessment.getDueDate());
+        analytics.setSemester(course.getSemester().toString());
+        
+        // Create performance metrics JSON using the assessment's grade
+        BigDecimal assessmentGrade = calculateAssessmentGrade(assessment);
+        String performanceMetrics = String.format(
+            "{\"completion_rate\": %.1f, \"percentage_score\": %.1f, \"study_hours_logged\": 0.0}",
+            completedCount > 0 ? (completedCount * 100.0 / (completedCount + pendingCount)) : 0.0,
+            assessmentGrade != null ? assessmentGrade.doubleValue() : 0.0
+        );
+        analytics.setPerformanceMetrics(performanceMetrics);
+        
+        return analytics;
+    }
+    
+    /**
+     * Calculate GPA for a specific assessment based on its grades
+     */
+    private BigDecimal calculateAssessmentGPA(Assessment assessment) {
+        try {
+            List<Grade> grades = gradesRepository.findByAssessmentId(assessment.getAssessmentId());
+            if (grades.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            
+            // Calculate average percentage score for this assessment
+            double totalPercentage = grades.stream()
+                .mapToDouble(grade -> grade.getPercentageScore().doubleValue())
+                .average()
+                .orElse(0.0);
+            
+            // Convert percentage to GPA (assuming 4.0 scale where 100% = 4.0)
+            return BigDecimal.valueOf(totalPercentage / 25.0).setScale(2, RoundingMode.HALF_UP);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to calculate assessment GPA: " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * Calculate percentage grade for a specific assessment
+     */
+    private BigDecimal calculateAssessmentGrade(Assessment assessment) {
+        try {
+            List<Grade> grades = gradesRepository.findByAssessmentId(assessment.getAssessmentId());
+            if (grades.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            
+            // Calculate average percentage score for this assessment
+            double averagePercentage = grades.stream()
+                .mapToDouble(grade -> grade.getPercentageScore().doubleValue())
+                .average()
+                .orElse(0.0);
+            
+            return BigDecimal.valueOf(averagePercentage).setScale(1, RoundingMode.HALF_UP);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to calculate assessment grade: " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
     }
     
     /**

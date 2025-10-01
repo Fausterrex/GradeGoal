@@ -88,7 +88,11 @@ function AssessmentCard({
           ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm"
           : "bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200 shadow-sm hover:shadow-md"
       }`}
-      onClick={() => !hasScore && onAssessmentClick(grade)}
+        onClick={() => {
+          if (!hasScore) {
+            onAssessmentClick(grade);
+          }
+        }}
     >
       {/* Action Buttons - Mobile Responsive */}
       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col sm:flex-row gap-1 sm:gap-2">

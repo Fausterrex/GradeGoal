@@ -132,7 +132,8 @@ export const assessmentHasScore = (grade) => {
     grade.score !== undefined &&
     grade.score !== "" &&
     grade.score !== 0 &&
-    !isNaN(parseFloat(grade.score))
+    !isNaN(parseFloat(grade.score)) &&
+    parseFloat(grade.score) > 0
   );
 };
 
