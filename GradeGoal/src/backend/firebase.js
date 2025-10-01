@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider,
   FacebookAuthProvider,
 } from "firebase/auth";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,6 +20,9 @@ const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 
+// Initialize Firebase Cloud Messaging
+const messaging = getMessaging(app);
+
 const googleProvider = new GoogleAuthProvider();
 
 const facebookProvider = new FacebookAuthProvider();
@@ -27,4 +31,4 @@ const facebookProvider = new FacebookAuthProvider();
 facebookProvider.addScope("public_profile");
 facebookProvider.addScope("email");
 
-export { app, auth, googleProvider, facebookProvider };
+export { app, auth, messaging, googleProvider, facebookProvider };

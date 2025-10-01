@@ -79,12 +79,6 @@ const AIAnalysisIndicator = ({
         // Check if analysis exists in database using database user ID
         const existsResponse = await checkAIAnalysisExists(userProfile.userId, course.id);
         const exists = existsResponse.success && existsResponse.exists;
-        console.log('🔍 [AIAnalysisIndicator] Analysis exists check:', {
-          userId: userProfile.userId,
-          courseId: course.id,
-          existsResponse,
-          hasAnalysis: exists
-        });
         setHasExistingAnalysis(exists);
         
         // Always show the indicator (like Academic Goals cards)

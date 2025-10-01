@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -68,6 +67,24 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User updateProfileWithPicture(Long userId, String firstName, String lastName, String profilePictureUrl) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("User with ID " + userId + " not found");
+        }
+
+        User user = userOpt.get();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setProfilePictureUrl(profilePictureUrl);
+
+        return userRepository.save(user);
+    }
+
+    public User updateUser(User user) {
+        return userRepository.save(user);
+    }
+
     public boolean updatePassword(Long userId, String currentPassword, String newPassword) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -103,8 +120,8 @@ public class UserService {
         }
 
         User user = userOpt.get();
-        // For now, just return the user as we don't have this field in the User entity
-        return user;
+        user.setProfilePictureUrl(profilePictureUrl);
+        return userRepository.save(user);
     }
 
     public List<User> getAllUsers() {
@@ -113,13 +130,15 @@ public class UserService {
 
     public List<User> getUsersWithEmailNotifications() {
         return userRepository.findAll().stream()
-            .filter(user -> user.getEmail() != null && !user.getEmail().isEmpty())
+            .filter(user -> user.getEmail() != null && !user.getEmail().isEmpty() && 
+                           user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled())
             .collect(Collectors.toList());
     }
 
     public List<User> getUsersWithPushNotifications() {
         return userRepository.findAll().stream()
-            .filter(user -> user.getIsActive() != null && user.getIsActive())
+            .filter(user -> user.getIsActive() != null && user.getIsActive() && 
+                           user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled())
             .collect(Collectors.toList());
     }
 
@@ -157,10 +176,14 @@ public class UserService {
     public User createGoogleUser(String email, String firstName, String lastName, String profilePictureUrl) {
         User user = new User();
         user.setEmail(email);
-        user.setPasswordHash(null);
+        user.setUsername(email); // Use email as username
+        user.setPasswordHash(null); // OAuth users don't have passwords
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setIsActive(true);
+        user.setRole("USER"); // Default role for new OAuth users
+        user.setEmailNotificationsEnabled(true); // Enable email notifications by default
+        user.setPushNotificationsEnabled(false); // Disable push notifications by default (user can enable later)
 
         return userRepository.save(user);
     }

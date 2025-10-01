@@ -121,22 +121,11 @@ export const createScoreSubmitHandler = (
             // Add delay to allow goal achievement notification to be processed first
             setTimeout(async () => {
               if (currentUser && currentUser.email && course) {
-                console.log('🔍 Checking course completion for:', course.courseName || course.name);
-                console.log('📧 User email:', currentUser.email);
-                console.log('📊 Course GPA:', course.courseGpa);
                 
                 // Reload grades to get latest state
                 const updatedGradesResult = await loadCourseGrades(course.id);
                 if (updatedGradesResult.success) {
                   const allAssessments = Object.values(updatedGradesResult.grades).flat();
-                  console.log('📝 All assessments:', allAssessments.length);
-                  console.log('📋 Assessment details:', allAssessments.map(a => ({
-                    name: a.name || a.assessmentName,
-                    hasGrades: a.grades && a.grades.length > 0,
-                    grades: a.grades,
-                    score: a.score,
-                    pointsEarned: a.pointsEarned
-                  })));
                   
                   const isCourseCompleted = RealtimeNotificationService.isCourseCompleted(allAssessments);
                   console.log('✅ Course completed?', isCourseCompleted);
@@ -165,7 +154,6 @@ export const createScoreSubmitHandler = (
                       console.error('❌ Failed to send course completion notification:', error);
                     }
                   } else {
-                    console.log('❌ Course completion notification not sent. Reasons:');
                     console.log('  - Course completed?', isCourseCompleted);
                     console.log('  - All have scores?', allHaveScores);
                   }
@@ -173,7 +161,6 @@ export const createScoreSubmitHandler = (
                   console.error('❌ Failed to reload grades for course completion check');
                 }
               } else {
-                console.log('❌ Course completion check skipped. Missing:');
                 console.log('  - Current user?', !!currentUser);
                 console.log('  - User email?', !!(currentUser && currentUser.email));
                 console.log('  - Course?', !!course);

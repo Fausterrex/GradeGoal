@@ -34,7 +34,6 @@ function GoalProgress({
         const userProfile = await getUserProfile(currentUser.email);
         
         if (userProfile?.userId && course?.id) {
-          console.log('🔄 [GoalProgress] Loading AI analysis for course:', course.courseName);
           await loadAIAnalysisForCourse(userProfile.userId, course.id);
         }
       } catch (error) {
@@ -56,7 +55,6 @@ function GoalProgress({
         });
         
         if (hasAssessments) {
-          console.log('🎯 [GoalProgress] Getting AI achievement probability...');
           const probability = getAchievementProbability();
           
       // Override probability calculation if goal is already achieved
@@ -64,27 +62,14 @@ function GoalProgress({
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
       
-      console.log('🎯 [GoalProgress] AI Probability Debug (callback):', {
-        currentGrade,
-        targetGrade,
-        currentGPA,
-        targetGPA,
-        isGoalAchieved: currentGPA >= targetGPA,
-        originalProbability: probability?.probability,
-        probabilityObject: probability,
-        courseGpaScale: course?.gpaScale,
-        hasAssessments: hasAssessments
-      });
       
       if (probability && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
         };
-        console.log('🎯 [GoalProgress] Correcting probability from', probability.probability, 'to 100% (callback)');
         setAiAchievementProbability(correctedProbability);
       } else {
-        console.log('🎯 [GoalProgress] Using original AI probability:', probability?.probability);
         setAiAchievementProbability(probability);
       }
         } else {
@@ -100,7 +85,6 @@ function GoalProgress({
     });
     
     if (hasAssessments) {
-      console.log('🎯 [GoalProgress] Getting AI achievement probability (initial)...');
       const probability = getAchievementProbability();
       
       // Override probability calculation if goal is already achieved
@@ -108,31 +92,17 @@ function GoalProgress({
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
       
-      console.log('🎯 [GoalProgress] AI Probability Debug (initial):', {
-        currentGrade,
-        targetGrade,
-        currentGPA,
-        targetGPA,
-        isGoalAchieved: currentGPA >= targetGPA,
-        originalProbability: probability?.probability,
-        probabilityObject: probability,
-        courseGpaScale: course?.gpaScale,
-        hasAssessments: hasAssessments
-      });
       
       if (probability && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
         };
-        console.log('🎯 [GoalProgress] Correcting probability from', probability.probability, 'to 100% (initial)');
         setAiAchievementProbability(correctedProbability);
       } else {
-        console.log('🎯 [GoalProgress] Using original AI probability (initial):', probability?.probability);
         setAiAchievementProbability(probability);
       }
     } else {
-      console.log('🎯 [GoalProgress] No assessments found, hiding AI components');
       setAiAchievementProbability(null); // Hide AI components when no assessments
     }
 

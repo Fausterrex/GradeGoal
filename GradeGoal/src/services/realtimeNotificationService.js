@@ -1,6 +1,8 @@
 import axios from 'axios';
+import pushNotificationService from './pushNotificationService';
 
 const API_BASE_URL = 'http://localhost:8080/api/realtime-notifications';
+const PUSH_API_BASE_URL = 'http://localhost:8080/api/push-notifications';
 
 /**
  * Real-time Notification Service
@@ -20,17 +22,48 @@ class RealtimeNotificationService {
    */
   static async sendGradeAlert(userEmail, courseName, assessmentName, score, maxScore) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/grade-alert`, {
+      // Send email notification
+      const emailResponse = await axios.post(`${API_BASE_URL}/grade-alert`, {
         userEmail,
         courseName,
         assessmentName,
         score,
         maxScore
       });
-      console.log('Grade alert notification sent:', response.data);
-      return response.data;
+      // Send push notification if enabled
+      if (pushNotificationService.isEnabled()) {
+        try {
+          await axios.post(`${PUSH_API_BASE_URL}/grade-alert`, {
+            userEmail,
+            courseName,
+            assessmentName,
+            score,
+            maxScore
+          });
+        } catch (pushError) {
+          // Push notification failed, but email was sent
+        }
+      } else {
+        // Try to initialize push notifications if not enabled
+        try {
+          const initialized = await pushNotificationService.initialize(userEmail);
+          if (initialized) {
+            // Retry sending push notification
+            await axios.post(`${PUSH_API_BASE_URL}/grade-alert`, {
+              userEmail,
+              courseName,
+              assessmentName,
+              score,
+              maxScore
+            });
+          }
+        } catch (initError) {
+          // Failed to initialize push notifications
+        }
+      }
+
+      return emailResponse.data;
     } catch (error) {
-      console.error('Error sending grade alert notification:', error);
       throw error;
     }
   }
@@ -44,30 +77,47 @@ class RealtimeNotificationService {
    * @param {string} semester - Semester information
    */
   static async sendCourseCompletion(userEmail, courseName, finalGrade, semester) {
-    console.log('🎓 Attempting to send course completion notification:', {
-      userEmail,
-      courseName,
-      finalGrade,
-      semester,
-      apiUrl: `${API_BASE_URL}/course-completion`
-    });
-    
     try {
-      const response = await axios.post(`${API_BASE_URL}/course-completion`, {
+      // Send email notification
+      const emailResponse = await axios.post(`${API_BASE_URL}/course-completion`, {
         userEmail,
         courseName,
         finalGrade,
         semester
       });
-      console.log('✅ Course completion notification sent successfully:', response.data);
-      return response.data;
+
+      // Send push notification if enabled
+      if (pushNotificationService.isEnabled()) {
+        try {
+          await axios.post(`${PUSH_API_BASE_URL}/course-completion`, {
+            userEmail,
+            courseName,
+            finalGrade,
+            semester
+          });
+        } catch (pushError) {
+          // Push notification failed, but email was sent
+        }
+      } else {
+        // Try to initialize push notifications if not enabled
+        try {
+          const initialized = await pushNotificationService.initialize(userEmail);
+          if (initialized) {
+            // Retry sending push notification
+            await axios.post(`${PUSH_API_BASE_URL}/course-completion`, {
+              userEmail,
+              courseName,
+              finalGrade,
+              semester
+            });
+          }
+        } catch (initError) {
+          // Failed to initialize push notifications
+        }
+      }
+
+      return emailResponse.data;
     } catch (error) {
-      console.error('❌ Error sending course completion notification:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
       throw error;
     }
   }
@@ -88,10 +138,8 @@ class RealtimeNotificationService {
         reminderMessage,
         reminderType
       });
-      console.log('Custom reminder notification sent:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error sending custom reminder notification:', error);
       throw error;
     }
   }
@@ -119,12 +167,6 @@ class RealtimeNotificationService {
     const actual = parseFloat(actualValue);
     const target = parseFloat(targetValue);
     
-    console.log('🎯 Goal achievement check:', {
-      goalType,
-      actualValue: actual,
-      targetValue: target,
-      isAchieved: actual >= target
-    });
     
     switch (goalType) {
       case 'COURSE_GRADE':
@@ -145,7 +187,6 @@ class RealtimeNotificationService {
    * @returns {boolean} - True if course is completed
    */
   static isCourseCompleted(assessments) {
-    console.log('🔍 Checking course completion for', assessments.length, 'assessments');
     
     const result = assessments.every(assessment => {
       // Check different possible score properties
@@ -157,91 +198,14 @@ class RealtimeNotificationService {
       // An assessment is completed if it has any valid score
       const isCompleted = hasScore || hasPointsEarned || hasValidGradeScore;
       
-      console.log(`  📝 ${assessment.name || assessment.assessmentName}:`, {
-        hasScore,
-        score: assessment.score,
-        hasPointsEarned,
-        pointsEarned: assessment.pointsEarned,
-        hasGrades,
-        gradesCount: assessment.grades ? assessment.grades.length : 0,
-        hasValidGradeScore,
-        isCompleted,
-        assessment: assessment
-      });
       
       return isCompleted;
     });
     
-    console.log('✅ Course completion result:', result);
     return result;
   }
 
 
-  /**
-   * Manually trigger goal achievement check for all goals
-   * This function can be called from browser console to test goal achievement
-   */
-  static async triggerGoalAchievementCheck() {
-    console.log('🔍 Manually triggering goal achievement check...');
-    
-    try {
-      // Fetch all goals for user
-      const response = await fetch('http://localhost:8080/api/academic-goals/user/1');
-      if (!response.ok) {
-        throw new Error('Failed to fetch goals');
-      }
-      
-      const goals = await response.json();
-      console.log('📋 Found goals:', goals);
-      
-      // Check each goal
-      for (const goal of goals) {
-        console.log('🎯 Checking goal:', goal.goalTitle);
-        
-        if (goal.currentProgress && goal.targetValue) {
-          const isAchieved = this.isGoalAchieved(
-            goal.currentProgress,
-            goal.targetValue,
-            goal.goalType
-          );
-          
-          console.log('📊 Goal analysis:', {
-            goalTitle: goal.goalTitle,
-            currentProgress: goal.currentProgress,
-            targetValue: goal.targetValue,
-            isAchieved,
-            alreadyMarked: goal.isAchieved
-          });
-          
-          if (isAchieved && !goal.isAchieved) {
-            console.log('🎉 Goal should be marked as achieved!');
-            
-            // Update goal in database
-            const updateData = {
-              ...goal,
-              isAchieved: 1,
-              achievedDate: new Date().toISOString().split('T')[0],
-              status: 'completed'
-            };
-            
-            const updateResponse = await fetch(`http://localhost:8080/api/academic-goals/${goal.goalId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(updateData)
-            });
-            
-            if (updateResponse.ok) {
-              console.log('✅ Goal updated in database:', goal.goalTitle);
-            } else {
-              console.error('❌ Failed to update goal:', goal.goalTitle);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error in goal achievement check:', error);
-    }
-  }
 
 }
 

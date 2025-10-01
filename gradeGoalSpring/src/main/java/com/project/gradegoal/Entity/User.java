@@ -41,6 +41,21 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive = true;
     
+    @Column(name = "role")
+    private String role = "USER";
+    
+    @Column(name = "email_notifications_enabled")
+    private Boolean emailNotificationsEnabled;
+    
+    @Column(name = "push_notifications_enabled")
+    private Boolean pushNotificationsEnabled;
+    
+    @Column(name = "fcm_token", length = 1000)
+    private String fcmToken;
+    
+    @Column(name = "profile_picture_url", columnDefinition = "LONGTEXT")
+    private String profilePictureUrl;
+    
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;
     

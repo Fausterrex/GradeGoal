@@ -11,6 +11,7 @@ import {
   FaBullseye,
   FaClipboardList,
   FaCalendarAlt,
+  FaCog,
 } from "react-icons/fa";
 
 const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
@@ -21,6 +22,7 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
     { icon: <FaBullseye />, label: "Goals", tab: "goals" },
     { icon: <FaClipboardList />, label: "Reports", tab: "reports" },
     { icon: <FaCalendarAlt />, label: "Calendar", tab: "calendar" },
+    { icon: <FaCog />, label: "Settings", tab: "settings" },
   ];
 
   return (

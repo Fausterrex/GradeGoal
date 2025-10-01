@@ -53,12 +53,10 @@ export const clearAIAnalysisCache = (userId = null, courseId = null) => {
         aiRecommendationCache.delete(key);
       }
     }
-    console.log(`🗑️ Cleared AI analysis cache for user ${userId}, course ${courseId}`);
   } else {
     // Clear all cache
     aiAnalysisStorage.clear();
     aiRecommendationCache.clear();
-    console.log('🗑️ Cleared all AI analysis cache');
   }
 };
 
@@ -187,7 +185,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔄 [Gemini API] Attempt ${attempt}/${maxRetries}`);
         // Use Google Generative AI package
         const result = await model.generateContent(prompt);
         aiResponse = result.response.text();
@@ -230,7 +227,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     
     // If all retries failed, use fallback
     if (!aiResponse) {
-      console.log('🔄 Using fallback recommendations after API failure');
       return await getFallbackRecommendations(courseData, goalData);
     }
     
@@ -295,14 +291,12 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
  */
 export const getAIRecommendations = async (userId, courseId = null) => {
   try {
-    console.log('🔄 [getAIRecommendations] Loading recommendations for user:', userId, 'course:', courseId);
     
     // First check if we have stored AI analysis in memory
     const storageKey = `${userId}-${courseId}`;
     const storedAnalysis = aiAnalysisStorage.get(storageKey);
     
     if (storedAnalysis) {
-      console.log('✅ [getAIRecommendations] Found recommendations in memory');
       // Convert stored analysis to recommendation format
       return [{
         recommendationId: 'ai-analysis-main',
@@ -329,7 +323,6 @@ export const getAIRecommendations = async (userId, courseId = null) => {
     
     if (analysisResponse.success && analysisResponse.hasAnalysis) {
       const dbAnalysis = analysisResponse.analysis;
-      console.log('📊 [getAIRecommendations] Found analysis in database, extracting recommendations');
       
       // Parse the analysis data to extract recommendations
       let analysisData;
@@ -418,7 +411,6 @@ export const getAIRecommendations = async (userId, courseId = null) => {
         });
       }
       
-      console.log('✅ [getAIRecommendations] Extracted', recommendations.length, 'recommendations from database');
       
       // Also return the main analysis as a recommendation
       const mainRecommendation = {
@@ -442,7 +434,6 @@ export const getAIRecommendations = async (userId, courseId = null) => {
       return [mainRecommendation, ...recommendations];
     }
     
-    console.log('❌ [getAIRecommendations] No analysis found in database');
     return [];
   } catch (error) {
     console.error('❌ [getAIRecommendations] Error fetching AI recommendations:', error);

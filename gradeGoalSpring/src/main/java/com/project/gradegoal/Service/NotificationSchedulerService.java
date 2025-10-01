@@ -32,6 +32,9 @@ public class NotificationSchedulerService {
     private EmailNotificationService emailNotificationService;
     
     @Autowired
+    private PushNotificationService pushNotificationService;
+    
+    @Autowired
     private UserRepository userRepository;
     
     @Value("${notification.overdue.enabled:true}")
@@ -55,7 +58,10 @@ public class NotificationSchedulerService {
             List<User> users = userRepository.findAll();
             
             for (User user : users) {
-                if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                // Send notifications to users with either email or push notifications enabled
+                if (user.getEmail() != null && !user.getEmail().isEmpty() && 
+                    ((user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled()) ||
+                     (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()))) {
                     sendNotificationsForUser(user);
                 }
             }
@@ -90,7 +96,16 @@ public class NotificationSchedulerService {
                 if (!overdueAssessments.isEmpty()) {
                     logger.info("Sending overdue notification to: {} ({} assessments)", 
                         user.getEmail(), overdueAssessments.size());
-                    emailNotificationService.sendOverdueNotification(user.getEmail(), overdueAssessments);
+                    
+                    // Send email notification if enabled
+                    if (user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled()) {
+                        emailNotificationService.sendOverdueNotification(user.getEmail(), overdueAssessments);
+                    }
+                    
+                    // Send push notification if enabled
+                    if (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()) {
+                        sendOverduePushNotification(user.getEmail(), overdueAssessments);
+                    }
                 }
             }
             
@@ -100,7 +115,16 @@ public class NotificationSchedulerService {
                 if (!upcomingAssessments.isEmpty()) {
                     logger.info("Sending upcoming notification to: {} ({} assessments)", 
                         user.getEmail(), upcomingAssessments.size());
-                    emailNotificationService.sendUpcomingNotification(user.getEmail(), upcomingAssessments);
+                    
+                    // Send email notification if enabled
+                    if (user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled()) {
+                        emailNotificationService.sendUpcomingNotification(user.getEmail(), upcomingAssessments);
+                    }
+                    
+                    // Send push notification if enabled
+                    if (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()) {
+                        sendUpcomingPushNotification(user.getEmail(), upcomingAssessments);
+                    }
                 }
             }
             
@@ -140,6 +164,66 @@ public class NotificationSchedulerService {
                     assessment.getDueDate().isEqual(futureDate))
             .filter(assessment -> assessment.getStatus() != Assessment.AssessmentStatus.COMPLETED)
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Send overdue push notification
+     * @param userEmail User's email address
+     * @param overdueAssessments List of overdue assessments
+     */
+    private void sendOverduePushNotification(String userEmail, List<Assessment> overdueAssessments) {
+        try {
+            String title = "⚠️ Overdue Assessments - GradeGoal";
+            String body = String.format("You have %d overdue assessment(s) that need attention", overdueAssessments.size());
+            
+            StringBuilder dataBuilder = new StringBuilder();
+            dataBuilder.append("{\"type\":\"overdue_assessments\",\"assessments\":[");
+            for (int i = 0; i < overdueAssessments.size(); i++) {
+                Assessment assessment = overdueAssessments.get(i);
+                dataBuilder.append(String.format("{\"name\":\"%s\",\"course\":\"%s\",\"dueDate\":\"%s\"}", 
+                    assessment.getAssessmentName(), 
+                    assessment.getCourseName(), 
+                    assessment.getDueDate()));
+                if (i < overdueAssessments.size() - 1) {
+                    dataBuilder.append(",");
+                }
+            }
+            dataBuilder.append("]}");
+            
+            pushNotificationService.sendNotificationToUser(userEmail, title, body, dataBuilder.toString());
+        } catch (Exception e) {
+            logger.error("Error sending overdue push notification to user: {}", userEmail, e);
+        }
+    }
+    
+    /**
+     * Send upcoming push notification
+     * @param userEmail User's email address
+     * @param upcomingAssessments List of upcoming assessments
+     */
+    private void sendUpcomingPushNotification(String userEmail, List<Assessment> upcomingAssessments) {
+        try {
+            String title = "📅 Upcoming Assessments - GradeGoal";
+            String body = String.format("You have %d assessment(s) due soon", upcomingAssessments.size());
+            
+            StringBuilder dataBuilder = new StringBuilder();
+            dataBuilder.append("{\"type\":\"upcoming_assessments\",\"assessments\":[");
+            for (int i = 0; i < upcomingAssessments.size(); i++) {
+                Assessment assessment = upcomingAssessments.get(i);
+                dataBuilder.append(String.format("{\"name\":\"%s\",\"course\":\"%s\",\"dueDate\":\"%s\"}", 
+                    assessment.getAssessmentName(), 
+                    assessment.getCourseName(), 
+                    assessment.getDueDate()));
+                if (i < upcomingAssessments.size() - 1) {
+                    dataBuilder.append(",");
+                }
+            }
+            dataBuilder.append("]}");
+            
+            pushNotificationService.sendNotificationToUser(userEmail, title, body, dataBuilder.toString());
+        } catch (Exception e) {
+            logger.error("Error sending upcoming push notification to user: {}", userEmail, e);
+        }
     }
     
 }

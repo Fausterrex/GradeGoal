@@ -166,10 +166,6 @@ function UnifiedProgress({
   const trendAnalysis = useMemo(() => {
     const { weekly } = trajectoryData;
     
-    console.log('🎯 [Trend Analysis] Weekly data:', {
-      weeklyCount: weekly.length,
-      weeklyData: weekly.map(w => ({ week: w.weekNumber, gpa: w.currentGPA, date: w.date }))
-    });
     
     if (weekly.length < 2) {
       return {
@@ -208,15 +204,6 @@ function UnifiedProgress({
     // Calculate percentage change based on the initial GPA
     const changePercentage = earlyAvg > 0 ? (change / earlyAvg) * 100 : 0;
 
-    console.log('🎯 [Trend Analysis] Calculation:', {
-      firstGPA,
-      lastGPA,
-      earlyAvg,
-      recentAvg,
-      change,
-      changePercentage,
-      weeklyLength: weekly.length
-    });
 
     let direction, description, icon, confidence;
     

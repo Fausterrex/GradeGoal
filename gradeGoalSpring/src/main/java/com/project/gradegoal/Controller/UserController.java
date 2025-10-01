@@ -21,12 +21,6 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
         try {
-            System.out.println("Registration request received:");
-            System.out.println("Email: " + request.getEmail());
-            System.out.println("Password: " + (request.getPassword() != null ? "[PROVIDED]" : "[NULL]"));
-            System.out.println("FirstName: " + request.getFirstName());
-            System.out.println("LastName: " + request.getLastName());
-            
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password cannot be null or empty");
             }
@@ -41,7 +35,6 @@ public class UserController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
         }
     }
@@ -88,18 +81,59 @@ public class UserController {
         }
     }
 
+    @PutMapping("/email/{email}/preferences")
+    public ResponseEntity<?> updateUserPreferences(@PathVariable String email, @RequestBody UserPreferencesRequest request) {
+        try {
+            Optional<User> userOpt = userService.findByEmail(email);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            User user = userOpt.get();
+            user.setEmailNotificationsEnabled(request.getEmailNotificationsEnabled());
+            user.setPushNotificationsEnabled(request.getPushNotificationsEnabled());
+
+            User updatedUser = userService.updateUser(user);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update preferences");
+        }
+    }
+
     @PutMapping("/{userId}/profile")
     public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
         try {
-            User user = userService.updateProfile(
-                userId,
-                request.getFirstName(),
-                request.getLastName()
-            );
+            System.out.println("Profile update request for userId: " + userId);
+            System.out.println("Request data: firstName=" + request.getFirstName() + 
+                             ", lastName=" + request.getLastName() + 
+                             ", profilePictureUrl=" + request.getProfilePictureUrl());
+            
+            User user;
+            if (request.getProfilePictureUrl() != null && !request.getProfilePictureUrl().isEmpty()) {
+                System.out.println("Updating profile with picture");
+                user = userService.updateProfileWithPicture(
+                    userId,
+                    request.getFirstName(),
+                    request.getLastName(),
+                    request.getProfilePictureUrl()
+                );
+            } else {
+                System.out.println("Updating profile without picture");
+                user = userService.updateProfile(
+                    userId,
+                    request.getFirstName(),
+                    request.getLastName()
+                );
+            }
+            
+            System.out.println("Updated user profilePictureUrl: " + user.getProfilePictureUrl());
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
+            System.out.println("Profile update error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
+            System.out.println("Profile update exception: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Profile update failed");
         }
     }
@@ -212,11 +246,14 @@ public class UserController {
     public static class ProfileUpdateRequest {
         private String firstName;
         private String lastName;
+        private String profilePictureUrl;
 
         public String getFirstName() { return firstName; }
         public void setFirstName(String firstName) { this.firstName = firstName; }
         public String getLastName() { return lastName; }
         public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getProfilePictureUrl() { return profilePictureUrl; }
+        public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
     }
 
     public static class PasswordUpdateRequest {
@@ -253,5 +290,16 @@ public class UserController {
         public void setLastName(String lastName) { this.lastName = lastName; }
         public String getProfilePictureUrl() { return profilePictureUrl; }
         public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
+    }
+
+    public static class UserPreferencesRequest {
+        private Boolean emailNotificationsEnabled;
+        private Boolean pushNotificationsEnabled;
+        
+        // Getters and setters
+        public Boolean getEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+        public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
+        public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
+        public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
     }
 }

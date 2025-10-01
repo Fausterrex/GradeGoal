@@ -20,18 +20,16 @@ import EnhancedGradeTrends from "./EnhancedGradeTrends";
 import GoalsOverview from "./GoalsOverview";
 import RecentActivities from "./RecentActivities";
 import AIRecommendations from "./AIRecommendations";
-import ProfileEdit from "../auth/ProfileEdit";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
 
-const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
+const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
   const { currentUser } = useAuth();
 
   // ========================================
   // STATE MANAGEMENT
   // ========================================
   const [activeTab, setActiveTab] = React.useState("active");
-  const [showProfileEdit, setShowProfileEdit] = React.useState(false);
   const [targetGrades, setTargetGrades] = useState({});
   const [userId, setUserId] = useState(null);
   const [gpaData, setGpaData] = useState({
@@ -296,54 +294,11 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
             </div>
 
             {/* ========================================
-                ACTION ICONS SECTION
+                NOTIFICATION BELL ICON
                 ======================================== */}
-            <div className="flex items-center space-x-3">
-              {/* ========================================
-                  NOTIFICATION BELL ICON
-                  ======================================== */}
-              <div className="relative">
-                <Bell className="w-5 h-5 text-white cursor-pointer hover:text-white/80 transition-colors" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-              </div>
-
-              {/* ========================================
-                  USER PROFILE DROPDOWN
-                  ======================================== */}
-              <div className="relative group">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white/30 transition-all duration-200 border border-white/30">
-                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-
-                <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="py-2">
-                    <div className="px-4 py-3 text-sm text-gray-700 border-b border-gray-100">
-                      <p className="font-semibold">Profile</p>
-                      <p className="text-xs text-gray-500">
-                        Manage your account
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowProfileEdit(true)}
-                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      Edit Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (
-                          window.confirm("Are you sure you want to logout?")
-                        ) {
-                          onLogout && onLogout();
-                        }
-                      }}
-                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="relative">
+              <Bell className="w-5 h-5 text-white cursor-pointer hover:text-white/80 transition-colors" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -605,11 +560,6 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch, onLogout }) => {
         />
       </div>
 
-      {/* Profile Edit Modal */}
-      <ProfileEdit
-        isOpen={showProfileEdit}
-        onClose={() => setShowProfileEdit(false)}
-      />
     </div>
   );
 };

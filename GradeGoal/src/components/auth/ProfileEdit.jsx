@@ -130,6 +130,8 @@ const ProfileEdit = ({ isOpen, onClose }) => {
 
       // Update the current user context
       updateCurrentUserWithData({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,
         photoURL: userData.profilePictureUrl,
       });

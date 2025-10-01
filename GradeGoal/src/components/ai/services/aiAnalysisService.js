@@ -21,7 +21,6 @@ export const getCurrentAIAnalysis = () => {
  * Clear AI analysis data
  */
 export const clearAIAnalysisData = () => {
-  console.log('🗑️ [clearAIAnalysisData] Clearing AI analysis data');
   aiAnalysisData = null;
   // Notify listeners that data was cleared
   aiAnalysisListeners.forEach(listener => listener(null));
@@ -136,16 +135,7 @@ export const getScorePredictionForAssessment = (assessmentName, categoryName) =>
  * Get achievement probability data from global aiAnalysisData
  */
 export const getAchievementProbability = () => {
-  console.log('🎯 [getAchievementProbability] Starting calculation...');
-  console.log('🎯 [getAchievementProbability] AI Analysis Data:', {
-    hasData: !!aiAnalysisData,
-    hasContent: !!aiAnalysisData?.content,
-    contentType: typeof aiAnalysisData?.content,
-    dataKeys: aiAnalysisData ? Object.keys(aiAnalysisData) : 'no data'
-  });
-  
   if (!aiAnalysisData || !aiAnalysisData.content) {
-    console.log('🎯 [getAchievementProbability] No AI analysis data available');
     return null;
   }
   

@@ -45,7 +45,6 @@ function UnifiedRecommendations({
         const userProfile = await getUserProfile(currentUser.email);
         
         if (userProfile?.userId && course?.id) {
-          console.log('🔄 [UnifiedRecommendations] Loading AI analysis for course:', course.courseName);
           await loadAIAnalysisForCourse(userProfile.userId, course.id);
         }
 

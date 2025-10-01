@@ -36,3 +36,18 @@ build/
 .env
 .env.local
 .env.*.local
+application.properties
+application-dev.properties
+firebase-service-account.json
+firebase-service-account-*.json
+
+### Sensitive Configuration Files ###
+# Firebase service account keys
+**/firebase-service-account*.json
+**/firebase-credentials*.json
+
+# Database credentials
+**/database-credentials.properties
+
+# Email configuration
+**/email-config.properties

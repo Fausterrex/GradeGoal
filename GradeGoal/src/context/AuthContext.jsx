@@ -98,30 +98,45 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       if (!user) {
+        setCurrentUser(null);
         setUserRole(null);
         localStorage.removeItem('userRole');
-      } else {
-        // Try to get user role from localStorage first
-        const storedRole = localStorage.getItem('userRole');
-        if (storedRole) {
-          setUserRole(storedRole);
-        } else {
-          // Fetch user role from database
-          try {
-            const { getUserProfile } = await import('../backend/api');
-            const userProfile = await getUserProfile(user.email);
-            const role = userProfile?.role || 'USER';
-            setUserRole(role);
-            localStorage.setItem('userRole', role);
-          } catch (error) {
-            console.error('Failed to fetch user role:', error);
-            setUserRole('USER'); // Default to USER
-            localStorage.setItem('userRole', 'USER');
-          }
-        }
+        setLoading(false);
+        return;
       }
+
+      try {
+        // Fetch user profile from database to get firstName, lastName, and role
+        const { getUserProfile } = await import('../backend/api');
+        const userProfile = await getUserProfile(user.email);
+        
+        // Merge Firebase user data with database profile data
+        const enhancedUser = {
+          ...user,
+          firstName: userProfile?.firstName || '',
+          lastName: userProfile?.lastName || '',
+          displayName: userProfile?.firstName && userProfile?.lastName 
+            ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+            : user.displayName || '',
+          role: userProfile?.role || 'USER'
+        };
+        
+        setCurrentUser(enhancedUser);
+        
+        // Set user role
+        const role = userProfile?.role || 'USER';
+        setUserRole(role);
+        localStorage.setItem('userRole', role);
+        
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        // Fallback to Firebase user data only
+        setCurrentUser(user);
+        setUserRole('USER');
+        localStorage.setItem('userRole', 'USER');
+      }
+      
       setLoading(false);
     });
     return unsubscribe;

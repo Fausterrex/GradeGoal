@@ -1,6 +1,8 @@
 package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.Assessment;
+import com.project.gradegoal.Entity.User;
+import com.project.gradegoal.Repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class EmailNotificationService {
     @Autowired
     private JavaMailSender mailSender;
     
+    @Autowired
+    private UserRepository userRepository;
+    
     @Value("${spring.mail.username}")
     private String fromEmail;
     
@@ -35,12 +40,29 @@ public class EmailNotificationService {
     private int upcomingDaysBefore;
     
     /**
+     * Check if user has email notifications enabled
+     * @param userEmail User's email address
+     * @return true if notifications are enabled, false otherwise
+     */
+    private boolean isEmailNotificationsEnabled(String userEmail) {
+        try {
+            User user = userRepository.findByEmail(userEmail).orElse(null);
+            return user != null && 
+                   user.getEmailNotificationsEnabled() != null && 
+                   user.getEmailNotificationsEnabled();
+        } catch (Exception e) {
+            logger.warn("Error checking email notification preference for user: {}", userEmail, e);
+            return false; // Default to disabled if error
+        }
+    }
+    
+    /**
      * Send overdue assessment notification
      * @param userEmail User's email address
      * @param overdueAssessments List of overdue assessments
      */
     public void sendOverdueNotification(String userEmail, List<Assessment> overdueAssessments) {
-        if (overdueAssessments.isEmpty()) {
+        if (overdueAssessments.isEmpty() || !isEmailNotificationsEnabled(userEmail)) {
             return;
         }
         
@@ -56,7 +78,7 @@ public class EmailNotificationService {
      * @param upcomingAssessments List of upcoming assessments
      */
     public void sendUpcomingNotification(String userEmail, List<Assessment> upcomingAssessments) {
-        if (upcomingAssessments.isEmpty()) {
+        if (upcomingAssessments.isEmpty() || !isEmailNotificationsEnabled(userEmail)) {
             return;
         }
         
@@ -75,6 +97,10 @@ public class EmailNotificationService {
      * @param maxScore Maximum possible score
      */
     public void sendGradeAlertNotification(String userEmail, String courseName, String assessmentName, double score, double maxScore) {
+        if (!isEmailNotificationsEnabled(userEmail)) {
+            return;
+        }
+        
         String subject = "⚠️ Grade Alert - Low Score Detected";
         String content = buildGradeAlertEmailContent(courseName, assessmentName, score, maxScore);
         
@@ -90,6 +116,10 @@ public class EmailNotificationService {
      * @param semester Semester information
      */
     public void sendCourseCompletionNotification(String userEmail, String courseName, String finalGrade, String semester) {
+        if (!isEmailNotificationsEnabled(userEmail)) {
+            return;
+        }
+        
         String subject = "🎓 Course Completed Successfully!";
         String content = buildCourseCompletionEmailContent(courseName, finalGrade, semester);
         
@@ -105,6 +135,10 @@ public class EmailNotificationService {
      * @param reminderType Reminder type
      */
     public void sendCustomReminderNotification(String userEmail, String reminderTitle, String reminderMessage, String reminderType) {
+        if (!isEmailNotificationsEnabled(userEmail)) {
+            return;
+        }
+        
         String subject = "🔔 " + reminderTitle;
         String content = buildCustomReminderEmailContent(reminderTitle, reminderMessage, reminderType);
         

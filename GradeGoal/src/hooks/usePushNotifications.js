@@ -1,0 +1,145 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import pushNotificationService from '../services/pushNotificationService';
+
+/**
+ * Custom hook for managing push notifications
+ * 
+ * Provides push notification state and methods for the current user.
+ * Automatically initializes push notifications when user logs in.
+ */
+export const usePushNotifications = () => {
+  const { currentUser } = useAuth();
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState('default');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Check support and current status
+  useEffect(() => {
+    const supported = pushNotificationService.isNotificationSupported();
+    setIsSupported(supported);
+    
+    if (supported) {
+      const status = pushNotificationService.getPermissionStatus();
+      setPermissionStatus(status);
+      setIsEnabled(pushNotificationService.isEnabled());
+    }
+  }, []);
+
+  // Initialize push notifications when user logs in
+  useEffect(() => {
+    // Don't auto-initialize - let the user choose via modal
+    // if (currentUser?.email && isSupported && permissionStatus === 'default') {
+    //   initializePushNotifications();
+    // }
+  }, [currentUser, isSupported, permissionStatus]);
+
+  const initializePushNotifications = useCallback(async () => {
+    if (!currentUser?.email || !isSupported) {
+      return false;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const success = await pushNotificationService.initialize(currentUser.email);
+      setIsEnabled(success);
+      setPermissionStatus(pushNotificationService.getPermissionStatus());
+      return success;
+    } catch (err) {
+      setError('Failed to initialize push notifications');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUser, isSupported]);
+
+  const enablePushNotifications = useCallback(async () => {
+    if (!currentUser?.email) {
+      setError('User must be logged in to enable push notifications');
+      return false;
+    }
+
+    return await initializePushNotifications();
+  }, [currentUser, initializePushNotifications]);
+
+  const disablePushNotifications = useCallback(async () => {
+    if (!currentUser?.email) {
+      return false;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await pushNotificationService.cleanup(currentUser.email);
+      setIsEnabled(false);
+      setPermissionStatus('denied');
+      return true;
+    } catch (err) {
+      setError('Failed to disable push notifications');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUser]);
+
+  const requestPermission = useCallback(async () => {
+    if (!isSupported) {
+      setError('Push notifications are not supported in this browser');
+      return false;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const granted = await pushNotificationService.requestPermission();
+      setPermissionStatus(pushNotificationService.getPermissionStatus());
+      
+      if (granted && currentUser?.email) {
+        const success = await pushNotificationService.initialize(currentUser.email);
+        setIsEnabled(success);
+        return success;
+      }
+      
+      return granted;
+    } catch (err) {
+      setError('Failed to request notification permission');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported, currentUser]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    // State
+    isEnabled,
+    isSupported,
+    permissionStatus,
+    isLoading,
+    error,
+    
+    // Methods
+    enablePushNotifications,
+    disablePushNotifications,
+    requestPermission,
+    initializePushNotifications,
+    clearError,
+    
+    // Computed
+    canRequestPermission: isSupported && permissionStatus === 'default',
+    isPermissionGranted: permissionStatus === 'granted',
+    isPermissionDenied: permissionStatus === 'denied',
+  };
+};
+
+export default usePushNotifications;
+

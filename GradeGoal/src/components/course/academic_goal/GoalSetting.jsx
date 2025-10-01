@@ -86,15 +86,6 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
       
         // Check for goal achievements (update database only, no email notification)
         goals.forEach(async (goal) => {
-          console.log('🔍 Checking goal achievement for:', {
-            goalId: goal.goalId,
-            goalTitle: goal.goalTitle,
-            goalType: goal.goalType,
-            currentProgress: goal.currentProgress,
-            targetValue: goal.targetValue,
-            isAchieved: goal.isAchieved,
-            achievedDate: goal.achievedDate
-          });
           
           if (goal.currentProgress && goal.targetValue) {
             const isAchieved = RealtimeNotificationService.isGoalAchieved(

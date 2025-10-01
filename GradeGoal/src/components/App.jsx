@@ -18,7 +18,21 @@ import AdminDashboard from "./admin/AdminDashboard";
 
 // Role-based routing component
 function AppRoutes() {
-  const { userRole, loading } = useAuth();
+  const auth = useAuth();
+  
+  // Handle case where useAuth returns undefined
+  if (!auth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const { userRole, loading } = auth;
 
   // Show loading spinner while determining user role
   if (loading) {
@@ -139,6 +153,18 @@ function AppRoutes() {
                         <PrivateRoute
                           component={MainDashboard}
                           initialTab="calendar"
+                          requiredRole="USER"
+                        />
+                      </div>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/settings"
+                    element={
+                      <div className="flex flex-col h-screen w-full">
+                        <PrivateRoute
+                          component={MainDashboard}
+                          initialTab="settings"
                           requiredRole="USER"
                         />
                       </div>

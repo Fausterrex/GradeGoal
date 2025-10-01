@@ -577,7 +577,7 @@ export async function updateUserProfile(email, profileData) {
       body: JSON.stringify({
         firstName: profileData.firstName,
         lastName: profileData.lastName,
-        platformPreference: "WEB", // Default platform preference
+        profilePictureUrl: profileData.profilePictureUrl || null,
       }),
     }
   );
@@ -1151,6 +1151,25 @@ export async function getUserActivityStats(userId) {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(text || `Failed to get activity stats with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function updateUserPreferences(email, preferences) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}/preferences`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(preferences),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to update user preferences with status ${response.status}`);
   }
   return response.json();
 }

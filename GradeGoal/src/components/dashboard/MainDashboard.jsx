@@ -25,10 +25,13 @@ import {
   FaBullseye,
   FaClipboardList,
   FaCalendarAlt,
+  FaCog,
 } from "react-icons/fa";
 import { getCourseColorScheme } from "../../utils/courseColors";
 import { calculateCourseProgress } from "../course/course_details/utils/gradeEntryCourse";
 import RealtimeNotificationService from "../../services/realtimeNotificationService";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
+import UserSettings from "../settings/UserSettings";
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -89,16 +92,23 @@ function MainDashboard({ initialTab = "overview" }) {
   const [showArchivedCourses, setShowArchivedCourses] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobileCourseListOpen, setIsMobileCourseListOpen] = useState(false);
+  
+  // Push notifications hook
+  const { 
+    isEnabled: pushNotificationsEnabled, 
+    canRequestPermission, 
+    requestPermission 
+  } = usePushNotifications();
 
-  const displayName =
-    currentUser?.displayName || currentUser?.email || "Unknown User";
+  const displayName = currentUser?.firstName && currentUser?.lastName 
+    ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
+    : currentUser?.displayName || currentUser?.email || "Unknown User";
 
   useEffect(() => {
     if (currentUser) {
       loadCoursesAndGrades();
     }
   }, [currentUser]);
-
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
@@ -358,10 +368,10 @@ function MainDashboard({ initialTab = "overview" }) {
         setActiveTab("overview");
       } else if (path.startsWith("/dashboard/")) {
         const tab = path.split("/")[2];
-        if (["courses", "goals", "reports", "calendar"].includes(tab)) {
-          setActiveTab(tab);
-          // Clear selected course when navigating to goals, reports, or calendar
-          if (tab === "goals" || tab === "reports" || tab === "calendar") {
+         if (["courses", "goals", "reports", "calendar", "settings"].includes(tab)) {
+           setActiveTab(tab);
+           // Clear selected course when navigating to goals, reports, calendar, or settings
+           if (tab === "goals" || tab === "reports" || tab === "calendar" || tab === "settings") {
             setSelectedCourse(null);
             // Also close course manager when navigating to these tabs
             if (isCourseManagerExpanded) {
@@ -447,50 +457,99 @@ function MainDashboard({ initialTab = "overview" }) {
           // Process courses asynchronously but return current state immediately
           Promise.all(currentCourses.map(async (course) => {
             try {
-              const progress = 0; // Removed calculation
-
-              let courseGrade = "Ongoing";
+              // Calculate progress using the same logic as loadAllGrades
+              let progress = 0;
+              let courseGrade = 0.00; // Default to 0.00 instead of "Ongoing"
               let hasGrades = false;
 
               if (course.categories && course.categories.length > 0) {
+                // Calculate progress using the same logic as GradeEntry
+                progress = calculateCourseProgress(course.categories, mergedGrades);
+                
+                // Check if course has any grades to determine hasGrades
+                hasGrades = course.categories.some(category => 
+                  category.assessments && category.assessments.some(assessment =>
+                    assessment.grades && assessment.grades.length > 0 &&
+                    assessment.grades.some(grade => 
+                      grade.percentageScore !== null && grade.percentageScore !== undefined
+                    )
+                  )
+                );
+
+                // Always try to get course grade, even if no grades yet
                 try {
-                  // Removed grade calculation
-                  const gradeResult = { success: false, courseGrade: 0 };
-                  if (gradeResult.success) {
-                    courseGrade = gradeResult.courseGrade;
-                    hasGrades = true;
+                  // Try to get course grade from the course data first
+                  if (course.courseGpa && course.courseGpa > 0) {
+                    courseGrade = course.courseGpa;
+                  } else if (course.currentGrade && typeof course.currentGrade === 'number') {
+                    courseGrade = course.currentGrade;
+                  } else if (hasGrades) {
+                    // Calculate from assessments only if there are actual grades
+                    let totalWeightedGrade = 0;
+                    let totalWeight = 0;
 
-                    const gradingScale = course.gradingScale || "percentage";
-                    const gpaScale = course.gpaScale || "4.0";
+                    for (const category of course.categories) {
+                      if (category.assessments && category.assessments.length > 0) {
+                        for (const assessment of category.assessments) {
+                          if (assessment.grades && assessment.grades.length > 0) {
+                            const categoryWeight = category.weight || 0;
+                            
+                            let assessmentTotal = 0;
+                            let assessmentCount = 0;
+                            
+                            for (const grade of assessment.grades) {
+                              if (grade.percentageScore !== null && grade.percentageScore !== undefined) {
+                                assessmentTotal += grade.percentageScore;
+                                assessmentCount++;
+                              }
+                            }
+                            
+                            if (assessmentCount > 0) {
+                              const assessmentAverage = assessmentTotal / assessmentCount;
+                              totalWeightedGrade += (assessmentAverage * categoryWeight);
+                              totalWeight += categoryWeight;
+                            }
+                          }
+                        }
+                      }
+                    }
 
-                    if (
-                      gradingScale === "gpa" ||
-                      (gradingScale === "percentage" && courseGrade > 100)
-                    ) {
-                      courseGrade = 0; // Removed conversion
+                    if (totalWeight > 0) {
+                      courseGrade = totalWeightedGrade / totalWeight;
+                      
+                      const gradingScale = course.gradingScale || "percentage";
+                      if (gradingScale === "gpa" || (gradingScale === "percentage" && courseGrade > 4.0)) {
+                        courseGrade = gradingScale === "percentage" ? (courseGrade / 100) * 4.0 : courseGrade;
+                      }
                     }
                   }
+                  // If no grades yet, courseGrade remains 0.00
                 } catch (error) {
-                  console.error('Error calculating course grade in fallback:', error);
+                  console.error('Error getting course grade:', error);
                 }
               }
 
               return {
                 ...course,
-                categories: course.categories?.map((cat) => ({ ...cat })) || [],
                 progress: isNaN(progress) || !isFinite(progress) ? 0 : progress,
                 currentGrade: courseGrade,
                 hasGrades: hasGrades,
               };
             } catch (error) {
-              console.error(`Error updating course progress for ${course.name}:`, error);
-              return course; // Return unchanged course if error
+              return {
+                ...course,
+                progress: 0,
+                currentGrade: 0.00,
+                hasGrades: false,
+              };
             }
-          })).then(coursesWithProgress => {
-            // Update courses with calculated progress
-            setCourses(coursesWithProgress);
+          })).then(updatedCourses => {
+            // Update the courses state with recalculated progress
+            setCourses(updatedCourses);
+          }).catch(error => {
+            console.error('Error recalculating course progress:', error);
           });
-          
+
           // Return current state immediately to avoid blocking
           return currentCourses;
         });
@@ -534,7 +593,7 @@ function MainDashboard({ initialTab = "overview" }) {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
 
-    if (tab === "overview" || tab === "reports" || tab === "calendar" || tab === "goals") {
+    if (tab === "overview" || tab === "reports" || tab === "calendar" || tab === "goals" || tab === "settings") {
       setSelectedCourse(null);
       // Also close course manager when switching to these tabs
       if (isCourseManagerExpanded) {
@@ -655,13 +714,14 @@ function MainDashboard({ initialTab = "overview" }) {
             onTabClick={handleTabChange}
             onLogout={handleLogout}
             displayName={displayName}
-            tabs={[
-              { id: "overview", label: "Overview", icon: FaTachometerAlt },
-              { id: "courses", label: "Courses", icon: FaBook },
-              { id: "goals", label: "Goals", icon: FaBullseye },
-              { id: "reports", label: "Reports", icon: FaClipboardList },
-              { id: "calendar", label: "Calendar", icon: FaCalendarAlt },
-            ]}
+             tabs={[
+               { id: "overview", label: "Overview", icon: FaTachometerAlt },
+               { id: "courses", label: "Courses", icon: FaBook },
+               { id: "goals", label: "Goals", icon: FaBullseye },
+               { id: "reports", label: "Reports", icon: FaClipboardList },
+               { id: "calendar", label: "Calendar", icon: FaCalendarAlt },
+               { id: "settings", label: "Settings", icon: FaCog },
+             ]}
             isMobileSidebarOpen={isMobileSidebarOpen}
             setIsMobileSidebarOpen={setIsMobileSidebarOpen}
           />
@@ -732,12 +792,17 @@ function MainDashboard({ initialTab = "overview" }) {
                           label: "Reports",
                           tab: "reports",
                         },
-                        {
-                          icon: <FaCalendarAlt />,
-                          label: "Calendar",
-                          tab: "calendar",
-                        },
-                      ].map((item) => (
+                         {
+                           icon: <FaCalendarAlt />,
+                           label: "Calendar",
+                           tab: "calendar",
+                         },
+                         {
+                           icon: <FaCog />,
+                           label: "Settings",
+                           tab: "settings",
+                         },
+                       ].map((item) => (
                         <div
                           key={item.tab}
                           className={`flex items-center justify-center p-4 rounded-xl cursor-pointer w-full transition-all duration-300 ${
@@ -789,7 +854,6 @@ function MainDashboard({ initialTab = "overview" }) {
                     grades={grades}
                     overallGPA={overallGPA}
                     onSearch={(query) => {}}
-                    onLogout={handleLogout}
                   />
                 </div>
               )}
@@ -833,11 +897,17 @@ function MainDashboard({ initialTab = "overview" }) {
                 </div>
               )}
 
-              {activeTab === "calendar" && (
-                <div className="w-full p-6 bg-gray-100 flex  min-h-screen">
-                  <MyCalendar/>
-                </div>
-              )}
+               {activeTab === "calendar" && (
+                 <div className="w-full p-6 bg-gray-100 flex  min-h-screen">
+                   <MyCalendar/>
+                 </div>
+               )}
+
+               {activeTab === "settings" && (
+                 <div className="w-full">
+                   <UserSettings />
+                 </div>
+               )}
             </>
           )}
         </div>
