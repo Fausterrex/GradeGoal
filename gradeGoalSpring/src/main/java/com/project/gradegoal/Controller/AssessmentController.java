@@ -51,6 +51,16 @@ public class AssessmentController {
         }
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Assessment>> getAssessmentsByUserId(@PathVariable Long userId) {
+        try {
+            List<Assessment> assessments = assessmentService.getAssessmentsByUserId(userId);
+            return ResponseEntity.ok(assessments);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
     @PostMapping
     public ResponseEntity<Assessment> createAssessment(@RequestBody Assessment assessment) {
         try {

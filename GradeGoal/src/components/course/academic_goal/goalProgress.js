@@ -174,25 +174,71 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
         } else {
           status = 'not_achieved';
         }
-      } else {
-        // Course is ongoing - show progress based on course completion, not GPA ratio
-        // Find the course and get its completion percentage
-        const targetCourse = courses.find(course => 
-          (course.id || course.courseId) === goal.courseId
-        );
-        const courseCompletion = targetCourse?.progress || 0; // Use course progress percentage
-        progress = courseCompletion; // Use actual course completion percentage
+      } else if (goal.goalType === 'SEMESTER_GPA') {
+        // For semester GPA goals, calculate progress based on GPA achievement only
+        const gpaAchieved = normalizedCurrentValue >= normalizedTargetValue;
+        isOnTrack = normalizedCurrentValue >= normalizedTargetValue * 0.4; // 40% threshold
+        remainingValue = Math.max(normalizedTargetValue - normalizedCurrentValue, 0);
         
+        // Calculate progress based on current GPA vs target GPA
+        progress = gpaAchieved ? 100 : Math.min((normalizedCurrentValue / normalizedTargetValue) * 100, 100);
+        
+        // Goal is achieved when GPA target is met
+        isAchieved = gpaAchieved;
+        
+        // Check if close to goal (within 20% of target) - more generous threshold
+        const isCloseToGoal = normalizedCurrentValue >= normalizedTargetValue * 0.8 && normalizedCurrentValue < normalizedTargetValue;
+        
+        if (isAchieved) {
+          status = 'achieved';
+        } else if (isCloseToGoal) {
+          status = 'close_to_goal';
+        } else if (isOnTrack) {
+          status = 'on_track';
+        } else {
+          status = 'needs_improvement';
+        }
+      } else if (goal.goalType === 'CUMMULATIVE_GPA') {
+        // For cumulative GPA goals, calculate progress based on GPA achievement
         isAchieved = normalizedCurrentValue >= normalizedTargetValue;
+        isOnTrack = normalizedCurrentValue >= normalizedTargetValue * 0.4; // 40% threshold
+        remainingValue = Math.max(normalizedTargetValue - normalizedCurrentValue, 0);
+        
+        // Calculate progress percentage based on GPA achievement
+        if (isAchieved) {
+          progress = 100; // Goal achieved = 100% progress
+        } else {
+          // Calculate progress as percentage of target achieved
+          progress = Math.min((normalizedCurrentValue / normalizedTargetValue) * 100, 100);
+        }
+        
+        // Check if close to goal (within 20% of target) - more generous threshold
+        const isCloseToGoal = normalizedCurrentValue >= normalizedTargetValue * 0.8 && normalizedCurrentValue < normalizedTargetValue;
+        
+        if (isAchieved) {
+          status = 'achieved';
+        } else if (isCloseToGoal) {
+          status = 'close_to_goal';
+        } else if (isOnTrack) {
+          status = 'on_track';
+        } else {
+          status = 'needs_improvement';
+        }
+      } else {
+        // Course is ongoing - show progress based on GPA achievement, not course completion
+        // Calculate progress as percentage of target GPA achieved
+        progress = Math.min((normalizedCurrentValue / normalizedTargetValue) * 100, 100);
+        
+        // Goal cannot be achieved until course is manually marked as complete
+        isAchieved = false; // Never achieved until course is completed
         isOnTrack = normalizedCurrentValue >= normalizedTargetValue * 0.4; // 40% threshold
         remainingValue = Math.max(normalizedTargetValue - normalizedCurrentValue, 0);
         
         // Check if close to goal for ongoing courses (within 20% of target) - more generous threshold
         const isCloseToGoal = normalizedCurrentValue >= normalizedTargetValue * 0.8 && normalizedCurrentValue < normalizedTargetValue;
         
-        if (isAchieved) {
-          status = 'achieved';
-        } else if (isCloseToGoal) {
+        // Status cannot be 'achieved' until course is completed
+        if (isCloseToGoal) {
           status = 'close_to_goal';
         } else if (isOnTrack) {
           status = 'on_track';
@@ -249,7 +295,8 @@ const calculateCourseGradeProgress = async (goal, courses, grades) => {
   try {
     // Use pre-calculated progress from MainDashboard instead of recalculating
     const courseProgress = course.progress || 0;
-    const isCourseCompleted = courseProgress >= 100;
+    // Course is only considered completed if manually marked as complete
+    const isCourseCompleted = course.isCompleted === true;
     
     let courseGrade = 0;
     

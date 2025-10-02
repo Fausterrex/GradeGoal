@@ -85,16 +85,33 @@ const GoalCard = ({
         const userProfile = await getUserProfile(currentUser.email);
         if (!userProfile?.userId) return;
         
-        // Determine course ID for analysis check
-        const courseId = goal.goalType === 'CUMMULATIVE_GPA' ? 0 : goal.courseId;
+        // Skip AI analysis check only for cumulative GPA goals (they don't have courseId)
+        if (goal.goalType === 'CUMMULATIVE_GPA') {
+          console.log('🎯 [GoalCard] Skipping AI analysis check for cumulative GPA goal');
+          setHasExistingAnalysis(false);
+          return;
+        }
         
-        // Check if AI analysis exists
-        const existsResponse = await checkAIAnalysisExists(userProfile.userId, courseId);
+        // For semester GPA goals, use a special courseId (0) to indicate semester-level analysis
+        const analysisCourseId = goal.goalType === 'SEMESTER_GPA' ? 0 : goal.courseId;
+        
+        if (!analysisCourseId && goal.goalType !== 'SEMESTER_GPA') {
+          console.log('🎯 [GoalCard] Skipping AI analysis check for goal without courseId:', {
+            goalType: goal.goalType,
+            courseId: goal.courseId
+          });
+          setHasExistingAnalysis(false);
+          return;
+        }
+        
+        // Check if AI analysis exists for course-specific goals
+        const existsResponse = await checkAIAnalysisExists(userProfile.userId, analysisCourseId);
         const exists = existsResponse.success && existsResponse.exists;
         
         console.log('🎯 [GoalCard] Checking existing AI analysis:', {
           goalType: goal.goalType,
-          courseId,
+          courseId: goal.courseId,
+          analysisCourseId,
           exists
         });
         
@@ -105,7 +122,7 @@ const GoalCard = ({
           console.log('🎯 [GoalCard] Loading existing AI analysis data...');
           try {
             // Load the analysis data into memory first
-            const analysisData = await loadAIAnalysisForCourse(userProfile.userId, courseId);
+            const analysisData = await loadAIAnalysisForCourse(userProfile.userId, analysisCourseId);
             if (analysisData) {
               console.log('🎯 [GoalCard] Analysis data loaded, getting achievement probability...');
               
@@ -274,10 +291,10 @@ const GoalCard = ({
           </button>
         </div>
 
-        {/* Course Name - Main Focus */}
+        {/* Goal Title - Main Focus */}
         <div className="text-center mb-3 mx-auto max-w-full">
-          <h3 className="text-xl font-bold text-gray-900 mb-2 px-16" title={goal.courseId ? getCourseName(goal.courseId, courses) : goal.goalTitle}>
-            {goal.courseId ? getCourseName(goal.courseId, courses) : goal.goalTitle}
+          <h3 className="text-xl font-bold text-gray-900 mb-2 px-16" title={goal.goalTitle || (goal.courseId ? getCourseName(goal.courseId, courses) : 'Untitled Goal')}>
+            {goal.goalTitle || (goal.courseId ? getCourseName(goal.courseId, courses) : 'Untitled Goal')}
           </h3>
           
           {/* Priority Badge */}
@@ -546,7 +563,13 @@ const GoalCard = ({
                 })()}
               
               <AIAnalysisIndicator
-                course={goal.goalType === 'CUMMULATIVE_GPA' ? { id: 0, courseName: 'Cumulative GPA' } : courses.find(c => c.id === goal.courseId)}
+                course={
+                  goal.goalType === 'CUMMULATIVE_GPA' 
+                    ? { id: 0, courseName: 'Cumulative GPA' } 
+                    : goal.goalType === 'SEMESTER_GPA'
+                    ? { id: 0, courseName: 'Semester GPA' }
+                    : courses.find(c => c.id === goal.courseId)
+                }
                 grades={grades}
                 categories={categories}
                 targetGrade={goal}

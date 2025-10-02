@@ -144,6 +144,15 @@ public class AssessmentService {
     }
     
     /**
+     * Get assessments by user ID
+     * @param userId User's ID
+     * @return List of assessments for the specified user
+     */
+    public List<Assessment> getAssessmentsByUserId(Long userId) {
+        return assessmentRepository.findByUserId(userId);
+    }
+    
+    /**
      * Get assessments by due date
      * @param dueDate Due date
      * @return List of assessments due on the specified date

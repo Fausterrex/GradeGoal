@@ -49,5 +49,11 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     @Query("SELECT a FROM Assessment a LEFT JOIN FETCH AssessmentCategory ac ON a.categoryId = ac.categoryId WHERE a.dueDate IS NOT NULL")
     List<Assessment> findAllWithCourseInfo();
 
+    @Query("SELECT a FROM Assessment a " +
+           "LEFT JOIN FETCH AssessmentCategory ac ON a.categoryId = ac.categoryId " +
+           "LEFT JOIN FETCH Course c ON ac.courseId = c.courseId " +
+           "WHERE c.userId = :userId AND a.dueDate IS NOT NULL")
+    List<Assessment> findByUserId(@Param("userId") Long userId);
+
     void deleteByCategoryId(Long categoryId);
 }

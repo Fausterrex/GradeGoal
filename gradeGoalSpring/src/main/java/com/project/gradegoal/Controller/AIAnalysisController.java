@@ -62,7 +62,15 @@ public class AIAnalysisController {
     @GetMapping("/course/{courseId}/user/{userId}")
     public ResponseEntity<Map<String, Object>> getAIAnalysis(@PathVariable Long courseId, @PathVariable Long userId) {
         try {
-            Optional<AIAnalysis> analysis = aiAnalysisPersistenceService.getAIAnalysis(userId, courseId);
+            Optional<AIAnalysis> analysis;
+            
+            // Handle special case for semester-level analysis (courseId = 0)
+            if (courseId == 0) {
+                // For semester-level analysis, get the most recent analysis for the user
+                analysis = aiAnalysisPersistenceService.getLatestAIAnalysisForUser(userId);
+            } else {
+                analysis = aiAnalysisPersistenceService.getAIAnalysis(userId, courseId);
+            }
             
             Map<String, Object> response = new HashMap<>();
             if (analysis.isPresent()) {
@@ -196,7 +204,14 @@ public class AIAnalysisController {
     @GetMapping("/course/{courseId}/user/{userId}/exists")
     public ResponseEntity<Map<String, Object>> checkAnalysisExists(@PathVariable Long courseId, @PathVariable Long userId) {
         try {
-            boolean exists = aiAnalysisPersistenceService.hasValidAnalysis(userId, courseId);
+            // Handle special case for semester-level analysis (courseId = 0)
+            boolean exists;
+            if (courseId == 0) {
+                // For semester-level analysis, check if user has any active analysis
+                exists = aiAnalysisPersistenceService.hasValidAnalysisForUser(userId);
+            } else {
+                exists = aiAnalysisPersistenceService.hasValidAnalysis(userId, courseId);
+            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

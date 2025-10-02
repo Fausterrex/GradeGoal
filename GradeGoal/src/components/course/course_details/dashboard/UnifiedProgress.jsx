@@ -115,6 +115,9 @@ function UnifiedProgress({
      const weeklyData = [];
      const sortedWeekKeys = Object.keys(weeklyGroups).sort();
      
+     console.log('📊 Weekly groups:', weeklyGroups);
+     console.log('📊 Sorted week keys:', sortedWeekKeys);
+     
      sortedWeekKeys.forEach((weekKey, index) => {
        const group = weeklyGroups[weekKey];
        
@@ -255,6 +258,9 @@ function UnifiedProgress({
 
   // Enhanced chart component matching EnhancedGradeTrends styling
   const TrajectoryChart = ({ data, title }) => {
+    // Debug: Log the data being passed to the chart
+    console.log('📊 TrajectoryChart data:', data);
+    
     if (!data || data.length === 0) {
       return (
         <div className="bg-gray-50 rounded-2xl shadow-lg p-8 border border-gray-200">
@@ -334,11 +340,13 @@ function UnifiedProgress({
               <Line
                 type="monotone"
                 dataKey="currentGPA"
-                stroke="url(#colorGradient)"
-                strokeWidth={4}
-                dot={{ fill: "#8b5cf6", strokeWidth: 3, r: 5, stroke: "#fff" }}
-                activeDot={{ r: 8, stroke: "#8b5cf6", strokeWidth: 3, fill: "#fff", filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.4))" }}
-                filter="drop-shadow(0 2px 4px rgba(139, 92, 246, 0.2))"
+                stroke="#8b5cf6"
+                strokeWidth={3}
+                dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 6, stroke: "#fff" }}
+                activeDot={{ r: 8, stroke: "#8b5cf6", strokeWidth: 2, fill: "#fff", filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.4))" }}
+                connectNulls={false}
+                isAnimationActive={true}
+                animationDuration={1000}
               />
             </LineChart>
           </ResponsiveContainer>

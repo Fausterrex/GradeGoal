@@ -13,7 +13,8 @@ import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
-import MyCalendar from "../calendar/Calendar"
+import MyCalendar from "../calendar/Calendar";
+import Report from "./Report";
 import {
   getGradesByCourseId,
   getCoursesByUid,
@@ -527,6 +528,12 @@ function MainDashboard({ initialTab = "overview" }) {
   const handleCourseUpdate = (updatedCourses) => {
     // Preserve progress data when updating courses
     setCourses(prevCourses => {
+      // Safety check: if updatedCourses is undefined, return current courses
+      if (!updatedCourses || !Array.isArray(updatedCourses)) {
+        console.warn('handleCourseUpdate called with invalid updatedCourses:', updatedCourses);
+        return prevCourses;
+      }
+      
       return updatedCourses.map(updatedCourse => {
         const existingCourse = prevCourses.find(c => c.id === updatedCourse.id);
         if (existingCourse) {
@@ -1030,17 +1037,8 @@ function MainDashboard({ initialTab = "overview" }) {
               )}
 
               {activeTab === "reports" && (
-                <div className="w-full p-6 bg-gray-100">
-                  <div className="w-full flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                        Reports
-                      </h3>
-                      <p className="text-gray-600">
-                        Detailed reports and analytics coming soon...
-                      </p>
-                    </div>
-                  </div>
+                <div className="w-full bg-gray-100">
+                  <Report />
                 </div>
               )}
 

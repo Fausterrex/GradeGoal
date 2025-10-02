@@ -83,6 +83,32 @@ function ConfirmationModal({
           warningTextColor: "text-blue-800",
           warningItemColor: "text-blue-700",
         };
+      case "complete":
+        return {
+          headerColor: "bg-green-600",
+          confirmColor: "bg-green-600",
+          confirmHoverColor: "hover:bg-green-700",
+          confirmText: confirmText || "Mark as Complete",
+          cancelText: cancelText || "Cancel",
+          defaultIcon: <span className="text-green-600 text-lg">✅</span>,
+          warningBgColor: "bg-green-50",
+          warningBorderColor: "border-green-200",
+          warningTextColor: "text-green-800",
+          warningItemColor: "text-green-700",
+        };
+      case "incomplete":
+        return {
+          headerColor: "bg-gray-600",
+          confirmColor: "bg-gray-600",
+          confirmHoverColor: "hover:bg-gray-700",
+          confirmText: confirmText || "Mark as Incomplete",
+          cancelText: cancelText || "Cancel",
+          defaultIcon: <span className="text-gray-600 text-lg">↩️</span>,
+          warningBgColor: "bg-gray-50",
+          warningBorderColor: "border-gray-200",
+          warningTextColor: "text-gray-800",
+          warningItemColor: "text-gray-700",
+        };
       default: // edit
         return {
           headerColor: "bg-green-600",

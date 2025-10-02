@@ -38,6 +38,12 @@ public class DatabaseCalculationService {
     
     @Autowired
     private AssessmentService assessmentService;
+    
+    @Autowired
+    private UserProgressService userProgressService;
+    
+    @Autowired
+    private NotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -293,6 +299,18 @@ public class DatabaseCalculationService {
                     .setParameter(8, existingGrade.get(0))
                     .executeUpdate();
                 
+                // Update assessment status to COMPLETED when grade is updated
+                try {
+                    String updateStatusQuery = "UPDATE assessments SET status = 'COMPLETED' WHERE assessment_id = ?";
+                    entityManager.createNativeQuery(updateStatusQuery)
+                        .setParameter(1, assessmentId)
+                        .executeUpdate();
+                    System.out.println("✅ Updated assessment " + assessmentId + " status to COMPLETED");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to update assessment status: " + e.getMessage());
+                    // Don't fail the entire operation if status update fails
+                }
+                
                 // Get course ID for later course grades update (outside this transaction)
                 Long courseId = getCourseIdFromAssessment(assessmentId);
                 
@@ -315,6 +333,18 @@ public class DatabaseCalculationService {
                     .setParameter(8, extraCreditPoints)
                     .setParameter(9, userId)
                     .executeUpdate();
+                
+                // Update assessment status to COMPLETED when grade is added
+                try {
+                    String updateStatusQuery = "UPDATE assessments SET status = 'COMPLETED' WHERE assessment_id = ?";
+                    entityManager.createNativeQuery(updateStatusQuery)
+                        .setParameter(1, assessmentId)
+                        .executeUpdate();
+                    System.out.println("✅ Updated assessment " + assessmentId + " status to COMPLETED");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to update assessment status: " + e.getMessage());
+                    // Don't fail the entire operation if status update fails
+                }
                 
                 // Award points for adding a new grade
                 try {
@@ -386,7 +416,7 @@ public class DatabaseCalculationService {
     }
 
     /**
-     * Award points to user using database procedure
+     * Award points to user using UserProgressService (includes level-up notifications)
      * @param userId User ID
      * @param points Points to award
      * @param activityType Activity type
@@ -394,12 +424,18 @@ public class DatabaseCalculationService {
     @Transactional
     public void awardPoints(Long userId, Integer points, String activityType) {
         try {
-            // Call the database procedure AwardPoints using entityManager
-            entityManager.createNativeQuery("CALL AwardPoints(:userId, :points, :activityType)")
-                .setParameter("userId", userId)
-                .setParameter("points", points)
-                .setParameter("activityType", activityType)
-                .executeUpdate();
+            // Use UserProgressService to award points and handle level-up notifications
+            UserProgressService.LevelUpResult levelUpResult = userProgressService.awardPointsWithLevelUpCheck(userId, points);
+            
+            // If user leveled up, send level-up notification
+            if (levelUpResult.isLeveledUp()) {
+                Integer newLevel = levelUpResult.getProgress().getCurrentLevel();
+                String rankTitle = userProgressService.getUserRankTitle(newLevel);
+                notificationService.sendLevelUpNotification(userId, newLevel, rankTitle);
+                System.out.println("✅ Level-up notification sent for user " + userId + " to level " + newLevel);
+            }
+            
+            System.out.println("✅ Points awarded to user " + userId + ": " + points + " points for " + activityType);
         } catch (Exception e) {
             System.err.println("Error awarding points to user " + userId + ": " + e.getMessage());
         }

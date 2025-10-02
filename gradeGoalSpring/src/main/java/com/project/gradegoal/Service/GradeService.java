@@ -199,7 +199,26 @@ public class GradeService {
                 
                 List<Grade> remainingGrades = gradeRepository.findByAssessmentId(assessmentId);
                 if (remainingGrades.isEmpty()) {
-                    assessmentService.deleteAssessment(assessmentId);
+                    // No more grades for this assessment - update status based on due date
+                    try {
+                        Optional<Assessment> assessmentOpt = assessmentService.getAssessmentById(assessmentId);
+                        if (assessmentOpt.isPresent()) {
+                            Assessment assessment = assessmentOpt.get();
+                            LocalDate dueDate = assessment.getDueDate();
+                            LocalDate today = LocalDate.now();
+                            
+                            String newStatus = (dueDate != null && dueDate.isBefore(today)) ? "OVERDUE" : "UPCOMING";
+                            
+                            // Update assessment status
+                            assessment.setStatus(Assessment.AssessmentStatus.valueOf(newStatus));
+                            assessmentService.updateAssessment(assessment);
+                            
+                            System.out.println("✅ Updated assessment " + assessmentId + " status to " + newStatus + " after grade deletion");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to update assessment status after grade deletion: " + e.getMessage());
+                        // Don't fail the entire operation if status update fails
+                    }
                 }
                 
                 return true;

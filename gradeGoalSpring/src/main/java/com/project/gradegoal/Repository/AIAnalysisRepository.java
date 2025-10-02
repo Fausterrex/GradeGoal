@@ -63,4 +63,16 @@ public interface AIAnalysisRepository extends JpaRepository<AIAnalysis, Long> {
     @Query("SELECT COUNT(a) > 0 FROM AIAnalysis a WHERE a.userId = :userId AND a.courseId = :courseId " +
            "AND a.isActive = true AND (a.expiresAt IS NULL OR a.expiresAt > :now)")
     boolean existsActiveAnalysis(@Param("userId") Long userId, @Param("courseId") Long courseId, @Param("now") LocalDateTime now);
+    
+    /**
+     * Check if user has any active analysis (for semester-level analysis)
+     */
+    @Query("SELECT COUNT(a) > 0 FROM AIAnalysis a WHERE a.userId = :userId " +
+           "AND a.isActive = true AND (a.expiresAt IS NULL OR a.expiresAt > :now)")
+    boolean existsActiveAnalysisForUser(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+    
+    /**
+     * Delete all AI analysis for a specific user and course
+     */
+    int deleteByUserIdAndCourseId(Long userId, Long courseId);
 }

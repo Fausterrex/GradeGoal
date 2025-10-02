@@ -85,21 +85,39 @@ const GoalModal = ({
         setFormData(prev => ({
           ...prev,
           [name]: value,
-          semester: '' // Reset semester selection
+          semester: '', // Reset semester selection
+          goalTitle: '' // Reset goal title
         }));
       } else {
         setFormData(prev => ({
           ...prev,
-          [name]: value
+          [name]: value,
+          goalTitle: generateGoalTitle(value, formData.semester, 'SEMESTER_GPA')
         }));
       }
     } else if (name === 'goalType') {
-      // If goal type changes, reset related fields
+      // If goal type changes, reset related fields and auto-fill title
       setFormData(prev => ({
         ...prev,
         [name]: value,
         semester: '', // Reset semester for semester GPA goals
-        courseId: '' // Reset course for course grade goals
+        courseId: '', // Reset course for course grade goals
+        goalTitle: generateGoalTitle('', '', value)
+      }));
+    } else if (name === 'semester') {
+      // If semester changes, auto-fill title for semester GPA goals
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        goalTitle: generateGoalTitle(formData.academicYear, value, 'SEMESTER_GPA')
+      }));
+    } else if (name === 'courseId') {
+      // If course changes, auto-fill title for course grade goals
+      const selectedCourse = courses.find(c => c.courseId === parseInt(value));
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        goalTitle: selectedCourse ? `${selectedCourse.courseName} GPA GOAL` : ''
       }));
     } else {
       setFormData(prev => ({
@@ -112,6 +130,24 @@ const GoalModal = ({
     if (name === 'targetValue' && validationError) {
       setValidationError('');
     }
+  };
+
+  // Helper function to generate goal title based on type and selections
+  const generateGoalTitle = (academicYear, semester, goalType) => {
+    if (goalType === 'COURSE_GRADE') {
+      const selectedCourse = courses.find(c => c.courseId === parseInt(formData.courseId));
+      return selectedCourse ? `${selectedCourse.courseName} GPA GOAL` : '';
+    } else if (goalType === 'SEMESTER_GPA') {
+      if (semester && academicYear) {
+        const semesterName = semester === 'FIRST' ? '1st' : 
+                           semester === 'SECOND' ? '2nd' : '3rd';
+        return `${semesterName} SEMESTER GPA GOAL`;
+      }
+      return '';
+    } else if (goalType === 'CUMMULATIVE_GPA') {
+      return 'CUMULATIVE GPA GOAL';
+    }
+    return '';
   };
 
   const validateForm = () => {

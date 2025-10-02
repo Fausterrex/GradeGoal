@@ -253,5 +253,42 @@ public class NotificationService {
     public long getUnreadCount(Long userId) {
         return notificationRepository.countByUserIdAndIsRead(userId, false);
     }
+    
+    /**
+     * Send level-up notification
+     * @param userId the user ID
+     * @param newLevel the new level reached
+     * @param rankTitle the rank title for the new level
+     */
+    @Transactional
+    public void sendLevelUpNotification(Long userId, Integer newLevel, String rankTitle) {
+        logger.info("Sending level-up notification for user {} to level {}", userId, newLevel);
+        
+        try {
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setNotificationType(Notification.NotificationType.ACHIEVEMENT);
+            notification.setTitle("🎉 Level Up!");
+            notification.setMessage(String.format("Congratulations! You reached Level %d - %s", 
+                newLevel, rankTitle));
+            notification.setPriority(Notification.NotificationPriority.HIGH);
+            notification.setIsRead(false);
+            
+            // Add level-up data as JSON
+            Map<String, Object> actionData = new HashMap<>();
+            actionData.put("type", "level_up");
+            actionData.put("level", newLevel);
+            actionData.put("rankTitle", rankTitle);
+            
+            notification.setActionData(objectMapper.writeValueAsString(actionData));
+            notification.setCreatedAt(LocalDateTime.now());
+            
+            notificationRepository.save(notification);
+            logger.info("Level-up notification created for user {} to level {}", userId, newLevel);
+            
+        } catch (Exception e) {
+            logger.error("Error creating level-up notification", e);
+        }
+    }
 }
 

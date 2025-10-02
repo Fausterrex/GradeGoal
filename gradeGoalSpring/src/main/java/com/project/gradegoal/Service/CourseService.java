@@ -4,12 +4,12 @@ import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Entity.AssessmentCategory;
 import com.project.gradegoal.Entity.Grade;
 import com.project.gradegoal.Entity.User;
-import com.project.gradegoal.Repository.CourseRepository;
-import com.project.gradegoal.Repository.AssessmentCategoryRepository;
-import com.project.gradegoal.Repository.GradeRepository;
+import com.project.gradegoal.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,6 +17,8 @@ import java.util.Optional;
 
 @Service
 public class CourseService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
 
     @Autowired
     private CourseRepository courseRepository;
@@ -29,6 +31,24 @@ public class CourseService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+
+    @Autowired
+    private PushNotificationService pushNotificationService;
+
+    @Autowired
+    private AIAnalysisRepository aiAnalysisRepository;
+
+    @Autowired
+    private AcademicGoalRepository academicGoalRepository;
+
+    @Autowired
+    private UserAnalyticsRepository userAnalyticsRepository;
+
+    @Autowired
+    private AssessmentRepository assessmentRepository;
 
     public Course createCourse(Course course) {
         return courseRepository.save(course);
@@ -117,11 +137,79 @@ public class CourseService {
         return courseRepository.save(course);
     }
 
+    /**
+     * Delete a course and all its related data with cascading deletion
+     * @param courseId Course ID to delete
+     * @return true if deletion was successful, false otherwise
+     */
+    @Transactional
     public boolean deleteCourse(Long courseId) {
         if (courseRepository.existsById(courseId)) {
-            courseRepository.deleteById(courseId);
-            return true;
+            logger.info("🗑️ Starting cascading deletion for course ID: {}", courseId);
+            
+            try {
+                // 1. Delete AI Analysis for this course
+                int aiAnalysisDeleted = aiAnalysisRepository.deleteByUserIdAndCourseId(
+                    courseRepository.findById(courseId).get().getUserId(), 
+                    courseId
+                );
+                logger.info("🤖 Deleted {} AI analysis records for course {}", aiAnalysisDeleted, courseId);
+                
+                // 2. Delete Academic Goals for this course
+                int academicGoalsDeleted = academicGoalRepository.deleteByCourseId(courseId);
+                logger.info("🎯 Deleted {} academic goals for course {}", academicGoalsDeleted, courseId);
+                
+                // 3. Delete User Achievements related to this course
+                // Note: User achievements are not directly linked to courses, so we skip this
+                
+                // 4. Delete Notifications related to this course
+                // Note: Notifications are not directly linked to courses, so we skip this
+                
+                // 5. Delete User Analytics for this course
+                Long userId = courseRepository.findById(courseId).get().getUserId();
+                List<com.project.gradegoal.Entity.UserAnalytics> analyticsToDelete = 
+                    userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
+                userAnalyticsRepository.deleteAll(analyticsToDelete);
+                logger.info("📊 Deleted {} user analytics records for course {}", analyticsToDelete.size(), courseId);
+                
+                // 6. Get all assessment categories for this course
+                List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
+                logger.info("📁 Found {} assessment categories for course {}", categories.size(), courseId);
+                
+                // 7. For each category, delete assessments and their grades
+                for (AssessmentCategory category : categories) {
+                    // Get all assessments in this category
+                    List<com.project.gradegoal.Entity.Assessment> assessments = 
+                        assessmentRepository.findByCategoryId(category.getId());
+                    logger.info("📝 Found {} assessments in category {}", assessments.size(), category.getId());
+                    
+                    // Delete grades for each assessment
+                    for (com.project.gradegoal.Entity.Assessment assessment : assessments) {
+                        List<Grade> grades = gradeRepository.findByAssessmentId(assessment.getAssessmentId());
+                        gradeRepository.deleteAll(grades);
+                        logger.info("🎓 Deleted {} grades for assessment {}", grades.size(), assessment.getAssessmentId());
+                    }
+                    
+                    // Delete all assessments in this category
+                    assessmentRepository.deleteAll(assessments);
+                    logger.info("📝 Deleted {} assessments in category {}", assessments.size(), category.getId());
+                }
+                
+                // 8. Delete all assessment categories for this course
+                assessmentCategoryRepository.deleteAll(categories);
+                logger.info("📁 Deleted {} assessment categories for course {}", categories.size(), courseId);
+                
+                // 9. Finally, delete the course itself
+                courseRepository.deleteById(courseId);
+                logger.info("✅ Successfully deleted course {} and all related data", courseId);
+                
+                return true;
+            } catch (Exception e) {
+                logger.error("❌ Error during cascading deletion for course {}", courseId, e);
+                throw e; // Re-throw to trigger transaction rollback
+            }
         }
+        logger.warn("⚠️ Course {} not found, cannot delete", courseId);
         return false;
     }
 
@@ -130,15 +218,55 @@ public class CourseService {
         if (courseOpt.isPresent()) {
             Course course = courseOpt.get();
 
-            BigDecimal finalGrade = calculateFinalCourseGrade(courseId);
-            // Target grades are now managed through the Academic Goals system
-            // For now, use a simple GPA calculation based on the final grade
-            BigDecimal finalGPA = finalGrade.divide(new BigDecimal("25"), 2, BigDecimal.ROUND_HALF_UP);
+            // Only mark as completed - preserve existing grades
+            course.setIsCompleted(true);
 
-            course.setCalculatedCourseGrade(finalGrade);
-            course.setCourseGpa(finalGPA);
+            Course savedCourse = courseRepository.save(course);
 
-            return courseRepository.save(course);
+            // Send course completion notifications
+            try {
+                // Get user information for notifications
+                Optional<User> userOpt = userService.findById(course.getUserId());
+                if (userOpt.isPresent()) {
+                    User user = userOpt.get();
+                    String userEmail = user.getEmail();
+                    String courseName = course.getCourseName();
+                    // Use existing course GPA or default to 4.0 if not available
+                    String finalGradeStr = course.getCourseGpa() != null && course.getCourseGpa().compareTo(BigDecimal.ZERO) > 0 
+                        ? course.getCourseGpa().toPlainString() 
+                        : "4.0";
+                    String semester = course.getSemester() != null ? course.getSemester().toString() : "Current Semester";
+
+                    logger.info("Sending course completion notifications for course: {} to user: {}", courseName, userEmail);
+
+                    // Send email notification
+                    try {
+                        emailNotificationService.sendCourseCompletionNotification(userEmail, courseName, finalGradeStr, semester);
+                        logger.info("Course completion email notification sent successfully to: {}", userEmail);
+                    } catch (Exception e) {
+                        logger.error("Failed to send course completion email notification to: {}", userEmail, e);
+                    }
+
+                    // Send push notification
+                    try {
+                        boolean pushSuccess = pushNotificationService.sendCourseCompletionNotification(userEmail, courseName, finalGradeStr, semester);
+                        if (pushSuccess) {
+                            logger.info("Course completion push notification sent successfully to: {}", userEmail);
+                        } else {
+                            logger.warn("Course completion push notification failed for user: {}", userEmail);
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to send course completion push notification to: {}", userEmail, e);
+                    }
+                } else {
+                    logger.warn("User not found for course completion notification. Course ID: {}, User ID: {}", courseId, course.getUserId());
+                }
+            } catch (Exception e) {
+                logger.error("Error sending course completion notifications for course: {}", courseId, e);
+                // Don't fail the course completion if notifications fail
+            }
+
+            return savedCourse;
         }
         return null;
     }
@@ -158,8 +286,8 @@ public class CourseService {
         if (courseOpt.isPresent()) {
             Course course = courseOpt.get();
 
-            course.setCalculatedCourseGrade(BigDecimal.ZERO);
-            course.setCourseGpa(BigDecimal.ZERO);
+            // Only mark as not completed - preserve existing grades
+            course.setIsCompleted(false);
             return courseRepository.save(course);
         }
         return null;

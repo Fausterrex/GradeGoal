@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar"; 
 import moment from "moment";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Minimal CSS overrides for react-big-calendar positioning
@@ -47,7 +48,7 @@ const EventComponent = ({ event }) => {
 };
 
 const MyCalendar = () => {
-
+  const { currentUser } = useAuth();
   const [events, setEvents] = useState([]);
   const [view, setView] = useState("month"); 
   const [date, setDate] = useState(new Date()); 
@@ -118,8 +119,13 @@ const MyCalendar = () => {
     </div>
   );
   useEffect(() => {
+    if (!currentUser?.userId) {
+      console.log("No user ID available, skipping calendar data fetch");
+      return;
+    }
+
     axios
-      .get("http://localhost:8080/api/assessments")
+      .get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`)
       .then((res) => {
         console.log("Raw API response:", res.data); // Debug log
         
@@ -164,7 +170,7 @@ const MyCalendar = () => {
         console.error("Failed to fetch assessments:", err);
         setEvents([]);
       });
-  }, []);
+  }, [currentUser?.userId]);
 
 
   const eventStyleGetter = (event) => {

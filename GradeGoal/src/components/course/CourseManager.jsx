@@ -12,6 +12,7 @@ import {
   archiveCourse as archiveCourseApi,
   unarchiveCourse as unarchiveCourseApi,
 } from "../../backend/api";
+import axios from "axios";
 import { getCourseColorScheme } from "../../utils/courseColors";
 // Removed grade calculations import
 import AddCourse from "./AddCourse";
@@ -39,6 +40,10 @@ function CourseManager({
   const [showArchived, setShowArchived] = useState(false);
   const [showCourses, setShowCourses] = useState(true);
 
+  // State for managing completed courses
+  const [completedCourses, setCompletedCourses] = useState([]);
+  const [showCompleted, setShowCompleted] = useState(false);
+
   // State for confirmation modals
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -60,15 +65,17 @@ function CourseManager({
     // Handle course updates and state changes
   }, [courses, archivedCourses, showArchived]);
 
-  // Effect to separate archived and active courses when component mounts or courses change
+  // Effect to separate archived, completed, and active courses when component mounts or courses change
   useEffect(() => {
     if (courses && courses.length > 0) {
-      // Separate archived and active courses based on database state
+      // Separate courses based on database state
       const archived = courses.filter((course) => course.isActive === false);
-      const active = courses.filter((course) => course.isActive !== false);
+      const completed = courses.filter((course) => course.isActive !== false && course.isCompleted === true);
+      const active = courses.filter((course) => course.isActive !== false && course.isCompleted !== true);
 
-      // Update archived courses state
+      // Update course states
       setArchivedCourses(archived);
+      setCompletedCourses(completed);
 
       // Don't update parent here - let the parent manage the full course list
       // The parent (MainDashboard) should handle filtering active vs archived courses
@@ -89,6 +96,88 @@ function CourseManager({
 
     // Note: Removed automatic grade refresh to prevent infinite loops
     // Grades will be refreshed manually when needed
+  };
+
+  // Handle marking course as complete
+  const handleMarkComplete = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    
+    setConfirmationModal({
+      isOpen: true,
+      type: "complete",
+      title: "Mark Course as Complete",
+      message: `Are you sure you want to mark "${course.name}" as complete? This will move the course to the completed section and will send email and push notifications about the completion.`,
+      confirmText: "Mark as Complete",
+      cancelText: "Cancel",
+      showWarning: false,
+      warningItems: [],
+      showTip: false,
+      tipMessage: "",
+      onConfirm: async () => {
+        try {
+          const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/complete`);
+          if (response.status === 200) {
+            console.log('✅ Course marked as complete successfully');
+            
+            // Course completion notifications are now handled by the backend
+            console.log('🎓 Course marked as complete - notifications will be sent by the backend');
+            
+            // Update the local course state and refresh the course list
+            const updatedCourses = courses.map(course => 
+              course.id === courseId 
+                ? { ...course, isCompleted: true }
+                : course
+            );
+            onCourseUpdate(updatedCourses);
+          }
+        } catch (error) {
+          console.error('❌ Failed to mark course as complete:', error);
+        }
+        setConfirmationModal({ ...confirmationModal, isOpen: false });
+      },
+      onClose: () => {
+        setConfirmationModal({ ...confirmationModal, isOpen: false });
+      }
+    });
+  };
+
+  // Handle marking course as incomplete
+  const handleMarkIncomplete = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    
+    setConfirmationModal({
+      isOpen: true,
+      type: "incomplete",
+      title: "Mark Course as Incomplete",
+      message: `Are you sure you want to mark "${course.name}" as incomplete? This will move the course back to the active section.`,
+      confirmText: "Mark as Incomplete",
+      cancelText: "Cancel",
+      showWarning: false,
+      warningItems: [],
+      showTip: false,
+      tipMessage: "",
+      onConfirm: async () => {
+        try {
+          const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/uncomplete`);
+          if (response.status === 200) {
+            console.log('✅ Course marked as incomplete successfully');
+            // Update the local course state and refresh the course list
+            const updatedCourses = courses.map(course => 
+              course.id === courseId 
+                ? { ...course, isCompleted: false }
+                : course
+            );
+            onCourseUpdate(updatedCourses);
+          }
+        } catch (error) {
+          console.error('❌ Failed to mark course as incomplete:', error);
+        }
+        setConfirmationModal({ ...confirmationModal, isOpen: false });
+      },
+      onClose: () => {
+        setConfirmationModal({ ...confirmationModal, isOpen: false });
+      }
+    });
   };
 
   const handleDeleteClick = (courseId) => {
@@ -334,25 +423,25 @@ function CourseManager({
         {/* ========================================
              COURSE COUNT DISPLAY
              ======================================== */}
-        <div className="ml-auto flex items-center gap-4">
-          <span className="bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-lg font-bold">
-            {courses.filter((course) => course.isActive !== false).length}{" "}
-            Course
-            {courses.filter((course) => course.isActive !== false).length !== 1
-              ? "s"
-              : ""}
-          </span>
-        </div>
+          <div className="ml-auto flex items-center gap-4">
+            <span className="bg-gradient-to-r from-[#8168C5] to-[#3E325F] text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-lg font-bold">
+             {courses.filter((course) => course.isActive !== false && course.isCompleted !== true).length}{" "}
+             Active Course
+             {courses.filter((course) => course.isActive !== false && course.isCompleted !== true).length !== 1
+               ? "s"
+               : ""}
+            </span>
+          </div>
       </div>
 
       {/* ========================================
           ACTIVE COURSES GRID
           ======================================== */}
       {showCourses && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8 relative z-10">
-          {courses
-            .filter((course) => course.isActive !== false)
-            .map((course) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8 relative z-10">
+            {courses
+             .filter((course) => course.isActive !== false && course.isCompleted !== true)
+              .map((course) => {
               // Get course color scheme using stored colorIndex or fallback to generated
               const colorScheme = getCourseColorScheme(
                 course.name,
@@ -505,6 +594,55 @@ function CourseManager({
                             />
                           </svg>
                         </button>
+
+                        {/* Mark as Complete/Incomplete Button */}
+                        {course.isCompleted ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkIncomplete(course.id);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Mark as Incomplete"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkComplete(course.id);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Mark as Complete"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        )}
 
                         <button
                           onClick={(e) => {
@@ -764,6 +902,267 @@ function CourseManager({
               </h3>
               <p className="text-orange-600">
                 Archive courses to see them here.
+              </p>
+            </div>
+          ))}
+      </div>
+
+      {/* ========================================
+          COMPLETED COURSES SECTION
+          ======================================== */}
+      <div className="mb-8 relative z-10">
+        <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex items-center gap-3 hover:bg-white/10 rounded-xl p-2 transition-all duration-300"
+          >
+            <div
+              className={`w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
+                showCompleted ? "rotate-0" : "-rotate-90"
+              }`}
+            >
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-green-700 uppercase tracking-wider">
+              COMPLETED COURSES
+            </h3>
+          </button>
+          <div className="ml-auto flex items-center">
+            <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-md font-bold whitespace-nowrap">
+              {completedCourses.length} Completed
+            </span>
+          </div>
+        </div>
+
+        {showCompleted &&
+          (completedCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {completedCourses.map((course) => {
+                // Get course color scheme using stored colorIndex or fallback to generated
+                const colorScheme = getCourseColorScheme(
+                  course.name,
+                  course.colorIndex || 0
+                );
+                const color = colorScheme.primary;
+
+                // Use pre-calculated progress and grade data from MainDashboard
+                const courseGrade = course.currentGrade || "Ongoing";
+                const progress = course.progress || 0;
+                const hasGrades = course.hasGrades || false;
+                const isOngoing = !hasGrades;
+
+                return (
+                  <div
+                    key={`completed-${course.id}`}
+                    className="bg-green-50 rounded-2xl shadow-lg border border-green-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative"
+                    onClick={() => handleCourseSelection(course)}
+                  >
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                    ></div>
+
+                    <div
+                      className={`absolute inset-0 rounded-2xl border-2 border-green-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                    ></div>
+
+                    <div className="p-4 sm:p-6 relative z-10">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div
+                            className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-xl overflow-hidden group-hover:shadow-2xl transition-all duration-500 flex-shrink-0 group-hover:scale-110`}
+                          >
+                            <img
+                              src="/src/drawables/logo.png"
+                              alt="Course Logo"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h1 className="text-xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-green-700 transition-colors duration-300">
+                              {course.courseCode ||
+                                course.name.substring(0, 6).toUpperCase()}
+                            </h1>
+                            <h3 className="text-base font-semibold text-gray-700 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors duration-300">
+                              {course.name}
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="text-right flex-shrink-0">
+                          <span className="px-4 py-2 rounded-full text-sm font-bold shadow-xl border border-white/20 bg-gradient-to-r from-green-500 to-green-600 text-white">
+                            COMPLETED
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 mr-4">
+                          <div className="flex justify-between items-center mb-3">
+                            <span
+                              className={`text-sm font-bold ${colorScheme.accent} uppercase tracking-wide`}
+                            >
+                              Progress
+                            </span>
+                            <span className="text-sm font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">
+                              {isNaN(progress) || !isFinite(progress)
+                                ? "0%"
+                                : `${Math.round(progress)}%`}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner border border-gray-300/50">
+                            <div
+                              className={`h-3 rounded-full transition-all duration-700 shadow-sm ${
+                                isOngoing && progress === 0
+                                  ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                                  : `bg-gradient-to-r ${colorScheme.progressGradient}`
+                              }`}
+                              style={{
+                                width: `${
+                                  isNaN(progress) || !isFinite(progress)
+                                    ? 0
+                                    : progress
+                                }%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCourse(course);
+                              setShowAddCourse(true);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Edit Course"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+
+                          {/* Mark as Incomplete Button for Completed Courses */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkIncomplete(course.id);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Mark as Incomplete"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArchiveClick(course.id);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Archive Course"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                              />
+                            </svg>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(course.id);
+                            }}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            title="Delete Course"
+                          >
+                            <svg
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-green-600">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-green-700 mb-2">
+                No Completed Courses
+              </h3>
+              <p className="text-green-600">
+                Mark courses as complete to see them here.
               </p>
             </div>
           ))}

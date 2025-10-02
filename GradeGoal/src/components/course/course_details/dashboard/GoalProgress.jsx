@@ -61,9 +61,10 @@ function GoalProgress({
       // Convert target grade to GPA for proper comparison
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
+      const isCourseCompleted = course?.isCompleted === true;
       
       
-      if (probability && currentGPA >= targetGPA) {
+      if (probability && isCourseCompleted && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
@@ -91,9 +92,10 @@ function GoalProgress({
       // Convert target grade to GPA for proper comparison
       const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
       const targetGPA = convertToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
+      const isCourseCompleted = course?.isCompleted === true;
       
       
-      if (probability && currentGPA >= targetGPA) {
+      if (probability && isCourseCompleted && currentGPA >= targetGPA) {
         const correctedProbability = {
           ...probability,
           probability: 100 // Force 100% when goal is achieved
@@ -178,7 +180,7 @@ function GoalProgress({
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-1">Current Grade</div>
               <div className="text-2xl font-bold text-gray-900">
-                {currentGrade.toFixed(1)}%
+                {currentGrade.toFixed(1)}
               </div>
             </div>
           </div>
@@ -219,11 +221,14 @@ function GoalProgress({
     courseProgress = totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
   }
   
+  // Check if course is manually marked as completed
+  const isCourseCompleted = course?.isCompleted === true;
+  
   // Calculate progress percentage based on actual course progress
   let progressPercentage = courseProgress;
   
-  // Only show 100% if course is actually 100% complete AND goal is achieved
-  if (courseProgress >= 100 && currentGPA >= targetGPA) {
+  // Show 100% if GPA target is met or exceeded, regardless of completion status
+  if (currentGPA >= targetGPA) {
     progressPercentage = 100;
   } else {
     progressPercentage = courseProgress;
@@ -251,11 +256,12 @@ function GoalProgress({
   };
 
   const getStatusText = () => {
-    // Check if course is completed (100% progress)
-    const isCourseCompleted = courseProgress >= 100;
-    
-    if (currentGPA >= targetGPA) {
+    // Goal is only achieved if course is completed AND GPA target is met
+    if (isCourseCompleted && currentGPA >= targetGPA) {
       return "Goal Achieved! 🎉";
+    } else if (currentGPA >= targetGPA) {
+      // GPA target is met but course not completed yet
+      return "Achievable! 🎯";
     } else if (isCourseCompleted) {
       // Course is completed but goal not reached
       const gap = (targetGPA - currentGPA).toFixed(2);
@@ -460,7 +466,7 @@ function GoalProgress({
           </div>
         )}
         
-        {currentGPA >= targetGPA && !isCompact && (
+        {isCourseCompleted && currentGPA >= targetGPA && !isCompact && (
           <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 rounded-2xl border border-green-200 p-6 text-center shadow-inner">
             <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-2xl">🎉</span>
@@ -478,7 +484,7 @@ function GoalProgress({
         )}
         
         {/* Compact versions of success messages */}
-        {currentGPA >= targetGPA && isCompact && (
+        {isCourseCompleted && currentGPA >= targetGPA && isCompact && (
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 p-3 text-center shadow-inner">
             <div className="text-sm font-bold text-green-800 mb-1">
               🎉 Goal Achieved!

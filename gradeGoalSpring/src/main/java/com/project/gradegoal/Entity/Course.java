@@ -65,6 +65,9 @@ public class Course {
     @Column(name = "handle_missing")
     private String handleMissing = "exclude";
 
+    @Column(name = "is_completed")
+    private Boolean isCompleted = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -161,6 +164,9 @@ public class Course {
 
     public String getHandleMissing() { return handleMissing; }
     public void setHandleMissing(String handleMissing) { this.handleMissing = handleMissing; }
+
+    public Boolean getIsCompleted() { return isCompleted; }
+    public void setIsCompleted(Boolean isCompleted) { this.isCompleted = isCompleted; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

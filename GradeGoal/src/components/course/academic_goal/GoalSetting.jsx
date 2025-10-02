@@ -175,7 +175,7 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
       // Prepare goal data with proper validation
       const goalData = {
         userId: parseInt(user.userId),
-        goalTitle: formData.goalType, // Backend expects 'goalTitle' not 'goalType'
+        goalTitle: formData.goalTitle, // Use the actual goal title from the form
         goalType: formData.goalType,
         targetValue: parseFloat(formData.targetValue),
         targetDate: formData.targetDate || null,

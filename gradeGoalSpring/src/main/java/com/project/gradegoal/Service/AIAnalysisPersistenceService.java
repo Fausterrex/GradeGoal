@@ -168,4 +168,29 @@ public class AIAnalysisPersistenceService {
             return false;
         }
     }
+    
+    /**
+     * Check if user has any valid analysis (for semester-level analysis)
+     */
+    public boolean hasValidAnalysisForUser(Long userId) {
+        try {
+            return aiAnalysisRepository.existsActiveAnalysisForUser(userId, LocalDateTime.now());
+        } catch (Exception e) {
+            log.error("Error checking AI analysis validity for user {}", userId, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Get the latest AI analysis for a user (for semester-level analysis)
+     */
+    public Optional<AIAnalysis> getLatestAIAnalysisForUser(Long userId) {
+        try {
+            List<AIAnalysis> analyses = aiAnalysisRepository.findActiveAnalysisByUser(userId, LocalDateTime.now());
+            return analyses.isEmpty() ? Optional.empty() : Optional.of(analyses.get(0));
+        } catch (Exception e) {
+            log.error("Error getting latest AI analysis for user {}", userId, e);
+            return Optional.empty();
+        }
+    }
 }

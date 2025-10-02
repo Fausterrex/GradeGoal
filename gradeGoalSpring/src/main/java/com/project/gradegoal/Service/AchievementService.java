@@ -320,9 +320,20 @@ public class AchievementService {
     }
     
     private boolean checkTotalLoginDays(Long userId, int requiredDays) {
-        // This would need login tracking - simplified for now
-        long activityCount = userActivityLogRepository.countByUserId(userId);
-        return activityCount >= requiredDays;
+        // Count distinct days where user had login activity
+        // For now, we'll use a more conservative approach - count days since account creation
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) return false;
+        
+        User user = userOpt.get();
+        if (user.getCreatedAt() == null) return false;
+        
+        // Calculate days since account creation
+        long daysSinceCreation = ChronoUnit.DAYS.between(user.getCreatedAt().toLocalDate(), LocalDate.now());
+        
+        // For Daily Dedication, user needs to have been active for at least the required days
+        // This is a more realistic check than counting all activities
+        return daysSinceCreation >= requiredDays;
     }
     
     private boolean checkYearsActive(Long userId, int requiredYears) {
@@ -368,10 +379,20 @@ public class AchievementService {
         // Award points to user and check for level up
         UserProgressService.LevelUpResult levelUpResult = userProgressService.awardPointsWithLevelUpCheck(userId, achievement.getPointsValue());
         
-        // If user leveled up, check for additional achievements
+        // If user leveled up, check for additional achievements and send level-up notification
         if (levelUpResult.isLeveledUp()) {
+            Integer newLevel = levelUpResult.getProgress().getCurrentLevel();
             logger.info("User {} leveled up to level {} after earning achievement '{}'", 
-                userId, levelUpResult.getProgress().getCurrentLevel(), achievement.getAchievementName());
+                userId, newLevel, achievement.getAchievementName());
+            
+            // Send level-up notification
+            try {
+                String rankTitle = userProgressService.getUserRankTitle(newLevel);
+                notificationService.sendLevelUpNotification(userId, newLevel, rankTitle);
+                logger.info("Level-up notification sent for user {} to level {}", userId, newLevel);
+            } catch (Exception e) {
+                logger.error("Error sending level-up notification for user {}", userId, e);
+            }
             
             // Check for level-based achievements
             try {

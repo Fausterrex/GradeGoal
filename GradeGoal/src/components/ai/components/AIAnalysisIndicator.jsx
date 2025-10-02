@@ -191,29 +191,25 @@ const AIAnalysisIndicator = ({
   let hasEnoughAssessments = false;
   
   if (targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA') {
-    // For cumulative GPA, count unique semesters with course data
-    // Get all courses that have assessments
-    const coursesWithAssessments = Object.keys(grades).filter(categoryId => {
-      const categoryGrades = grades[categoryId] || [];
-      return categoryGrades.some(grade => 
-        grade.score !== null && grade.score !== undefined && grade.score > 0
-      );
-    });
-    
-    // Find unique semesters from courses with assessments
+    // For cumulative GPA, count unique semesters from all available courses
     const uniqueSemesters = new Set();
-    coursesWithAssessments.forEach(categoryId => {
-      // Find the course that corresponds to this category
-      // For cumulative GPA, we need to get course data from the courses prop
-      // The categoryId corresponds to courseId in the courses array
-      const course = courses.find(c => c.id === parseInt(categoryId) || c.courseId === parseInt(categoryId));
-      if (course && course.semester) {
+    courses.forEach(course => {
+      if (course.semester && course.academicYear) {
         uniqueSemesters.add(course.semester);
       }
     });
     
     totalAssessments = uniqueSemesters.size;
     hasEnoughAssessments = uniqueSemesters.size >= 3; // Need at least 3 semesters with data
+  } else if (targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA') {
+    // For semester GPA, count courses for the current semester
+    const semesterCourses = courses.filter(course => 
+      course.semester === targetGrade.semester && 
+      course.academicYear === targetGrade.academicYear
+    );
+    
+    totalAssessments = semesterCourses.length;
+    hasEnoughAssessments = semesterCourses.length >= 2; // Need at least 2 courses
   } else {
     // For course goals, count individual assessments
     totalAssessments = categories.reduce((count, cat) => {
@@ -258,6 +254,8 @@ const AIAnalysisIndicator = ({
                    : !hasEnoughAssessments 
                      ? targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA'
                        ? `You need at least 3 semesters with course data for cumulative GPA analysis. Currently have ${totalAssessments} semester${totalAssessments !== 1 ? 's' : ''} with data.`
+                       : targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA'
+                       ? `You need at least 2 courses for semester GPA analysis. Currently have ${totalAssessments} course${totalAssessments !== 1 ? 's' : ''}.`
                        : `You need at least 2 assessments to analyze student performance. Currently have ${totalAssessments} assessment${totalAssessments !== 1 ? 's' : ''}.`
                      : hasExistingAnalysis 
                        ? 'Update your AI analysis with latest course data and performance insights.'

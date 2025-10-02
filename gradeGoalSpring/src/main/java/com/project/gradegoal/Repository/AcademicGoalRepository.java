@@ -45,6 +45,8 @@ public interface AcademicGoalRepository extends JpaRepository<AcademicGoal, Long
     @Query("SELECT g FROM AcademicGoal g WHERE g.targetDate < :currentDate AND g.isAchieved = false")
     List<AcademicGoal> findOverdueGoals(@Param("currentDate") LocalDate currentDate);
 
+    int deleteByCourseId(Long courseId);
+
     @Query("SELECT g FROM AcademicGoal g WHERE g.targetDate BETWEEN :currentDate AND :futureDate AND g.isAchieved = false")
     List<AcademicGoal> findUpcomingGoals(@Param("currentDate") LocalDate currentDate, @Param("futureDate") LocalDate futureDate);
 
