@@ -87,7 +87,6 @@ const GoalCard = ({
         
         // Skip AI analysis check only for cumulative GPA goals (they don't have courseId)
         if (goal.goalType === 'CUMMULATIVE_GPA') {
-          console.log('🎯 [GoalCard] Skipping AI analysis check for cumulative GPA goal');
           setHasExistingAnalysis(false);
           return;
         }
@@ -108,34 +107,23 @@ const GoalCard = ({
         const existsResponse = await checkAIAnalysisExists(userProfile.userId, analysisCourseId);
         const exists = existsResponse.success && existsResponse.exists;
         
-        console.log('🎯 [GoalCard] Checking existing AI analysis:', {
-          goalType: goal.goalType,
-          courseId: goal.courseId,
-          analysisCourseId,
-          exists
-        });
         
         setHasExistingAnalysis(exists);
         
         // If analysis exists, load the analysis data first, then get the achievement probability
         if (exists) {
-          console.log('🎯 [GoalCard] Loading existing AI analysis data...');
           try {
             // Load the analysis data into memory first
             const analysisData = await loadAIAnalysisForCourse(userProfile.userId, analysisCourseId);
             if (analysisData) {
-              console.log('🎯 [GoalCard] Analysis data loaded, getting achievement probability...');
               
               // Get probability directly from the loaded analysis data
               const probability = getAchievementProbabilityFromData(analysisData);
               if (probability) {
-                console.log('🎯 [GoalCard] Loaded existing AI achievement probability:', probability);
                 setAiAchievementProbability(probability);
               } else {
-                console.log('🎯 [GoalCard] No probability data found in analysis');
               }
             } else {
-              console.log('🎯 [GoalCard] Failed to load analysis data');
             }
           } catch (error) {
             console.error('🎯 [GoalCard] Error loading analysis data:', error);

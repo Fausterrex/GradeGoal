@@ -80,6 +80,7 @@ function Login() {
       const userProfile = await getUserProfile(firebaseUser.email);
 
       const userData = {
+        userId: userProfile?.userId || null, // Include userId
         email: firebaseUser.email,
         displayName: userDataFromDB?.displayName || firebaseUser.email,
         role: userProfile?.role || 'USER',
@@ -143,9 +144,11 @@ function Login() {
       try {
         const userProfile = await getUserProfile(firebaseUser.email);
         userData.role = userProfile?.role || 'USER';
+        userData.userId = userProfile?.userId || null; // Include userId
       } catch (error) {
         // Default to USER role if profile fetch fails
         userData.role = 'USER';
+        userData.userId = null;
       }
       
       updateCurrentUserWithData(userData);
@@ -193,9 +196,11 @@ function Login() {
       try {
         const userProfile = await getUserProfile(firebaseUser.email);
         userData.role = userProfile?.role || 'USER';
+        userData.userId = userProfile?.userId || null; // Include userId
       } catch (error) {
         // Default to USER role if profile fetch fails
         userData.role = 'USER';
+        userData.userId = null;
       }
       
       updateCurrentUserWithData(userData);

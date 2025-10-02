@@ -49,11 +49,13 @@ const EventComponent = ({ event }) => {
 };
 
 const MyCalendar = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [events, setEvents] = useState([]);
   const [view, setView] = useState("month"); 
   const [date, setDate] = useState(new Date());
-  const [showCustomEventModal, setShowCustomEventModal] = useState(false); 
+  const [showCustomEventModal, setShowCustomEventModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const MyToolbar = ({ label, onNavigate, onView }) => (
     <div className="h-32 flex justify-between items-center p-6 bg-gradient-to-r from-[#667eea] via-[#764ba2] to-[#667eea] text-white rounded-t-2xl shadow-2xl relative overflow-hidden">
       {/* Background Pattern */}
@@ -124,10 +126,13 @@ const MyCalendar = () => {
     </div>
   );
   useEffect(() => {
-    if (!currentUser?.userId) {
-      console.log("No user ID available, skipping calendar data fetch");
+    // Don't fetch if auth is still loading or no user
+    if (loading || !currentUser?.userId) {
+      setEvents([]); // Clear previous data
       return;
     }
+
+    setIsLoading(true);
 
     // Fetch both assessments and custom events
     Promise.all([
@@ -135,7 +140,6 @@ const MyCalendar = () => {
       axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`)
     ])
     .then(([assessmentsRes, customEventsRes]) => {
-      console.log("Raw API responses:", { assessments: assessmentsRes.data, customEvents: customEventsRes.data }); // Debug log
       
       // Format assessments for calendar with course information
       const assessmentEvents = assessmentsRes.data.map((item) => {
@@ -155,8 +159,6 @@ const MyCalendar = () => {
             status = "UPCOMING";
           }
         }
-        
-        console.log(`Assessment: ${item.assessmentName}, Due: ${item.dueDate}, Days diff: ${diffDays}, Status: ${status}`); // Debug log
 
         return {
           id: item.assessmentId,
@@ -191,14 +193,16 @@ const MyCalendar = () => {
       
       // Combine all events
       const allEvents = [...assessmentEvents, ...customEvents];
-      console.log("Formatted events:", allEvents); // Debug log
       setEvents(allEvents);
     })
     .catch((err) => {
-      console.error("Failed to fetch calendar data:", err);
+      console.error("Calendar: Failed to fetch calendar data:", err);
       setEvents([]);
+    })
+    .finally(() => {
+      setIsLoading(false);
     });
-  }, [currentUser?.userId]);
+  }, [currentUser?.userId, loading]);
 
   const handleCustomEventAdded = (newEvent) => {
     // Add the new custom event to the events list
@@ -273,6 +277,39 @@ const MyCalendar = () => {
     };
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="relative w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+        <MyToolbar className="sticky"
+          label={moment(date).format("MMMM DD — YYYY")}
+          onNavigate={() => {}} // Disabled during loading
+          onView={() => {}} // Disabled during loading
+        />
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading user data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no user state
+  if (!currentUser?.userId) {
+    return (
+      <div className="relative w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+        <MyToolbar className="sticky"
+          label={moment(date).format("MMMM DD — YYYY")}
+          onNavigate={() => {}} // Disabled when no user
+          onView={() => {}} // Disabled when no user
+        />
+        <div className="flex items-center justify-center py-16">
+          <p className="text-gray-500">Please log in to view your calendar.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
       {/* Fixed Toolbar */}
@@ -285,6 +322,14 @@ const MyCalendar = () => {
         }}
         onView={(newView) => setView(newView)}
       />
+
+      {/* Loading overlay for data fetching */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading calendar data...</span>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="flex justify-around my-5 p-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-2xl text-white shadow-2xl">

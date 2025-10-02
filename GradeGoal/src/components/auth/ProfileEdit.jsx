@@ -130,6 +130,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
 
       // Update the current user context
       updateCurrentUserWithData({
+        userId: currentUser?.userId, // Preserve userId
         firstName: userData.firstName,
         lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,

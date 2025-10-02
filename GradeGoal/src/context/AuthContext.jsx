@@ -19,7 +19,8 @@ const AuthContext = React.createContext();
 
 // Hook to access authentication context
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  return context;
 }
 
 // Authentication provider component that wraps the entire application
@@ -51,7 +52,10 @@ export function AuthProvider({ children }) {
       const updatedUser = {
         ...firebaseUser,
         ...userData,
+        // Preserve userId if it exists in current user but not in userData
+        userId: userData.userId || currentUser?.userId || null,
       };
+
 
       setCurrentUser(updatedUser);
       // Set user role if provided
@@ -64,7 +68,10 @@ export function AuthProvider({ children }) {
       const updatedUser = {
         ...currentUser,
         ...userData,
+        // Preserve userId if it exists in current user but not in userData
+        userId: userData.userId || currentUser?.userId || null,
       };
+
 
       setCurrentUser(updatedUser);
       // Set user role if provided
@@ -79,9 +86,18 @@ export function AuthProvider({ children }) {
 
   // Refreshes the current user from Firebase
   function refreshCurrentUser() {
-    return auth.currentUser
-      ? Promise.resolve(auth.currentUser)
-      : Promise.reject("No user");
+    if (auth.currentUser) {
+      const refreshedUser = {
+        ...auth.currentUser,
+        // Preserve userId from current user
+        userId: currentUser?.userId || null,
+      };
+      
+      
+      setCurrentUser(refreshedUser);
+      return Promise.resolve(refreshedUser);
+    }
+    return Promise.reject("No user");
   }
 
   // Signs out the current user
@@ -105,6 +121,7 @@ export function AuthProvider({ children }) {
         setLoading(false);
         return;
       }
+
 
       try {
         // Fetch user profile from database to get firstName, lastName, and role
@@ -131,9 +148,16 @@ export function AuthProvider({ children }) {
         localStorage.setItem('userRole', role);
         
       } catch (error) {
-        console.error('Failed to fetch user profile:', error);
+        console.error('AuthContext: Failed to fetch user profile:', error);
         // Fallback to Firebase user data only
-        setCurrentUser(user);
+        const fallbackUser = {
+          ...user,
+          userId: null,
+          firstName: '',
+          lastName: '',
+          role: 'USER'
+        };
+        setCurrentUser(fallbackUser);
         setUserRole('USER');
         localStorage.setItem('userRole', 'USER');
       }

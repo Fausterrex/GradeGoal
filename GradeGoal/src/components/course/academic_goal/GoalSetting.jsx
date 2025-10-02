@@ -125,15 +125,9 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
                 console.error('❌ Failed to update goal in database:', error);
               }
             } else if (isAchieved && goal.isAchieved) {
-              console.log('✅ Goal already achieved and marked in database:', goal.goalTitle);
             } else {
-              console.log('⏳ Goal not yet achieved:', goal.goalTitle);
             }
           } else {
-            console.log('⚠️ Goal missing required data:', {
-              hasCurrentProgress: !!goal.currentProgress,
-              hasTargetValue: !!goal.targetValue
-            });
           }
         });
     }

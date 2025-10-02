@@ -3,24 +3,65 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
 const Report = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.userId) {
-      axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
-        .then((res) => {
-          setCourses(res.data.courses || []);
-        })
-        .catch((err) => console.error("Fetch error:", err));
+    // Don't fetch if auth is still loading or no user
+    if (loading || !currentUser?.userId) {
+      setCourses([]); // Clear previous data
+      return;
     }
-  }, [currentUser?.userId]);
+
+    setIsLoading(true);
+    
+    axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
+      .then((res) => {
+        setCourses(res.data.courses || []);
+      })
+      .catch((err) => {
+        console.error("Report: Fetch error:", err);
+        setCourses([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [currentUser?.userId, loading]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading user data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no user state
+  if (!currentUser?.userId) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
+        <p className="text-gray-500">Please log in to view your reports.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
 
-      {courses.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading courses...</span>
+        </div>
+      ) : courses.length === 0 ? (
         <p className="text-gray-500">No courses found.</p>
       ) : (
         courses.map((course, ci) => (

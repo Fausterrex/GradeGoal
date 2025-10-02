@@ -180,6 +180,7 @@ const UserSettings = () => {
 
         // Update current user context
         updateCurrentUserWithData({
+          userId: currentUser?.userId, // Preserve userId
           firstName: profileData.firstName,
           lastName: profileData.lastName,
           displayName: `${profileData.firstName} ${profileData.lastName}`.trim(),
