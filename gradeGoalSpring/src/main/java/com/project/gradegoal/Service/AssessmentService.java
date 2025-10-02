@@ -144,12 +144,41 @@ public class AssessmentService {
     }
     
     /**
-     * Get assessments by user ID
+     * Get assessments by user ID with course information
      * @param userId User's ID
-     * @return List of assessments for the specified user
+     * @return List of assessments for the specified user with course details
      */
     public List<Assessment> getAssessmentsByUserId(Long userId) {
-        return assessmentRepository.findByUserId(userId);
+        List<Assessment> assessments = assessmentRepository.findByUserId(userId);
+        
+        // Enrich assessments with course and category information
+        return assessments.stream()
+            .filter(assessment -> assessment.getDueDate() != null) // Only include assessments with due dates
+            .map(assessment -> {
+                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
+                if (categoryOpt.isPresent()) {
+                    AssessmentCategory category = categoryOpt.get();
+                    Optional<Course> courseOpt = courseRepository.findById(category.getCourseId());
+                    if (courseOpt.isPresent()) {
+                        Course course = courseOpt.get();
+                        assessment.setCourseName(course.getCourseName());
+                        assessment.setCategoryName(category.getCategoryName());
+                    }
+                }
+                
+                // Check if assessment has scores and mark as COMPLETED
+                if (assessment.getGrades() != null && !assessment.getGrades().isEmpty()) {
+                    boolean hasActualScores = assessment.getGrades().stream()
+                        .anyMatch(grade -> grade.getScore() != null && grade.getScore().compareTo(BigDecimal.ZERO) > 0);
+                    
+                    if (hasActualScores) {
+                        assessment.setStatus(Assessment.AssessmentStatus.COMPLETED);
+                    }
+                }
+                
+                return assessment;
+            })
+            .collect(Collectors.toList());
     }
     
     /**

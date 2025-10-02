@@ -445,4 +445,184 @@ public class EmailNotificationService {
         
         return content.toString();
     }
+
+    /**
+     * Send custom event notification email
+     */
+    public void sendCustomEventNotification(String userEmail, String eventTitle, String eventDescription, java.time.LocalDateTime eventDate, String action) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(fromEmail);
+            helper.setTo(userEmail);
+            helper.setSubject("Custom Event " + action.substring(0, 1).toUpperCase() + action.substring(1) + " - " + eventTitle);
+            helper.setText(buildCustomEventEmailContent(eventTitle, eventDescription, eventDate, action), true);
+            
+            mailSender.send(message);
+            logger.info("Custom event notification email sent successfully to: {}", userEmail);
+            
+        } catch (MessagingException e) {
+            logger.error("Failed to send custom event notification email to: {}", userEmail, e);
+            throw new RuntimeException("Failed to send custom event notification email", e);
+        }
+    }
+
+    /**
+     * Build custom event email content
+     */
+    private String buildCustomEventEmailContent(String eventTitle, String eventDescription, java.time.LocalDateTime eventDate, String action) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy 'at' h:mm a");
+        String formattedDate = eventDate.format(formatter);
+        String capitalizedAction = action.substring(0, 1).toUpperCase() + action.substring(1);
+        
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Custom Event Notification</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
+                    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+                    .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px; text-align: center; }
+                    .content { padding: 30px; }
+                    .event-card { background: linear-gradient(135deg, #9c27b0 0%%, #673ab7 100%%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; }
+                    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; color: #64748b; font-size: 14px; }
+                    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🎯 GradeGoal</h1>
+                        <p>Custom Event Notification</p>
+                    </div>
+                    <div class="content">
+                        <h2>Your Custom Event Has Been %s</h2>
+                        <div class="event-card">
+                            <h3>📅 %s</h3>
+                            <p><strong>Description:</strong> %s</p>
+                            <p><strong>Event Date:</strong> %s</p>
+                        </div>
+                        <p>Your custom event has been successfully %s and is now visible in your calendar.</p>
+                        <p>You'll receive reminders based on your notification preferences.</p>
+                        <div style="text-align: center;">
+                            <a href="http://localhost:3000/calendar" class="button">View Calendar</a>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>Visit <a href="http://localhost:3000">GradeGoal</a> to manage your events and notifications.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, capitalizedAction, eventTitle, eventDescription, formattedDate, action);
+    }
+
+    /**
+     * Send assessment reminder notification email
+     */
+    public void sendAssessmentReminderNotification(String userEmail, List<Assessment> reminderAssessments) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(fromEmail);
+            helper.setTo(userEmail);
+            helper.setSubject("📚 Study Reminder - " + reminderAssessments.size() + " Assessment(s) in 2 Days");
+            helper.setText(buildAssessmentReminderEmailContent(reminderAssessments), true);
+            
+            mailSender.send(message);
+            logger.info("Assessment reminder notification email sent successfully to: {}", userEmail);
+            
+        } catch (MessagingException e) {
+            logger.error("Failed to send assessment reminder notification email to: {}", userEmail, e);
+            throw new RuntimeException("Failed to send assessment reminder notification email", e);
+        }
+    }
+
+    /**
+     * Build assessment reminder email content
+     */
+    private String buildAssessmentReminderEmailContent(List<Assessment> reminderAssessments) {
+        StringBuilder content = new StringBuilder();
+        content.append("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Study Reminder</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
+                    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+                    .content { padding: 30px; }
+                    .reminder-card { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; }
+                    .assessment-item { background-color: #f1f5f9; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+                    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; color: #64748b; font-size: 14px; }
+                    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>📚 GradeGoal</h1>
+                        <p>Study Reminder - 2 Days Ahead</p>
+                    </div>
+                    <div class="content">
+                        <div class="reminder-card">
+                            <h2>⏰ Time to Review!</h2>
+                            <p>You have <strong>" + reminderAssessments.size() + " assessment(s)</strong> coming up in 2 days. 
+                            This is the perfect time to review your materials and prepare for success!</p>
+                        </div>
+                        
+                        <h3>📋 Upcoming Assessments:</h3>
+            """);
+        
+        for (Assessment assessment : reminderAssessments) {
+            content.append(String.format("""
+                        <div class="assessment-item">
+                            <h4>%s</h4>
+                            <p><strong>Course:</strong> %s</p>
+                            <p><strong>Due Date:</strong> %s</p>
+                            <p><strong>Max Points:</strong> %s</p>
+                        </div>
+                """, 
+                assessment.getAssessmentName(),
+                assessment.getCourseName(),
+                assessment.getDueDate(),
+                assessment.getMaxPoints()
+            ));
+        }
+        
+        content.append("""
+                        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h4>💡 Study Tips:</h4>
+                            <ul>
+                                <li>Review your course materials and notes</li>
+                                <li>Practice with sample questions if available</li>
+                                <li>Create a study schedule for the next 2 days</li>
+                                <li>Get a good night's sleep before the assessment</li>
+                                <li>Stay hydrated and eat well</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <a href="http://localhost:3000/calendar" class="button">View Calendar</a>
+                            <a href="http://localhost:3000/dashboard" class="button">Go to Dashboard</a>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>Visit <a href="http://localhost:3000">GradeGoal</a> to manage your assessments and track your progress.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """);
+        
+        return content.toString();
+    }
 }

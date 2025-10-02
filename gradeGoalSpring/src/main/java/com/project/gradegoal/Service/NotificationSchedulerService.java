@@ -1,7 +1,9 @@
 package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.Assessment;
+import com.project.gradegoal.Entity.CustomEvent;
 import com.project.gradegoal.Entity.User;
+import com.project.gradegoal.Repository.CustomEventRepository;
 import com.project.gradegoal.Repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +40,9 @@ public class NotificationSchedulerService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private CustomEventRepository customEventRepository;
+    
     @Value("${notification.overdue.enabled:true}")
     private boolean overdueNotificationsEnabled;
     
@@ -45,6 +51,9 @@ public class NotificationSchedulerService {
     
     @Value("${notification.upcoming.days.before:3}")
     private int upcomingDaysBefore;
+    
+    @Value("${notification.reminder.days.before:2}")
+    private int reminderDaysBefore;
     
     /**
      * Scheduled method to check and send notifications daily at 9 AM
@@ -125,6 +134,23 @@ public class NotificationSchedulerService {
                     if (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()) {
                         sendUpcomingPushNotification(user.getEmail(), upcomingAssessments);
                     }
+                }
+            }
+            
+            // Check for 2-day prior assessment reminders
+            List<Assessment> reminderAssessments = getReminderAssessments(userAssessments);
+            if (!reminderAssessments.isEmpty()) {
+                logger.info("Sending 2-day reminder notification to: {} ({} assessments)", 
+                    user.getEmail(), reminderAssessments.size());
+                
+                // Send email notification if enabled
+                if (user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled()) {
+                    emailNotificationService.sendAssessmentReminderNotification(user.getEmail(), reminderAssessments);
+                }
+                
+                // Send push notification if enabled
+                if (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()) {
+                    sendAssessmentReminderPushNotification(user.getEmail(), reminderAssessments);
                 }
             }
             
@@ -223,6 +249,134 @@ public class NotificationSchedulerService {
             pushNotificationService.sendNotificationToUser(userEmail, title, body, dataBuilder.toString());
         } catch (Exception e) {
             logger.error("Error sending upcoming push notification to user: {}", userEmail, e);
+        }
+    }
+    
+    /**
+     * Get assessments that need 2-day reminders
+     * @param assessments List of all assessments
+     * @return List of assessments due in 2 days
+     */
+    private List<Assessment> getReminderAssessments(List<Assessment> assessments) {
+        LocalDate today = LocalDate.now();
+        LocalDate reminderDate = today.plusDays(reminderDaysBefore);
+        
+        return assessments.stream()
+            .filter(assessment -> assessment.getDueDate() != null)
+            .filter(assessment -> assessment.getDueDate().equals(reminderDate))
+            .filter(assessment -> assessment.getStatus() != Assessment.AssessmentStatus.COMPLETED)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Send assessment reminder push notification
+     * @param userEmail User's email address
+     * @param reminderAssessments List of assessments needing reminders
+     */
+    private void sendAssessmentReminderPushNotification(String userEmail, List<Assessment> reminderAssessments) {
+        try {
+            String title = "📚 Study Reminder - GradeGoal";
+            String body = String.format("You have %d assessment(s) in 2 days - time to review!", reminderAssessments.size());
+            
+            StringBuilder dataBuilder = new StringBuilder();
+            dataBuilder.append("{\"type\":\"assessment_reminder\",\"assessments\":[");
+            for (int i = 0; i < reminderAssessments.size(); i++) {
+                Assessment assessment = reminderAssessments.get(i);
+                dataBuilder.append(String.format("{\"name\":\"%s\",\"course\":\"%s\",\"dueDate\":\"%s\"}", 
+                    assessment.getAssessmentName(), 
+                    assessment.getCourseName(), 
+                    assessment.getDueDate()));
+                if (i < reminderAssessments.size() - 1) {
+                    dataBuilder.append(",");
+                }
+            }
+            dataBuilder.append("]}");
+            
+            pushNotificationService.sendNotificationToUser(userEmail, title, body, dataBuilder.toString());
+        } catch (Exception e) {
+            logger.error("Error sending assessment reminder push notification to user: {}", userEmail, e);
+        }
+    }
+    
+    /**
+     * Scheduled method to check for custom event reminders
+     * Runs every minute to check for upcoming custom events
+     */
+    @Scheduled(fixedRate = 60000) // Run every minute (60,000 milliseconds)
+    public void checkCustomEventReminders() {
+        logger.debug("Checking for custom event reminders...");
+        
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime checkUntil = now.plusMinutes(5); // Check events in the next 5 minutes
+            
+            // Get all custom events that need reminders
+            List<CustomEvent> upcomingEvents = customEventRepository.findUpcomingEventsForReminder(now, checkUntil);
+            
+            for (CustomEvent event : upcomingEvents) {
+                if (event.getReminderEnabled() && !event.getIsNotified()) {
+                    // Calculate minutes until event
+                    LocalDateTime eventTime = event.getEventStart();
+                    long minutesUntilEvent = java.time.Duration.between(now, eventTime).toMinutes();
+                    
+                    // Check if it's time to send reminder (based on reminderDays converted to minutes)
+                    int reminderMinutes = event.getReminderDays() * 24 * 60; // Convert days to minutes
+                    
+                    // For events today, use the reminderDays as minutes instead of days
+                    if (eventTime.toLocalDate().equals(now.toLocalDate())) {
+                        reminderMinutes = event.getReminderDays(); // Use as minutes for same-day events
+                    }
+                    
+                    if (minutesUntilEvent <= reminderMinutes && minutesUntilEvent >= 0) {
+                        sendCustomEventReminder(event);
+                        
+                        // Mark as notified to prevent duplicate notifications
+                        event.setIsNotified(true);
+                        customEventRepository.save(event);
+                        
+                        logger.info("Sent reminder for custom event: {} to user: {}", 
+                                   event.getEventTitle(), event.getUserId());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error checking custom event reminders", e);
+        }
+    }
+    
+    /**
+     * Send custom event reminder notifications
+     */
+    private void sendCustomEventReminder(CustomEvent event) {
+        try {
+            User user = userRepository.findById(event.getUserId()).orElse(null);
+            if (user == null) {
+                logger.warn("User not found for custom event reminder: {}", event.getUserId());
+                return;
+            }
+            
+            String title = "Event Reminder: " + event.getEventTitle();
+            String message = String.format("Your event '%s' is starting soon at %s. %s", 
+                                          event.getEventTitle(),
+                                          event.getEventStart().toLocalTime(),
+                                          event.getEventDescription() != null ? event.getEventDescription() : "");
+            
+            // Send email notification if enabled
+            if (user.getEmailNotificationsEnabled() && user.getEmail() != null && !user.getEmail().isEmpty()) {
+                emailNotificationService.sendCustomEventNotification(user.getEmail(), event.getEventTitle(), event.getEventDescription(), event.getEventStart(), "reminder");
+                logger.info("Sent custom event reminder email to: {}", user.getEmail());
+            }
+            
+            // Send push notification if enabled
+            if (user.getPushNotificationsEnabled()) {
+                String pushData = String.format("{\"type\":\"custom_event_reminder\",\"eventId\":%d,\"eventTitle\":\"%s\"}", 
+                                              event.getEventId(), event.getEventTitle());
+                pushNotificationService.sendNotificationToUser(user.getEmail(), title, message, pushData);
+                logger.info("Sent custom event reminder push notification to: {}", user.getEmail());
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error sending custom event reminder for event: {}", event.getEventId(), e);
         }
     }
     

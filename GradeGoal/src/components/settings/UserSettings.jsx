@@ -102,6 +102,9 @@ const UserSettings = () => {
 
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(null), 3000);
+      
+      // Reload user preferences to sync with database
+      await loadUserPreferences();
     } catch (error) {
       console.error('Failed to save preferences:', error);
       setError('Failed to save preferences. Please try again.');
@@ -159,6 +162,9 @@ const UserSettings = () => {
         emailNotificationsEnabled,
         pushNotificationsEnabled: pushNotificationsEnabled
       });
+
+      // Reload user preferences to sync with database
+      await loadUserPreferences();
 
            // Save profile changes if editing name or if profile picture changed
            const hasProfileChanges = isEditingProfile || 

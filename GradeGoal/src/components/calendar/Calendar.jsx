@@ -4,6 +4,7 @@ import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import CustomEventModal from "./CustomEventModal";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Minimal CSS overrides for react-big-calendar positioning
@@ -51,7 +52,8 @@ const MyCalendar = () => {
   const { currentUser } = useAuth();
   const [events, setEvents] = useState([]);
   const [view, setView] = useState("month"); 
-  const [date, setDate] = useState(new Date()); 
+  const [date, setDate] = useState(new Date());
+  const [showCustomEventModal, setShowCustomEventModal] = useState(false); 
   const MyToolbar = ({ label, onNavigate, onView }) => (
     <div className="h-32 flex justify-between items-center p-6 bg-gradient-to-r from-[#667eea] via-[#764ba2] to-[#667eea] text-white rounded-t-2xl shadow-2xl relative overflow-hidden">
       {/* Background Pattern */}
@@ -73,7 +75,10 @@ const MyCalendar = () => {
             <p className="text-white/80 text-sm font-medium">Track your assessments and deadlines</p>
           </div>
         </div>
-        <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 backdrop-blur-sm text-sm border border-white/20 hover:border-white/30 shadow-lg hover:shadow-xl">
+        <button 
+          onClick={() => setShowCustomEventModal(true)}
+          className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 backdrop-blur-sm text-sm border border-white/20 hover:border-white/30 shadow-lg hover:shadow-xl"
+        >
           + Quick Add
         </button>
       </div>
@@ -124,54 +129,94 @@ const MyCalendar = () => {
       return;
     }
 
-    axios
-      .get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`)
-      .then((res) => {
-        console.log("Raw API response:", res.data); // Debug log
+    // Fetch both assessments and custom events
+    Promise.all([
+      axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`),
+      axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`)
+    ])
+    .then(([assessmentsRes, customEventsRes]) => {
+      console.log("Raw API responses:", { assessments: assessmentsRes.data, customEvents: customEventsRes.data }); // Debug log
+      
+      // Format assessments for calendar with course information
+      const assessmentEvents = assessmentsRes.data.map((item) => {
+        const now = new Date();
+        const dueDate = new Date(item.dueDate);
+        const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
         
-        // Format assessments for calendar with course information
-        const formatted = res.data.map((item) => {
-          const now = new Date();
-          const dueDate = new Date(item.dueDate);
-          const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-          
-          // Determine status - prioritize backend status, fallback to date logic
-          let status = "UPCOMING";
-          if (item.status && (item.status === "OVERDUE" || item.status === "UPCOMING" || item.status === "COMPLETED")) {
-            status = item.status;
+        // Determine status - prioritize backend status, fallback to date logic
+        let status = "UPCOMING";
+        if (item.status && (item.status === "OVERDUE" || item.status === "UPCOMING" || item.status === "COMPLETED")) {
+          status = item.status;
+        } else {
+          // Fallback to date-based logic
+          if (diffDays < 0) {
+            status = "OVERDUE";
           } else {
-            // Fallback to date-based logic
-            if (diffDays < 0) {
-              status = "OVERDUE";
-            } else {
-              status = "UPCOMING";
-            }
+            status = "UPCOMING";
           }
-          
-          console.log(`Assessment: ${item.assessmentName}, Due: ${item.dueDate}, Days diff: ${diffDays}, Status: ${status}`); // Debug log
-
-          return {
-            id: item.assessmentId,
-            title: item.assessmentName,
-            courseName: item.courseName,
-            start: new Date(item.dueDate),
-            end: new Date(item.dueDate),
-            status: status,
-            description: item.description,
-            categoryName: item.categoryName,
-            maxPoints: item.maxPoints,
-          };
-        });
+        }
         
-        console.log("Formatted events:", formatted); // Debug log
-        setEvents(formatted);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch assessments:", err);
-        setEvents([]);
+        console.log(`Assessment: ${item.assessmentName}, Due: ${item.dueDate}, Days diff: ${diffDays}, Status: ${status}`); // Debug log
+
+        return {
+          id: item.assessmentId,
+          title: item.assessmentName,
+          courseName: item.courseName,
+          start: new Date(item.dueDate),
+          end: new Date(item.dueDate),
+          status: status,
+          description: item.description,
+          categoryName: item.categoryName,
+          maxPoints: item.maxPoints,
+        };
       });
+
+      // Format custom events for calendar
+      const customEvents = customEventsRes.data.map((item) => {
+        console.log(`Custom Event: ${item.eventTitle}, Start: ${item.eventStart}, End: ${item.eventEnd}`); // Debug log
+
+        return {
+          id: `custom-${item.eventId}`,
+          title: item.eventTitle,
+          courseName: 'Custom Event',
+          start: new Date(item.eventStart),
+          end: new Date(item.eventEnd),
+          status: 'CUSTOM',
+          description: item.eventDescription,
+          categoryName: 'Personal',
+          maxPoints: null,
+          isCustomEvent: true
+        };
+      });
+      
+      // Combine all events
+      const allEvents = [...assessmentEvents, ...customEvents];
+      console.log("Formatted events:", allEvents); // Debug log
+      setEvents(allEvents);
+    })
+    .catch((err) => {
+      console.error("Failed to fetch calendar data:", err);
+      setEvents([]);
+    });
   }, [currentUser?.userId]);
 
+  const handleCustomEventAdded = (newEvent) => {
+    // Add the new custom event to the events list
+    const customEvent = {
+      id: `custom-${newEvent.eventId}`,
+      title: newEvent.eventTitle,
+      courseName: 'Custom Event',
+      start: new Date(newEvent.eventStart),
+      end: new Date(newEvent.eventEnd),
+      status: 'CUSTOM',
+      description: newEvent.eventDescription,
+      categoryName: 'Personal',
+      maxPoints: null,
+      isCustomEvent: true
+    };
+    
+    setEvents(prevEvents => [...prevEvents, customEvent]);
+  };
 
   const eventStyleGetter = (event) => {
     const now = new Date();
@@ -182,7 +227,7 @@ const MyCalendar = () => {
     let borderColor = "transparent";
     let statusLabel = "";
 
-    // Use assessment status for styling - OVERDUE, UPCOMING, and COMPLETED
+    // Use assessment status for styling - OVERDUE, UPCOMING, COMPLETED, and CUSTOM
     if (event.status) {
       switch (event.status) {
         case "OVERDUE":
@@ -190,6 +235,9 @@ const MyCalendar = () => {
           break;
         case "COMPLETED":
           backgroundColor = "#4CAF50"; // Green
+          break;
+        case "CUSTOM":
+          backgroundColor = "#9C27B0"; // Purple for custom events
           break;
         case "UPCOMING":
         default:
@@ -253,6 +301,10 @@ const MyCalendar = () => {
           <div className="text-xs opacity-90 uppercase tracking-wider font-semibold">Completed</div>
         </div>
         <div className="text-center">
+          <div className="text-2xl font-extrabold mb-1.5 text-shadow-sm">{events.filter(e => e.status === "CUSTOM").length}</div>
+          <div className="text-xs opacity-90 uppercase tracking-wider font-semibold">Custom Events</div>
+        </div>
+        <div className="text-center">
           <div className="text-2xl font-extrabold mb-1.5 text-shadow-sm">{events.length}</div>
           <div className="text-xs opacity-90 uppercase tracking-wider font-semibold">Total</div>
         </div>
@@ -271,6 +323,10 @@ const MyCalendar = () => {
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
           <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-green-500 to-green-600"></div>
           <span>Completed Assessments</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+          <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-purple-500 to-purple-600"></div>
+          <span>Custom Events</span>
         </div>
       </div>
 
@@ -294,6 +350,13 @@ const MyCalendar = () => {
           toolbar={false}
         />
       </div>
+
+      {/* Custom Event Modal */}
+      <CustomEventModal
+        isOpen={showCustomEventModal}
+        onClose={() => setShowCustomEventModal(false)}
+        onEventAdded={handleCustomEventAdded}
+      />
     </div>
   );
 

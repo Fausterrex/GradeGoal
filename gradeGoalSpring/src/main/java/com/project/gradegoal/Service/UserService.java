@@ -109,8 +109,9 @@ public class UserService {
         }
 
         User user = userOpt.get();
-        // For now, just return the user as we don't have these fields in the User entity
-        return user;
+        user.setEmailNotificationsEnabled(emailNotificationsEnabled);
+        user.setPushNotificationsEnabled(pushNotificationsEnabled);
+        return userRepository.save(user);
     }
 
     public User updateProfilePicture(Long userId, String profilePictureUrl) {

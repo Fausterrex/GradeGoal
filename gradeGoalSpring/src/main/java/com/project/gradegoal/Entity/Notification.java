@@ -52,7 +52,7 @@ public class Notification {
     private LocalDateTime readAt;
     
     public enum NotificationType {
-        GRADE_ALERT, GOAL_REMINDER, ACHIEVEMENT, PREDICTION_UPDATE, SYSTEM, ASSIGNMENT_DUE
+        GRADE_ALERT, GOAL_REMINDER, ACHIEVEMENT, PREDICTION_UPDATE, SYSTEM, ASSIGNMENT_DUE, CUSTOM_EVENT
     }
     
     public enum NotificationPriority {

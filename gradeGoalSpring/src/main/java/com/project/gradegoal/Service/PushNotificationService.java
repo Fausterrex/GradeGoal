@@ -291,5 +291,49 @@ public class PushNotificationService {
             return false;
         }
     }
+
+    /**
+     * Send custom event push notification
+     */
+    public void sendCustomEventNotification(String userEmail, String eventTitle, java.time.LocalDateTime eventDate, String action) {
+        try {
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            if (userOpt.isEmpty()) {
+                logger.warn("User not found for custom event push notification: {}", userEmail);
+                return;
+            }
+
+            User user = userOpt.get();
+            if (user.getFcmToken() == null || user.getFcmToken().isEmpty()) {
+                logger.warn("No FCM token found for user: {}", userEmail);
+                return;
+            }
+
+            String title = "Custom Event " + action.substring(0, 1).toUpperCase() + action.substring(1);
+            String body = String.format("Your event '%s' has been %s successfully.", eventTitle, action);
+
+            Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .setNotification(Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build())
+                .putData("type", "custom_event")
+                .putData("action", action)
+                .putData("eventTitle", eventTitle)
+                .putData("eventDate", eventDate.toString())
+                .build();
+
+            String response = firebaseMessaging.send(message);
+            logger.info("Custom event push notification sent successfully to user: {} with message ID: {}", userEmail, response);
+
+        } catch (FirebaseMessagingException e) {
+            logger.error("Failed to send custom event push notification to user: {}", userEmail, e);
+            throw new RuntimeException("Failed to send custom event push notification", e);
+        } catch (Exception e) {
+            logger.error("Error sending custom event push notification to user: {}", userEmail, e);
+            throw new RuntimeException("Error sending custom event push notification", e);
+        }
+    }
 }
 

@@ -18,7 +18,7 @@ const Report = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">📊 Academic Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
 
       {courses.length === 0 ? (
         <p className="text-gray-500">No courses found.</p>

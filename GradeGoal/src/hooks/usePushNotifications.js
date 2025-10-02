@@ -24,9 +24,53 @@ export const usePushNotifications = () => {
     if (supported) {
       const status = pushNotificationService.getPermissionStatus();
       setPermissionStatus(status);
-      setIsEnabled(pushNotificationService.isEnabled());
+      // Don't set isEnabled here - let the database sync handle it
+      // setIsEnabled(pushNotificationService.isEnabled());
     }
   }, []);
+
+  // Sync with database state when user changes
+  useEffect(() => {
+    const syncWithDatabase = async () => {
+      if (currentUser?.email) {
+        try {
+          const response = await fetch(`http://localhost:8080/api/users/email/${encodeURIComponent(currentUser.email)}`);
+          if (response.ok) {
+            const user = await response.json();
+            // Update local state to match database state
+            if (user.pushNotificationsEnabled !== undefined) {
+              // Prioritize database state for UI display
+              // Only check browser permission, not FCM token (which might not be loaded yet)
+              const browserSupported = pushNotificationService.isNotificationSupported();
+              const hasPermission = Notification.permission === 'granted';
+              const shouldBeEnabled = user.pushNotificationsEnabled && browserSupported && hasPermission;
+              
+              console.log('🔔 Push Notification Sync:', {
+                databaseEnabled: user.pushNotificationsEnabled,
+                browserSupported,
+                hasPermission,
+                shouldBeEnabled,
+                permissionStatus: Notification.permission
+              });
+              
+              // Show as enabled if database says enabled AND browser supports it AND has permission
+              setIsEnabled(shouldBeEnabled);
+              
+              // If database says enabled but browser doesn't have permission, 
+              // we might need to re-request permission
+              if (user.pushNotificationsEnabled && browserSupported && !hasPermission) {
+                console.log('⚠️ Database says push notifications enabled, but browser permission not granted');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to sync push notification state with database:', error);
+        }
+      }
+    };
+
+    syncWithDatabase();
+  }, [currentUser]);
 
   // Initialize push notifications when user logs in
   useEffect(() => {
