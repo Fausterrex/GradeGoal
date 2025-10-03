@@ -12,8 +12,11 @@ import GoalFilter from "./GoalFilter";
 import GoalCard from "./GoalCard";
 import GoalModal from "./GoalModal";
 import RealtimeNotificationService from "../../../services/realtimeNotificationService";
+import { useYearLevel } from "../../../context/YearLevelContext";
 
 const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }) => {
+  const { filterDataByYearLevel, selectedYearLevel } = useYearLevel();
+  
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -22,7 +25,6 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
   const [activeFilters, setActiveFilters] = useState({
     goalType: '',
     status: '',
-    yearLevel: '',
     semester: ''
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,16 +119,6 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
       }
     }
     
-    // Apply year level filter
-    if (activeFilters.yearLevel) {
-      filtered = filtered.filter(goal => {
-        if (goal.courseId) {
-          const course = courses.find(c => c.courseId === goal.courseId);
-          return course && course.yearLevel === activeFilters.yearLevel;
-        }
-        return false; // Non-course goals don't have year level
-      });
-    }
     
     // Apply semester filter
     if (activeFilters.semester) {
@@ -231,20 +223,8 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     }).length
   };
 
-  // Add year level and semester counts
-  const yearLevels = [...new Set(courses.map(course => course.yearLevel).filter(Boolean))];
+  // Add semester counts
   const semesters = [...new Set(courses.map(course => course.semester).filter(Boolean))];
-
-  // Calculate year level counts
-  yearLevels.forEach(yearLevel => {
-    goalCounts[`year_${yearLevel}`] = goals.filter(goal => {
-      if (goal.courseId) {
-        const course = courses.find(c => c.courseId === goal.courseId);
-        return course && course.yearLevel === yearLevel;
-      }
-      return false;
-    }).length;
-  });
 
   // Calculate semester counts
   semesters.forEach(semester => {

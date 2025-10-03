@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 // Removed GradeService import
 import {
   deleteCourse as deleteCourseApi,
@@ -26,6 +27,7 @@ function CourseManager({
   courses = [],
 }) {
   const { currentUser } = useAuth();
+  const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
 
 
   // ========================================
@@ -44,9 +46,7 @@ function CourseManager({
   const [completedCourses, setCompletedCourses] = useState([]);
   const [showCompleted, setShowCompleted] = useState(false);
   
-  // State for completed courses filtering
-  const [completedYearFilter, setCompletedYearFilter] = useState("1st year");
-  const [completedSemesterFilter, setCompletedSemesterFilter] = useState("all");
+  // Note: Year level and semester filtering now handled by global YearLevelContext
 
   // State for confirmation modals
   const [confirmationModal, setConfirmationModal] = useState({
@@ -69,24 +69,20 @@ function CourseManager({
     let filtered = completedCourses;
     
     // Debug logging
-    console.log("Completed courses:", completedCourses);
-    console.log("Current year filter:", completedYearFilter);
-    console.log("Current semester filter:", completedSemesterFilter);
+    console.log('🎓 [CourseManager] Completed courses:', completedCourses);
+    console.log('🎓 [CourseManager] Selected year level:', selectedYearLevel);
     
-    // Filter by year level - handle cases where yearLevel might be null/undefined
-    filtered = filtered.filter(course => {
-      // If course doesn't have yearLevel, show it in 1st year filter for backward compatibility
-      const courseYearLevel = course.yearLevel || "1st year";
-      console.log(`Course ${course.name}: yearLevel=${course.yearLevel}, using=${courseYearLevel}, matches=${courseYearLevel === completedYearFilter}`);
-      return courseYearLevel === completedYearFilter;
-    });
-    
-    // Filter by semester (keep "all" option for semester since it makes sense within a year level)
-    if (completedSemesterFilter !== "all") {
-      filtered = filtered.filter(course => course.semester === completedSemesterFilter);
+    // Apply global year level filtering first
+    if (selectedYearLevel !== 'all') {
+      filtered = filtered.filter(course => {
+        const courseYearLevel = course.creationYearLevel || course.yearLevel || "1"; // Fallback for old data
+        const matchesYearLevel = courseYearLevel === selectedYearLevel;
+        console.log(`🎓 [CourseManager] Course ${course.name}: creationYearLevel=${course.creationYearLevel}, yearLevel=${course.yearLevel}, matches=${matchesYearLevel}`);
+        return matchesYearLevel;
+      });
     }
     
-    console.log("Filtered completed courses:", filtered);
+    console.log('🎓 [CourseManager] Filtered completed courses:', filtered);
     return filtered;
   };
 

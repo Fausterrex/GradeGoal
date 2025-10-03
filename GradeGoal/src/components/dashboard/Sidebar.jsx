@@ -13,7 +13,9 @@ import {
   FaCalendarAlt,
   FaCog,
 } from "react-icons/fa";
+import { useYearLevel } from "../../context/YearLevelContext";
 const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
+  const { selectedYearLevel, changeYearLevel, getYearLevelLabel } = useYearLevel();
   // Navigation items configuration
   const navItems = [
     { icon: <FaTachometerAlt />, label: "Dashboard", tab: "overview" },
@@ -28,13 +30,36 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
     <div className="w-60 h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-between px-2 py-6 z-10 rounded-tr-4xl rounded-br-4xl overflow-hidden">
       <div className="space-y-6">
         {/* ========================================
-            LOGO AND BRANDING WITH NOTIFICATION BELL
+            LOGO AND BRANDING
             ======================================== */}
-        <div className="flex flex-col items-center justify-center text-2xl font-bold mb-6">
+        <div className="flex flex-col items-center justify-center text-2xl font-bold mb-4">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-2">
             <span className="text-[#8168C5] text-xl">GG</span>
           </div>
           <h2>Grade Goal</h2>
+        </div>
+
+        {/* ========================================
+            YEAR LEVEL SELECTOR
+            ======================================== */}
+        <div className="mb-6 px-4">
+          <label className="block text-sm font-medium text-white mb-2">
+            Academic Year View
+          </label>
+          <select
+            value={selectedYearLevel}
+            onChange={(e) => {
+              console.log('🎓 [Sidebar] Year level changed:', e.target.value);
+              changeYearLevel(e.target.value);
+            }}
+            className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50"
+          >
+            <option value="all" className="text-gray-800">All Years</option>
+            <option value="1" className="text-gray-800">1st Year</option>
+            <option value="2" className="text-gray-800">2nd Year</option>
+            <option value="3" className="text-gray-800">3rd Year</option>
+            <option value="4" className="text-gray-800">4th Year</option>
+          </select>
         </div>
 
         {/* ========================================

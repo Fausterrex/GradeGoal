@@ -14,7 +14,6 @@ const GoalFilter = ({
 }) => {
   const [selectedGoalType, setSelectedGoalType] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedYearLevel, setSelectedYearLevel] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const isInitialMount = useRef(true);
   const filterOptions = [
@@ -30,8 +29,6 @@ const GoalFilter = ({
     { key: 'not_achieved', label: 'Not Achieved', count: goalCounts.notAchieved || 0 }
   ];
 
-  // Get unique year levels from courses
-  const yearLevels = [...new Set(courses.map(course => course.yearLevel).filter(Boolean))].sort();
   
   // Get unique semesters from courses
   const semesters = [...new Set(courses.map(course => course.semester).filter(Boolean))].sort();
@@ -50,12 +47,6 @@ const GoalFilter = ({
     applyFilters();
   };
 
-  // Handle year level selection
-  const handleYearLevelChange = (e) => {
-    const yearLevel = e.target.value;
-    setSelectedYearLevel(yearLevel);
-    applyFilters();
-  };
 
   // Handle semester selection
   const handleSemesterChange = (e) => {
@@ -69,7 +60,6 @@ const GoalFilter = ({
     const filters = {
       goalType: selectedGoalType,
       status: selectedStatus,
-      yearLevel: selectedYearLevel,
       semester: selectedSemester
     };
     onFilterChange(filters);
@@ -80,7 +70,6 @@ const GoalFilter = ({
     if (activeFilters && isInitialMount.current) {
       setSelectedGoalType(activeFilters.goalType || '');
       setSelectedStatus(activeFilters.status || '');
-      setSelectedYearLevel(activeFilters.yearLevel || '');
       setSelectedSemester(activeFilters.semester || '');
       isInitialMount.current = false;
     }
@@ -91,7 +80,7 @@ const GoalFilter = ({
     if (!isInitialMount.current) {
       applyFilters();
     }
-  }, [selectedGoalType, selectedStatus, selectedYearLevel, selectedSemester]);
+  }, [selectedGoalType, selectedStatus, selectedSemester]);
 
   if (isCompact) {
     return null; // Don't show filters in compact mode
@@ -135,24 +124,6 @@ const GoalFilter = ({
           </select>
         </div>
 
-        {/* Year Level Dropdown */}
-        {yearLevels.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Filter by Year Level</h4>
-            <select
-              value={selectedYearLevel}
-              onChange={handleYearLevelChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-            >
-              <option value="">All Year Levels</option>
-              {yearLevels.map(yearLevel => (
-                <option key={yearLevel} value={yearLevel}>
-                  Year {yearLevel} ({goalCounts[`year_${yearLevel}`] || 0})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Semester Dropdown */}
         {semesters.length > 0 && (

@@ -20,7 +20,6 @@ const SideCourseList = ({
 }) => {
   // Local state for additional filters
   const [showCompletedCourses, setShowCompletedCourses] = useState(false);
-  const [yearLevelFilter, setYearLevelFilter] = useState("1st year");
 
   // Helper function to filter courses
   const getFilteredCourses = () => {
@@ -35,9 +34,6 @@ const SideCourseList = ({
     if (!showCompletedCourses) {
       filtered = filtered.filter(course => course.isCompleted !== true);
     }
-
-    // Always filter by year level (no "all" option)
-    filtered = filtered.filter(course => course.yearLevel === yearLevelFilter);
 
     return filtered;
   };
@@ -102,20 +98,6 @@ const SideCourseList = ({
           </label>
         </div>
 
-        {/* Year Level Filter */}
-        <div className="flex flex-col items-center space-y-1">
-          <span className="text-xs text-gray-400 font-medium">Year Level</span>
-          <select
-            value={yearLevelFilter}
-            onChange={(e) => setYearLevelFilter(e.target.value)}
-            className="px-2 py-1 text-xs bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-          >
-            <option value="1st year" className="text-gray-800">1st Year</option>
-            <option value="2nd year" className="text-gray-800">2nd Year</option>
-            <option value="3rd year" className="text-gray-800">3rd Year</option>
-            <option value="4th year" className="text-gray-800">4th Year</option>
-          </select>
-        </div>
       </div>
 
       {/* ========================================

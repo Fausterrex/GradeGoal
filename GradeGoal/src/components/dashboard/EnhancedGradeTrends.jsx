@@ -23,6 +23,7 @@ import {
   getUserProfile,
 } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 
 // Utility function to convert GPA to percentage
 const gpaToPercentage = (gpa, scale = 4.0) => {
@@ -36,6 +37,7 @@ const percentageToGPA = (percentage, scale = 4.0) => {
 
 const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const { currentUser } = useAuth();
+  const { selectedYearLevel: globalYearLevel, showCumulativeData } = useYearLevel();
   
   // Add userAnalytics state
   const [userAnalytics, setUserAnalytics] = useState([]);
@@ -46,7 +48,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [viewMode, setViewMode] = useState("semester"); // semester, cumulative, individual, comparison
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [currentSemester, setCurrentSemester] = useState("FIRST"); // Current semester filter
-  const [selectedYearLevel, setSelectedYearLevel] = useState("1st year"); // Year level filter
   const [targetGPAInfo, setTargetGPAInfo] = useState({
     semesterTarget: 0,
     cumulativeTarget: 0,
@@ -61,10 +62,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [cumulativeGPA, setCumulativeGPA] = useState(0);
   const [userId, setUserId] = useState(null);
 
-  // Helper function to filter courses by year level
-  const filterCoursesByYearLevel = (coursesToFilter) => {
-    return coursesToFilter.filter(course => course.yearLevel === selectedYearLevel);
-  };
 
   // Load userAnalytics data for the selected course
   const loadUserAnalytics = useCallback(async () => {
@@ -107,7 +104,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         }
       } else {
         // Semester/Cumulative mode: load analytics for all courses (filtered by year level)
-        const activeCourses = filterCoursesByYearLevel(courses.filter(course => course.isActive !== false));
+        const activeCourses = courses.filter(course => course.isActive !== false);
         console.log('📊 [EnhancedGradeTrends] Loading semester/cumulative analytics', {
           activeCourses: activeCourses.map(c => ({ id: c.id, name: c.name })),
           semester: currentSemester,
@@ -164,7 +161,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       console.error("❌ [EnhancedGradeTrends] Error loading user analytics:", error);
       setUserAnalytics([]);
     }
-  }, [viewMode, selectedCourse?.id, currentSemester, courses, selectedYearLevel]);
+  }, [viewMode, selectedCourse?.id, currentSemester, courses]);
 
   // Set default selected course when courses are loaded
   useEffect(() => {
@@ -188,7 +185,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     if (currentUser) {
       loadUserAnalytics();
     }
-  }, [selectedCourse?.id, currentUser?.userId, viewMode, currentSemester, selectedYearLevel]);
+  }, [selectedCourse?.id, currentUser?.userId, viewMode, currentSemester]);
 
   // Load user ID and calculate GPAs when component mounts or data changes
   useEffect(() => {
@@ -368,7 +365,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       return [];
     }
 
-    const activeCourses = filterCoursesByYearLevel(courses.filter((course) => course.isActive !== false));
+    const activeCourses = courses.filter((course) => course.isActive !== false);
     if (activeCourses.length === 0) {
       console.log('❌ [EnhancedGradeTrends] No active courses available');
       return [];
@@ -531,8 +528,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     currentSemestralGPA,
     cumulativeGPA,
     overallGPA,
-    currentSemester,
-    selectedYearLevel
+    currentSemester
   ]);
 
 
@@ -602,22 +598,24 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           >
             Current Semester
           </button>
-          <button
-            onClick={() => {
-              console.log('🔄 [EnhancedGradeTrends] Switching to cumulative mode');
-              setViewMode("cumulative");
-              setSelectedCourse(null);
-              // Clear analytics to force reload
-              setUserAnalytics([]);
-            }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              viewMode === "cumulative"
-                ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg transform scale-105"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-            }`}
-          >
-            Cumulative Progress
-          </button>
+          {showCumulativeData() && (
+            <button
+              onClick={() => {
+                console.log('🔄 [EnhancedGradeTrends] Switching to cumulative mode');
+                setViewMode("cumulative");
+                setSelectedCourse(null);
+                // Clear analytics to force reload
+                setUserAnalytics([]);
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                viewMode === "cumulative"
+                  ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg transform scale-105"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+              }`}
+            >
+              Cumulative Progress
+            </button>
+          )}
           <button
             onClick={() => {
               console.log('🔄 [EnhancedGradeTrends] Switching to individual mode');
@@ -625,11 +623,9 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               // Clear analytics to force reload with fresh data
               setUserAnalytics([]);
               
-              // Filter courses by current semester and year level
-              const semesterCourses = filterCoursesByYearLevel(
-                courses.filter(
-                  (course) => course.isActive !== false && course.semester === currentSemester
-                )
+              // Filter courses by current semester
+              const semesterCourses = courses.filter(
+                (course) => course.isActive !== false && course.semester === currentSemester
               );
               
               // Check if current selected course is in the current semester
@@ -659,31 +655,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           </button>
         </div>
 
-        {/* ========================================
-            YEAR LEVEL FILTER
-            ======================================== */}
-        {(viewMode === "semester" || viewMode === "individual") && (
-          <div className="flex gap-2 items-center">
-            <span className="text-sm font-medium text-gray-600">Year Level:</span>
-            <select
-              value={selectedYearLevel}
-              onChange={(e) => {
-                setSelectedYearLevel(e.target.value);
-                // Clear selected course when year level changes in individual mode
-                if (viewMode === "individual") {
-                  setSelectedCourse(null);
-                  setUserAnalytics([]);
-                }
-              }}
-              className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="1st year">1st Year</option>
-              <option value="2nd year">2nd Year</option>
-              <option value="3rd year">3rd Year</option>
-              <option value="4th year">4th Year</option>
-            </select>
-          </div>
-        )}
       </div>
 
       {/* ========================================
@@ -814,45 +785,49 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             </p>
           </div>
 
-          {/* ========================================
-              CUMULATIVE GPA CARD
-              ======================================== */}
-          <div className="bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="mb-2">
-              <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
-                Cumulative GPA
-              </h3>
-            </div>
-            <p className="text-4xl font-bold mb-1">
-              {cumulativeGPA.toFixed(2)}
-            </p>
-            <p className="text-lg text-orange-200 mb-1">
-              ({gpaToPercentage(cumulativeGPA)}%)
-            </p>
-            <p className="text-sm opacity-80">All semesters combined</p>
-          </div>
+          {showCumulativeData() && (
+            <>
+              {/* ========================================
+                  CUMULATIVE GPA CARD
+                  ======================================== */}
+              <div className="bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
+                    Cumulative GPA
+                  </h3>
+                </div>
+                <p className="text-4xl font-bold mb-1">
+                  {cumulativeGPA.toFixed(2)}
+                </p>
+                <p className="text-lg text-orange-200 mb-1">
+                  ({gpaToPercentage(cumulativeGPA)}%)
+                </p>
+                <p className="text-sm opacity-80">All semesters combined</p>
+              </div>
 
-          {/* ========================================
-              CUMULATIVE TARGET GPA CARD
-              ======================================== */}
-          <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="mb-2">
-              <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
-                Cumulative Target GPA
-              </h3>
-            </div>
-            <p className="text-4xl font-bold mb-1">
-              {targetGPAInfo.cumulativeTarget > 0
-                ? Math.min(targetGPAInfo.cumulativeTarget, 4.0).toFixed(2)
-                : "Not Set"}
-            </p>
-            <p className="text-lg text-purple-200 mb-1">
-              {targetGPAInfo.cumulativeTarget > 0
-                ? `(${gpaToPercentage(targetGPAInfo.cumulativeTarget)}%)`
-                : ""}
-            </p>
-            <p className="text-sm opacity-80">Long-term academic goal</p>
-          </div>
+              {/* ========================================
+                  CUMULATIVE TARGET GPA CARD
+                  ======================================== */}
+              <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold opacity-90 uppercase tracking-wide">
+                    Cumulative Target GPA
+                  </h3>
+                </div>
+                <p className="text-4xl font-bold mb-1">
+                  {targetGPAInfo.cumulativeTarget > 0
+                    ? Math.min(targetGPAInfo.cumulativeTarget, 4.0).toFixed(2)
+                    : "Not Set"}
+                </p>
+                <p className="text-lg text-purple-200 mb-1">
+                  {targetGPAInfo.cumulativeTarget > 0
+                    ? `(${gpaToPercentage(targetGPAInfo.cumulativeTarget)}%)`
+                    : ""}
+                </p>
+                <p className="text-sm opacity-80">Long-term academic goal</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1069,7 +1044,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               COURSE SELECTION GRID
               ======================================== */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filterCoursesByYearLevel(courses.filter((course) => course.isActive !== false)).length ===
+            {courses.filter((course) => course.isActive !== false).length ===
             0 ? (
               <div className="col-span-full text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -1083,8 +1058,8 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                 </p>
               </div>
             ) : (
-              filterCoursesByYearLevel(courses
-                .filter((course) => course.isActive !== false))
+              courses
+                .filter((course) => course.isActive !== false)
                 .filter((course) => {
                   // Filter courses by current semester
                   const courseSemester = course.semester;

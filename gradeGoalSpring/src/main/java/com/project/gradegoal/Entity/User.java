@@ -56,6 +56,9 @@ public class User {
     @Column(name = "profile_picture_url", columnDefinition = "LONGTEXT")
     private String profilePictureUrl;
     
+    @Column(name = "current_year_level")
+    private String currentYearLevel = "1";
+    
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;
     

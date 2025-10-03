@@ -11,6 +11,7 @@ import ForgotPassword from "./auth/forgotpassword";
 import Landingpage from "./auth/landingpage";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AchievementProvider, useAchievementNotifications } from "../context/AchievementContext";
+import { YearLevelProvider } from "../context/YearLevelContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
@@ -273,10 +274,11 @@ function App() {
             ACHIEVEMENT PROVIDER (Global Achievement State)
             ======================================== */}
         <AchievementProvider>
-          {/* ========================================
-              MAIN APP CONTAINER
-              ======================================== */}
-          <div className="min-h-screen flex flex-col bg-green-100">
+          <YearLevelProvider>
+            {/* ========================================
+                MAIN APP CONTAINER
+                ======================================== */}
+            <div className="min-h-screen flex flex-col bg-green-100">
             {/* ========================================
                 MAIN CONTENT AREA
                 ======================================== */}
@@ -291,7 +293,8 @@ function App() {
                 GLOBAL ACHIEVEMENT MODAL
                 ======================================== */}
             <AchievementModalManager />
-          </div>
+            </div>
+          </YearLevelProvider>
         </AchievementProvider>
       </AuthProvider>
     </Router>

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 import { useNavigate } from "react-router-dom";
 import CourseManager from "../course/CourseManager";
 import GradeEntry from "../course/course_details/GradeEntry";
@@ -73,6 +74,7 @@ if (typeof document !== "undefined") {
 
 function MainDashboard({ initialTab = "overview" }) {
   const { currentUser, logout } = useAuth();
+  const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
   const navigate = useNavigate();
 
   // ========================================
@@ -111,6 +113,14 @@ function MainDashboard({ initialTab = "overview" }) {
         loadCoursesAndGrades();
       }
     }, [currentUser?.email]); // Only reload when email changes, not on profile updates
+
+    // Reload courses when year level changes
+    useEffect(() => {
+      console.log('🎓 [MainDashboard] Year level changed, reloading courses:', selectedYearLevel);
+      if (currentUser?.email) {
+        loadCoursesAndGrades();
+      }
+    }, [selectedYearLevel]);
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
@@ -163,16 +173,24 @@ function MainDashboard({ initialTab = "overview" }) {
         })
       );
 
-      // Don't set courses immediately - wait for loadAllGrades to complete
-      // setCourses(coursesWithCategories);
+      // Filter courses based on selected year level
+      const filteredCourses = filterDataByYearLevel(coursesWithCategories, 'creationYearLevel');
+      console.log('🎓 [MainDashboard] Filtering courses by year level:', {
+        selectedYearLevel,
+        totalCourses: coursesWithCategories.length,
+        filteredCourses: filteredCourses.length
+      });
 
-      if (coursesWithCategories.length > 0 && (activeTab === "overview" || activeTab === "goals")) {
-        await loadAllGrades(coursesWithCategories);
+      // Don't set courses immediately - wait for loadAllGrades to complete
+      // setCourses(filteredCourses);
+
+      if (filteredCourses.length > 0 && (activeTab === "overview" || activeTab === "goals")) {
+        await loadAllGrades(filteredCourses);
       } else {
         // If no grades to load, still calculate progress for courses with categories
         const allGrades = {};
         
-        const gradePromises = coursesWithCategories.map(async (course) => {
+        const gradePromises = filteredCourses.map(async (course) => {
           try {
             const courseGrades = await getGradesByCourseId(course.id);
             
@@ -195,7 +213,7 @@ function MainDashboard({ initialTab = "overview" }) {
         await Promise.all(gradePromises);
         
         // Calculate progress for courses with categories using actual grades
-        const coursesWithProgress = coursesWithCategories.map(course => {
+        const coursesWithProgress = filteredCourses.map(course => {
           let progress = 0;
           let courseGrade = 0.00;
           let hasGrades = false;

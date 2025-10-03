@@ -4,6 +4,7 @@ import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 import CustomEventModal from "./CustomEventModal";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -50,6 +51,7 @@ const EventComponent = ({ event }) => {
 
 const MyCalendar = () => {
   const { currentUser, loading } = useAuth();
+  const { filterDataByYearLevel, selectedYearLevel } = useYearLevel();
   const [events, setEvents] = useState([]);
   const [view, setView] = useState("month"); 
   const [date, setDate] = useState(new Date());
@@ -193,7 +195,30 @@ const MyCalendar = () => {
       
       // Combine all events
       const allEvents = [...assessmentEvents, ...customEvents];
-      setEvents(allEvents);
+      
+      // Filter events by year level (assessment events have course info, custom events show for all)
+      console.log('🎓 [Calendar] Filtering events by year level:', {
+        selectedYearLevel,
+        totalEvents: allEvents.length
+      });
+      
+      const filteredEvents = allEvents.filter(event => {
+        // Custom events are shown for all year levels
+        if (event.isCustomEvent) {
+          return true;
+        }
+        
+        // For assessment events, we need to fetch course data to filter by year level
+        // For now, show all assessment events - TODO: implement course filtering based on year level
+        return true;
+      });
+      
+      console.log('🎓 [Calendar] Filtered events:', {
+        originalCount: allEvents.length,
+        filteredCount: filteredEvents.length
+      });
+      
+      setEvents(filteredEvents);
     })
     .catch((err) => {
       console.error("Calendar: Failed to fetch calendar data:", err);
@@ -203,6 +228,99 @@ const MyCalendar = () => {
       setIsLoading(false);
     });
   }, [currentUser?.userId, loading]);
+
+  // Reload calendar data when year level changes
+  useEffect(() => {
+    if (currentUser?.userId && !loading) {
+      console.log('🎓 [Calendar] Year level changed, reloading calendar data:', selectedYearLevel);
+      // Trigger the same data loading logic
+      setIsLoading(true);
+
+      Promise.all([
+        axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`),
+        axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`)
+      ])
+      .then(([assessmentsRes, customEventsRes]) => {
+        
+        // Format assessments for calendar with course information
+        const assessmentEvents = assessmentsRes.data.map((item) => {
+          const now = new Date();
+          const dueDate = new Date(item.dueDate);
+          const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+          
+          // Determine status - prioritize backend status, fallback to date logic
+          let status = "UPCOMING";
+          if (item.status && (item.status === "OVERDUE" || item.status === "UPCOMING" || item.status === "COMPLETED")) {
+            status = item.status;
+          } else {
+            // Fallback to date-based logic
+            if (diffDays < 0) {
+              status = "OVERDUE";
+            } else {
+              status = "UPCOMING";
+            }
+          }
+
+          return {
+            id: item.assessmentId,
+            title: item.assessmentName,
+            courseName: item.courseName,
+            start: new Date(item.dueDate),
+            end: new Date(item.dueDate),
+            status: status,
+            description: item.description,
+            categoryName: item.categoryName,
+            maxPoints: item.maxPoints,
+          };
+        });
+
+        // Format custom events for calendar
+        const customEvents = customEventsRes.data.map((item) => {
+          return {
+            id: `custom-${item.eventId}`,
+            title: item.eventTitle,
+            courseName: 'Custom Event',
+            start: new Date(item.eventStart),
+            end: new Date(item.eventEnd),
+            status: 'CUSTOM',
+            description: item.eventDescription,
+            categoryName: 'Personal',
+            maxPoints: null,
+            isCustomEvent: true
+          };
+        });
+        
+        // Combine and filter all events
+        const allEvents = [...assessmentEvents, ...customEvents];
+        
+        console.log('🎓 [Calendar] Year level change - filtering events:', {
+          selectedYearLevel,
+          totalEvents: allEvents.length
+        });
+        
+        const filteredEvents = allEvents.filter(event => {
+          // Custom events are shown for all year levels
+          if (event.isCustomEvent) {
+            return true;
+          }
+          
+          // For assessment events, filter based on year level
+          // Note: The calendar API doesn't include course year level info directly
+          // So we'll show all assessment events for now
+          return true;
+        });
+        
+        setEvents(filteredEvents);
+      })
+      .catch((err) => {
+        console.error("Calendar: Failed to reload calendar data:", err);
+        setStatus([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [selectedYearLevel]);
 
   const handleCustomEventAdded = (newEvent) => {
     // Add the new custom event to the events list

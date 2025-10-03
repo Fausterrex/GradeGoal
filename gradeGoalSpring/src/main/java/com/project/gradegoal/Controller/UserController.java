@@ -106,25 +106,20 @@ public class UserController {
             System.out.println("Profile update request for userId: " + userId);
             System.out.println("Request data: firstName=" + request.getFirstName() + 
                              ", lastName=" + request.getLastName() + 
+                             ", username=" + request.getUsername() +
                              ", profilePictureUrl=" + request.getProfilePictureUrl());
             
             User user;
-            if (request.getProfilePictureUrl() != null && !request.getProfilePictureUrl().isEmpty()) {
-                System.out.println("Updating profile with picture");
-                user = userService.updateProfileWithPicture(
-                    userId,
-                    request.getFirstName(),
-                    request.getLastName(),
-                    request.getProfilePictureUrl()
-                );
-            } else {
-                System.out.println("Updating profile without picture");
-                user = userService.updateProfile(
-                    userId,
-                    request.getFirstName(),
-                    request.getLastName()
-                );
-            }
+            // Use comprehensive update method that includes year level and username
+            System.out.println("Updating profile with all fields including year level: " + request.getCurrentYearLevel());
+            user = userService.updateProfileComplete(
+                userId,
+                request.getFirstName(),
+                request.getLastName(),
+                request.getUsername(),
+                request.getProfilePictureUrl(),
+                request.getCurrentYearLevel()
+            );
             
             System.out.println("Updated user profilePictureUrl: " + user.getProfilePictureUrl());
             return ResponseEntity.ok(user);
@@ -217,6 +212,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/username/{username}/available")
+    public ResponseEntity<?> checkUsernameAvailability(@PathVariable String username) {
+        try {
+            boolean available = userService.isUsernameAvailable(username);
+            return ResponseEntity.ok(new UsernameAvailabilityResponse(available));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to check username availability");
+        }
+    }
+
     public static class UserRegistrationRequest {
         private String email;
         private String password;
@@ -246,14 +252,20 @@ public class UserController {
     public static class ProfileUpdateRequest {
         private String firstName;
         private String lastName;
+        private String username;
         private String profilePictureUrl;
+        private String currentYearLevel;
 
         public String getFirstName() { return firstName; }
         public void setFirstName(String firstName) { this.firstName = firstName; }
         public String getLastName() { return lastName; }
         public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
         public String getProfilePictureUrl() { return profilePictureUrl; }
         public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
+        public String getCurrentYearLevel() { return currentYearLevel; }
+        public void setCurrentYearLevel(String currentYearLevel) { this.currentYearLevel = currentYearLevel; }
     }
 
     public static class PasswordUpdateRequest {
@@ -301,5 +313,16 @@ public class UserController {
         public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
         public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
         public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
+    }
+
+    public static class UsernameAvailabilityResponse {
+        private boolean available;
+
+        public UsernameAvailabilityResponse(boolean available) {
+            this.available = available;
+        }
+
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
     }
 }

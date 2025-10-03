@@ -38,6 +38,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
     lastName: "",
     email: "",
     profilePictureUrl: "",
+    currentYearLevel: "1",
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -69,6 +70,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
         email: profile.email || currentUser.email || "",
         profilePictureUrl:
           profile.profilePictureUrl || currentUser.photoURL || "",
+        currentYearLevel: profile.currentYearLevel || "1",
       });
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -126,6 +128,7 @@ const ProfileEdit = ({ isOpen, onClose }) => {
       await updateUserProfile(currentUser.email, {
         firstName: userData.firstName,
         lastName: userData.lastName,
+        currentYearLevel: userData.currentYearLevel,
       });
 
       // Update the current user context
@@ -360,6 +363,26 @@ const ProfileEdit = ({ isOpen, onClose }) => {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Email cannot be changed
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Current Academic Year Level
+              </label>
+              <select
+                name="currentYearLevel"
+                value={userData.currentYearLevel}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-transparent"
+              >
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                This determines which year level new courses will be associated with
               </p>
             </div>
 

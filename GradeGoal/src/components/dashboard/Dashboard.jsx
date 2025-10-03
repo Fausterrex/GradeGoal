@@ -23,10 +23,12 @@ import AIRecommendations from "./AIRecommendations";
 import NotificationBell from "./NotificationBell";
 import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
 
 const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
   const { currentUser } = useAuth();
+  const { showCumulativeData } = useYearLevel();
 
   // ========================================
   // STATE MANAGEMENT

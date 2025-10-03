@@ -183,19 +183,34 @@ export async function updateCourse(id, courseData) {
 }
 
 export async function deleteCourse(id) {
+  console.log('🗑️ [API] Attempting to delete course with id:', id);
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },
   });
+  
+  console.log('🗑️ [API] Delete course response status:', response.status);
+  
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(
-      text || `Failed to delete course with status ${response.status}`
-    );
+    console.error('🗑️ [API] Delete course error:', text);
+    
+    if (response.status === 404) {
+      throw new Error("Course not found or already deleted");
+    } else if (response.status === 500) {
+      throw new Error(`Server error: ${text || "Unable to delete course"}`);
+    } else {
+      throw new Error(
+        text || `Failed to delete course with status ${response.status}`
+      );
+    }
   }
-  return response.ok;
+  
+  console.log('🗑️ [API] Course deleted successfully');
+  return true;
 }
 
 export async function archiveCourse(id) {
@@ -562,6 +577,26 @@ export async function getUserProfile(email) {
   return response.json();
 }
 
+// Check username availability
+export async function checkUsernameAvailability(username) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/users/username/${encodeURIComponent(username)}/available`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to check username availability");
+  }
+
+  const data = await response.json();
+  return data.available;
+}
+
 // Update user profile
 export async function updateUserProfile(email, profileData) {
   // First get the user by email to get the user ID
@@ -577,7 +612,9 @@ export async function updateUserProfile(email, profileData) {
       body: JSON.stringify({
         firstName: profileData.firstName,
         lastName: profileData.lastName,
+        username: profileData.username,
         profilePictureUrl: profileData.profilePictureUrl || null,
+        currentYearLevel: profileData.currentYearLevel || "1",
       }),
     }
   );

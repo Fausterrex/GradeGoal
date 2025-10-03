@@ -286,12 +286,18 @@ public class CourseControllerNew {
     }
 
     @DeleteMapping("/{courseId}")
-    public ResponseEntity<Void> deleteCourse(@PathVariable Long courseId) {
+    public ResponseEntity<String> deleteCourse(@PathVariable Long courseId) {
         try {
-            courseService.deleteCourse(courseId);
-            return ResponseEntity.ok().build();
+            boolean deleted = courseService.deleteCourse(courseId);
+            if (deleted) {
+                return ResponseEntity.ok("Course deleted successfully");
+            } else {
+                return ResponseEntity.status(404).body("Course not found");
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            System.err.println("Error deleting course: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to delete course: " + e.getMessage());
         }
     }
 

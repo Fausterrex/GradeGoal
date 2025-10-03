@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useYearLevel } from '../../context/YearLevelContext';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Bell, Mail, User, Save, CheckCircle, AlertCircle, Edit, Lock, LogOut, Camera, Eye, EyeOff } from 'lucide-react';
@@ -13,6 +14,7 @@ import { getUserProfile, updateUserPreferences, updateUserProfile, updateUserPas
  */
 const UserSettings = () => {
   const { currentUser, logout, updateCurrentUserWithData } = useAuth();
+  const { syncWithUserYearLevel } = useYearLevel();
   const navigate = useNavigate();
   const { 
     isEnabled: pushNotificationsEnabled, 
@@ -32,8 +34,18 @@ const UserSettings = () => {
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
-    profilePictureUrl: ''
+    username: '',
+    profilePictureUrl: '',
+    currentYearLevel: '1'
   });
+  
+  // Username validation states
+  const [usernameValidation, setUsernameValidation] = useState({
+    isValid: true,
+    message: '',
+    isChecking: false
+  });
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
   
   // Password editing states
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -55,18 +67,31 @@ const UserSettings = () => {
     }
   }, [currentUser]);
 
+  // Debug: Track profileData changes
+  useEffect(() => {
+    console.log('🔄 [UserSettings] Profile data changed:', profileData);
+  }, [profileData]);
+
   const loadUserPreferences = async () => {
     try {
+      console.log('📥 [UserSettings] Loading user preferences...');
       const user = await getUserProfile(currentUser.email);
+      console.log('📥 [UserSettings] User profile loaded:', user);
       
       setEmailNotificationsEnabled(user.emailNotificationsEnabled ?? true);
       
       // Load profile data for editing
-      setProfileData({
+      const newProfileData = {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
-        profilePictureUrl: user.profilePictureUrl || currentUser.photoURL || ''
-      });
+        username: user.username || '',
+        profilePictureUrl: user.profilePictureUrl || currentUser.photoURL || '',
+        currentYearLevel: user.currentYearLevel || '1'
+      };
+      console.log('📥 [UserSettings] Setting profile data:', newProfileData);
+      console.log('📥 [UserSettings] Academic year level loaded:', user.currentYearLevel);
+      
+      setProfileData(newProfileData);
     } catch (error) {
       console.error('Failed to load user preferences:', error);
       // Set defaults if loading fails
@@ -116,10 +141,86 @@ const UserSettings = () => {
 
   const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    console.log('🔧 [UserSettings] Profile input change:', { name, value, currentProfileData: profileData });
+    
+    setProfileData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      console.log('🔧 [UserSettings] Updated profile data:', newData);
+      return newData;
+    });
+
+    // Validate username if field updated
+    if (name === 'username') {
+      validateUsername(value);
+    }
+  };
+
+  // Username validation function
+  const validateUsername = async (username) => {
+    if (!username) {
+      setUsernameValidation({
+        isValid: true,
+        message: '',
+        isChecking: false
+      });
+      return;
+    }
+
+    // Basic validation
+    if (username.length < 3) {
+      setUsernameValidation({
+        isValid: false,
+        message: 'Username must be at least 3 characters long',
+        isChecking: false
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameValidation({
+        isValid: false,
+        message: 'Username can only contain letters, numbers, and underscores',
+        isChecking: false
+      });
+      return;
+    }
+
+    setUsernameValidation({
+      isValid: true,
+      message: '',
+      isChecking: true
+    });
+
+    try {
+      // Import checkUsernameAvailability from api.js
+      const { checkUsernameAvailability } = await import('../../backend/api');
+      
+      const isAvailable = await checkUsernameAvailability(username);
+      
+      if (isAvailable) {
+        setUsernameValidation({
+          isValid: true,
+          message: '',
+          isChecking: false
+        });
+      } else {
+        setUsernameValidation({
+          isValid: false,
+          message: 'Username is already taken',
+ toCheck: false
+        });
+      }
+    } catch (error) {
+      console.error('Username validation error:', error);
+      setUsernameValidation({
+        isValid: false,
+        message: 'Failed to check username availability',
+        isChecking: false
+      });
+    }
   };
 
   const handlePasswordInputChange = (e) => {
@@ -156,6 +257,10 @@ const UserSettings = () => {
     setError(null);
     setSaveStatus(null);
 
+    console.log('💾 [UserSettings] Save Settings button clicked');
+    console.log('💾 [UserSettings] Current profile data:', profileData);
+    console.log('💾 [UserSettings] Academic year level being saved:', profileData.currentYearLevel);
+
     try {
       // Save notification preferences
       await updateUserPreferences(currentUser.email, {
@@ -163,20 +268,34 @@ const UserSettings = () => {
         pushNotificationsEnabled: pushNotificationsEnabled
       });
 
-      // Reload user preferences to sync with database
-      await loadUserPreferences();
-
-           // Save profile changes if editing name or if profile picture changed
-           const hasProfileChanges = isEditingProfile || 
-             (profileData.profilePictureUrl !== (currentUser.photoURL || ''));
+           // Always save profile changes - this ensures year level changes are always saved
+           const hasProfileChanges = true; // Always save since year level can change without other edits
+           
+           console.log('💾 [UserSettings] Profile data being saved:', profileData);
            
            if (hasProfileChanges) {
+        
+        console.log('💾 [UserSettings] Calling updateUserProfile with:', {
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          username: profileData.username,
+          profilePictureUrl: profileData.profilePictureUrl,
+          currentYearLevel: profileData.currentYearLevel
+        });
         
         await updateUserProfile(currentUser.email, {
           firstName: profileData.firstName,
           lastName: profileData.lastName,
-          profilePictureUrl: profileData.profilePictureUrl
+          username: profileData.username,
+          profilePictureUrl: profileData.profilePictureUrl,
+          currentYearLevel: profileData.currentYearLevel
         });
+        
+        console.log('💾 [UserSettings] updateUserProfile completed successfully');
+
+        // Sync year level view with updated user profile
+        console.log('🎓 [UserSettings] Syncing year level view with user currentYearLevel');
+        await syncWithUserYearLevel();
 
         // Update current user context
         updateCurrentUserWithData({
@@ -190,7 +309,24 @@ const UserSettings = () => {
         if (isEditingProfile) {
           setIsEditingProfile(false);
         }
+        
+        if (isEditingUsername) {
+          setIsEditingUsername(false);
+          // Clear username validation after successful save
+          setUsernameValidation({
+            isValid: true,
+            message: '',
+            isChecking: false
+          });
+        }
+        
+        // Don't reset isEditingProfile here - let it handle naturally
       }
+
+      // Reload user preferences to sync with database after all saves
+      console.log('💾 [UserSettings] Reloading user preferences...');
+      await loadUserPreferences();
+      console.log('💾 [UserSettings] User preferences reloaded');
 
       // Save password changes if editing
       if (isEditingPassword) {
@@ -408,6 +544,123 @@ const UserSettings = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                {!isEditingUsername ? (
+                  <div className="p-3 bg-gray-50 rounded-lg border flex items-center justify-between">
+                    <p className="text-gray-900">
+                      {profileData.username || 'Username not set - Click Edit to add your username'}
+                    </p>
+                    <button
+                      onClick={() => setIsEditingUsername(true)}
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>{profileData.username ? 'Edit' : 'Set Username'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      name="username"
+                      value={profileData.username}
+                      onChange={handleProfileInputChange}
+                      placeholder="Enter username"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        usernameValidation.isValid && profileData.username 
+                          ? 'border-green-300 bg-green-50' 
+                          : !usernameValidation.isValid && profileData.username 
+                          ? 'border-red-300 bg-red-50' 
+                          : 'border-gray-300'
+                      }`}
+                    />
+                    
+                    {/* Username validation message */}
+                    {profileData.username && (
+                      <div className="flex items-center space-x-2">
+                        {usernameValidation.isChecking && (
+                          <div className="flex items-center space-x-1 text-blue-600">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                            <span className="text-xs">Checking availability...</span>
+                          </div>
+                        )}
+                        {!usernameValidation.isChecking && usernameValidation.message && (
+                          <div className={`flex items-center space-x-1 text-xs ${
+                            usernameValidation.isValid ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {usernameValidation.isValid ? (
+                              <CheckCircle className="h-3 w-3" />
+                            ) : (
+                              <AlertCircle className="h-3 w-3" />
+                            )}
+                            <span>{usernameValidation.message}</span>
+                          </div>
+                        )}
+                        {!usernameValidation.isChecking && !usernameValidation.message && usernameValidation.isValid && (
+                          <div className="flex items-center space-x-1 text-xs text-green-600">
+                            <CheckCircle className="h-3 w-3" />
+                            <span>Username is available</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      Choose a unique username that others can use to identify you
+                    </p>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setIsEditingUsername(false);
+                          // Reset validation when canceling
+                          setUsernameValidation({
+                            isValid: true,
+                            message: '',
+                            isChecking: false
+                          });
+                        }}
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Academic Year Level
+                </label>
+                <select
+                  name="currentYearLevel"
+                  value={profileData.currentYearLevel}
+                  onChange={(e) => {
+                    console.log('🎓 [UserSettings] Year level dropdown changed:', {
+                      previousValue: profileData.currentYearLevel,
+                      newValue: e.target.value,
+                      event: e
+                    });
+                    handleProfileInputChange(e);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                  <option value="5">5th Year</option>
+                  <option value="6">6th Year</option>
+                  <option value="7">7th Year</option>
+                  <option value="8">8th Year</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  This determines which year level new courses will be associated with
+                </p>
               </div>
 
               <div>

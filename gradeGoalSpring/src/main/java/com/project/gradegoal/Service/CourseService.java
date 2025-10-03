@@ -53,7 +53,43 @@ public class CourseService {
     @Autowired
     private AssessmentRepository assessmentRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     public Course createCourse(Course course) {
+        // Auto-capture creation year level from user's current year level
+        if (course.getCreationYearLevel() == null && course.getUserId() != null) {
+            Optional<User> userOpt = userRepository.findById(course.getUserId());
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                String currentYearLevel = user.getCurrentYearLevel();
+                if (currentYearLevel != null) {
+                    course.setCreationYearLevel(currentYearLevel);
+                    // Also set yearLevel for backward compatibility
+                    if (course.getYearLevel() == null) {
+                        course.setYearLevel(currentYearLevel);
+                    }
+                } else {
+                    // If user doesn't have currentYearLevel set, default to "1"
+                    course.setCreationYearLevel("1");
+                    if (course.getYearLevel() == null) {
+                        course.setYearLevel("1");
+                    }
+                }
+            } else {
+                // If user not found, set default
+                course.setCreationYearLevel("1");
+                if (course.getYearLevel() == null) {
+                    course.setYearLevel("1");
+                }
+            }
+        } else if (course.getCreationYearLevel() == null) {
+            // Fallback if no userId
+            course.setCreationYearLevel("1");
+            if (course.getYearLevel() == null) {
+                course.setYearLevel("1");
+            }
+        }
         return courseRepository.save(course);
     }
 
@@ -454,6 +490,35 @@ public class CourseService {
 
     public long getActiveCourseCountByUserId(Long userId) {
         return courseRepository.countByUserIdAndIsActiveTrue(userId);
+    }
+
+    /**
+     * Get courses by creation year level for a specific user
+     */
+    public List<Course> getCoursesByCreationYearLevel(Long userId, String yearLevel) {
+        return courseRepository.findByUserIdAndCreationYearLevel(userId, yearLevel);
+    }
+
+    /**
+     * Get courses for user's current year level
+     */
+    public List<Course> getCoursesForCurrentYearLevel(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String currentYearLevel = user.getCurrentYearLevel();
+            if (currentYearLevel != null) {
+                return getCoursesByCreationYearLevel(userId, currentYearLevel);
+            }
+        }
+        return courseRepository.findByUserId(userId); // Fallback to all courses
+    }
+
+    /**
+     * Get all unique creation year levels for a user
+     */
+    public List<String> getUniqueCreationYearLevels(Long userId) {
+        return courseRepository.findDistinctCreationYearLevelsByUserId(userId);
     }
 
     public List<Course> getCoursesWithCalculatedGrades(Long userId) {

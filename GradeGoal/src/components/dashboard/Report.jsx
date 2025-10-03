@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { useYearLevel } from "../../context/YearLevelContext";
 
 const Report = () => {
   const { currentUser, loading } = useAuth();
+  const { filterDataByYearLevel } = useYearLevel();
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,7 +20,15 @@ const Report = () => {
     
     axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
       .then((res) => {
-        setCourses(res.data.courses || []);
+        const allCourses = res.data.courses || [];
+        const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
+        
+        console.log('🎓 [Report] Filtering courses by year level:', {
+          totalCourses: allCourses.length,
+          filteredCourses: filteredCourses.length
+        });
+        
+        setCourses(filteredCourses);
       })
       .catch((err) => {
         console.error("Report: Fetch error:", err);
@@ -28,6 +38,34 @@ const Report = () => {
         setIsLoading(false);
       });
   }, [currentUser?.userId, loading]);
+
+  // Reload courses when year level changes
+  useEffect(() => {
+    if (currentUser?.userId && !loading) {
+      console.log('🎓 [Report] Year level changed, reloading reports data');
+      setIsLoading(true);
+      
+      axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
+        .then((res) => {
+          const allCourses = res.data.courses || [];
+          const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
+          
+          console.log('🎓 [Report] Year level change - filtering courses:', {
+            totalCourses: allCourses.length,
+            filteredCourses: filteredCourses.length
+          });
+          
+          setCourses(filteredCourses);
+        })
+        .catch((err) => {
+          console.error("Report: Year level change fetch error:", err);
+          setCourses([]);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [filterDataByYearLevel]); // This will depend on selectedYearLevel indirectly
 
   // Show loading state
   if (loading) {

@@ -24,6 +24,11 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByUserIdAndSemesterAndAcademicYear(Long userId, Course.Semester semester, String academicYear);
 
+    List<Course> findByUserIdAndCreationYearLevel(Long userId, String creationYearLevel);
+
+    @Query("SELECT DISTINCT c.creationYearLevel FROM Course c WHERE c.userId = :userId AND c.creationYearLevel IS NOT NULL ORDER BY c.creationYearLevel")
+    List<String> findDistinctCreationYearLevelsByUserId(@Param("userId") Long userId);
+
     Optional<Course> findByCourseCodeAndUserId(String courseCode, Long userId);
 
     boolean existsByCourseCodeAndUserId(String courseCode, Long userId);

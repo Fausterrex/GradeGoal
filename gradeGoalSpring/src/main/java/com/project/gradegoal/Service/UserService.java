@@ -81,6 +81,28 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User updateProfileComplete(Long userId, String firstName, String lastName, String username, String profilePictureUrl, String currentYearLevel) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("User with ID " + userId + " not found");
+        }
+
+        User user = userOpt.get();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        if (username != null) {
+            user.setUsername(username);
+        }
+        if (profilePictureUrl != null) {
+            user.setProfilePictureUrl(profilePictureUrl);
+        }
+        if (currentYearLevel != null) {
+            user.setCurrentYearLevel(currentYearLevel);
+        }
+
+        return userRepository.save(user);
+    }
+
     public User updateUser(User user) {
         return userRepository.save(user);
     }
@@ -123,6 +145,32 @@ public class UserService {
         User user = userOpt.get();
         user.setProfilePictureUrl(profilePictureUrl);
         return userRepository.save(user);
+    }
+
+    /**
+     * Update user's current year level
+     */
+    public User updateYearLevel(Long userId, String newYearLevel) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("User not found with ID: " + userId);
+        }
+
+        User user = userOpt.get();
+        user.setCurrentYearLevel(newYearLevel);
+        return userRepository.save(user);
+    }
+
+    /**
+     * Get user's current year level
+     */
+    public String getCurrentYearLevel(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            return user.getCurrentYearLevel();
+        }
+        return "1"; // Default to first year
     }
 
     public List<User> getAllUsers() {
@@ -187,6 +235,10 @@ public class UserService {
         user.setPushNotificationsEnabled(true); // Disable push notifications by default (user can enable later)
 
         return userRepository.save(user);
+    }
+
+    public boolean isUsernameAvailable(String username) {
+        return userRepository.findByUsername(username).isEmpty();
     }
 
     public static class UserStatistics {

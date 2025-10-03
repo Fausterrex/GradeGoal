@@ -34,6 +34,9 @@ public class Course {
     @Column(name = "year_level")
     private String yearLevel;
 
+    @Column(name = "creation_year_level")
+    private String creationYearLevel;
+
     @Column(name = "credit_hours", nullable = false)
     private Integer creditHours = 3;
 
@@ -115,6 +118,7 @@ public class Course {
         this.semester = semester;
         this.academicYear = academicYear;
         this.yearLevel = yearLevel;
+        this.creationYearLevel = yearLevel; // Set creation year level to current year level
     }
 
     public Long getCourseId() { return courseId; }
@@ -146,6 +150,9 @@ public class Course {
 
     public String getYearLevel() { return yearLevel; }
     public void setYearLevel(String yearLevel) { this.yearLevel = yearLevel; }
+
+    public String getCreationYearLevel() { return creationYearLevel; }
+    public void setCreationYearLevel(String creationYearLevel) { this.creationYearLevel = creationYearLevel; }
 
     public Integer getCreditHours() { return creditHours; }
     public void setCreditHours(Integer creditHours) { this.creditHours = creditHours; }
@@ -218,6 +225,7 @@ public class Course {
                 ", semester=" + semester +
                 ", academicYear='" + academicYear + '\'' +
                 ", yearLevel='" + yearLevel + '\'' +
+                ", creationYearLevel='" + creationYearLevel + '\'' +
                 '}';
     }
 }
