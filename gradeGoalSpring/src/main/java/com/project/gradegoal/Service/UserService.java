@@ -241,6 +241,10 @@ public class UserService {
         return userRepository.findByUsername(username).isEmpty();
     }
 
+    public Optional<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
     public static class UserStatistics {
         private final long totalUsers;
         private final long activeUsers;

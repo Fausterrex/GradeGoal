@@ -10,10 +10,10 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, facebookProvider } from "../../backend/firebase";
-import { loginUser, googleSignIn, facebookSignIn, getUserProfile } from "../../backend/api";
+import { loginUser, googleSignIn, facebookSignIn, getUserProfile, getUserProfileByUsername } from "../../backend/api";
 
 function Login() {
-  const emailRef = useRef();
+  const emailOrUsernameRef = useRef();
   const passwordRef = useRef();
   const { updateCurrentUserWithData } = useAuth();
   const navigate = useNavigate();
@@ -21,43 +21,19 @@ function Login() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState("");
+  const [inputError, setInputError] = useState("");
 
-  // Validates email format using regex pattern
-  // Returns true if valid, false if invalid, and sets error message
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim()) {
-      setEmailError("");
-      return false;
-    }
-    if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address.");
-      return false;
-    }
-    setEmailError("");
-    return true;
-  };
 
-  // Validates email as user types
-  const handleEmailChange = (e) => {
-    validateEmail(e.target.value);
-  };
-
-  // Validates email when user leaves the input field
-  const handleEmailBlur = (e) => {
-    validateEmail(e.target.value);
-  };
-
-  // Handles form submission for email/password login
+  // Handles form submission for email/username login
   // Validates input, authenticates with Firebase, and redirects to dashboard
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    setEmailError("");
+    setInputError("");
 
-    const emailValue = (emailRef.current.value || "").trim();
-    if (!validateEmail(emailValue)) {
+    const emailOrUsername = (emailOrUsernameRef.current.value || "").trim();
+    if (!emailOrUsername) {
+      setInputError("Please enter your email or username.");
       return;
     }
 
@@ -67,12 +43,31 @@ function Login() {
 
     try {
       setError("");
+      setInputError("");
       setSuccess("");
       setLoading(true);
 
-      const email = emailValue;
       const password = passwordRef.current.value;
-      const cred = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Determine if input is email or username
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrUsername);
+      
+      let firebaseEmail;
+      if (isEmail) {
+        firebaseEmail = emailOrUsername;
+      } else {
+        // For username login, we need to get the email first
+        const userProfile = await getUserProfileByUsername(emailOrUsername);
+        setLoading(true);
+        if (!userProfile) {
+          setInputError("Username not found.");
+          setLoading(false);
+          return;
+        }
+        firebaseEmail = userProfile.email;
+      }
+      
+      const cred = await signInWithEmailAndPassword(auth, firebaseEmail, password);
       const firebaseUser = cred.user;
       const userDataFromDB = await loginUser(firebaseUser.email);
 
@@ -268,21 +263,19 @@ function Login() {
             <div className="mb-7 w-full max-w-sm">
               <div className="relative flex items-center">
                 <input
-                  type="email"
-                  ref={emailRef}
+                  type="text"
+                  ref={emailOrUsernameRef}
                   required
-                  placeholder="Email"
+                  placeholder="Email or Username"
                   className={`w-full pl-10 pr-10 py-3 border rounded-full text-base transition-all duration-200 focus:ring-2 focus:ring-[#3B389f]/10 focus:outline-none ${
-                    emailError
+                    inputError
                       ? "border-red-500 focus:border-red-500"
                       : "border-gray-300 focus:border-[#3B389f]"
                   }`}
-                  onChange={handleEmailChange}
-                  onBlur={handleEmailBlur}
                 />
-                {emailError && (
+                {inputError && (
                   <div className="absolute -bottom-6 left-0 text-red-500 text-sm">
-                    {emailError}
+                    {inputError}
                   </div>
                 )}
               </div>

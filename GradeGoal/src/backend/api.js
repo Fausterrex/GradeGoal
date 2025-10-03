@@ -597,6 +597,28 @@ export async function checkUsernameAvailability(username) {
   return data.available;
 }
 
+// Get user profile by username
+export async function getUserProfileByUsername(username) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/users/username/${encodeURIComponent(username)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // User not found
+    }
+    throw new Error("Failed to fetch user profile by username");
+  }
+
+  return response.json();
+}
+
 // Update user profile
 export async function updateUserProfile(email, profileData) {
   // First get the user by email to get the user ID
