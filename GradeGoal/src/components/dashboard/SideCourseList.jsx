@@ -18,6 +18,29 @@ const SideCourseList = ({
   isExpanded = false,
   onToggleExpanded,
 }) => {
+  // Local state for additional filters
+  const [showCompletedCourses, setShowCompletedCourses] = useState(false);
+  const [yearLevelFilter, setYearLevelFilter] = useState("1st year");
+
+  // Helper function to filter courses
+  const getFilteredCourses = () => {
+    let filtered = courses;
+
+    // Filter by active/archived status
+    if (!showArchivedCourses) {
+      filtered = filtered.filter(course => course.isActive !== false);
+    }
+
+    // Filter by completed status
+    if (!showCompletedCourses) {
+      filtered = filtered.filter(course => course.isCompleted !== true);
+    }
+
+    // Always filter by year level (no "all" option)
+    filtered = filtered.filter(course => course.yearLevel === yearLevelFilter);
+
+    return filtered;
+  };
   return (
     <div className="bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white shadow-lg border-l border-gray-200 flex flex-col relative h-screen">
       {/* ========================================
@@ -46,20 +69,53 @@ const SideCourseList = ({
       </div>
 
       {/* ========================================
-          SHOW ARCHIVED COURSES TOGGLE
+          COURSE FILTERS
           ======================================== */}
-      <div className="flex items-center justify-center mb-4">
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showArchivedCourses}
-            onChange={(e) => setShowArchivedCourses(e.target.checked)}
-            className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
-          />
-          <span className="text-sm text-gray-300 font-medium">
-            Show Archived Courses
-          </span>
-        </label>
+      <div className="px-3 mb-4 space-y-3">
+        {/* Archived Courses Toggle */}
+        <div className="flex items-center justify-center">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showArchivedCourses}
+              onChange={(e) => setShowArchivedCourses(e.target.checked)}
+              className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
+            />
+            <span className="text-sm text-gray-300 font-medium">
+              Show Archived
+            </span>
+          </label>
+        </div>
+
+        {/* Completed Courses Toggle */}
+        <div className="flex items-center justify-center">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showCompletedCourses}
+              onChange={(e) => setShowCompletedCourses(e.target.checked)}
+              className="w-4 h-4 text-[#8168C5] bg-gray-100 border-gray-300 rounded focus:ring-[#8168C5] focus:ring-2"
+            />
+            <span className="text-sm text-gray-300 font-medium">
+              Show Completed
+            </span>
+          </label>
+        </div>
+
+        {/* Year Level Filter */}
+        <div className="flex flex-col items-center space-y-1">
+          <span className="text-xs text-gray-400 font-medium">Year Level</span>
+          <select
+            value={yearLevelFilter}
+            onChange={(e) => setYearLevelFilter(e.target.value)}
+            className="px-2 py-1 text-xs bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+          >
+            <option value="1st year" className="text-gray-800">1st Year</option>
+            <option value="2nd year" className="text-gray-800">2nd Year</option>
+            <option value="3rd year" className="text-gray-800">3rd Year</option>
+            <option value="4th year" className="text-gray-800">4th Year</option>
+          </select>
+        </div>
       </div>
 
       {/* ========================================
@@ -67,12 +123,7 @@ const SideCourseList = ({
           ======================================== */}
       <div className="text-center mb-2">
         <span className="text-xs text-gray-400">
-          {
-            courses.filter((course) =>
-              showArchivedCourses ? true : course.isActive !== false
-            ).length
-          }{" "}
-          of {courses.length} courses
+          {getFilteredCourses().length} of {courses.length} courses
         </span>
       </div>
 
@@ -91,10 +142,7 @@ const SideCourseList = ({
             <p className="text-sm">Add courses to see them here</p>
           </div>
         ) : (
-          courses
-            .filter((course) =>
-              showArchivedCourses ? true : course.isActive !== false
-            )
+          getFilteredCourses()
             .map((course) => {
               const colorScheme = getCourseColorScheme(
                 course.name,
@@ -136,7 +184,7 @@ const SideCourseList = ({
                   </div>
 
                   {/* Course Name */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-bold text-white drop-shadow-sm">
                       {course.name}
                     </h3>
@@ -147,6 +195,15 @@ const SideCourseList = ({
                       </svg>
                     </div>
                   </div>
+
+                  {/* Course Details */}
+                  {course.yearLevel && (
+                    <div className="mb-3">
+                      <span className="text-xs text-white/80 bg-black/20 px-2 py-1 rounded-full">
+                        {course.yearLevel} • {course.semester} {course.academicYear}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Progress Bar */}
                   <div className="flex items-center">

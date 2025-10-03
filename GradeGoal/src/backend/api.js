@@ -1400,3 +1400,38 @@ export async function markAllNotificationsAsRead(userId) {
   return response.json();
 }
 
+/**
+ * Mark academic goal as achieved
+ * @param {number} goalId - Goal ID
+ */
+// Manual mark as done function removed - goals are now automatically achieved based on course completion
+
+/**
+ * Mark academic goal as not achieved
+ * @param {number} goalId - Goal ID
+ */
+// Manual unmark as done function removed - goals are now automatically managed based on course completion
+
+/**
+ * Get academic goals by achievement status
+ * @param {number} userId - User ID
+ * @param {boolean} isAchieved - Achievement status filter
+ */
+export async function getGoalsByAchievementStatus(userId, isAchieved) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/academic-goals/user/${userId}/achievement-status?isAchieved=${isAchieved}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to get goals by achievement status with status ${response.status}`);
+  }
+  return response.json();
+}
+

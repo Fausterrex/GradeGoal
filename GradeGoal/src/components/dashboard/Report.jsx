@@ -33,7 +33,7 @@ const Report = () => {
   if (loading) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-4">📊 Academic Report</h1>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <span className="ml-3 text-gray-600">Loading user data...</span>
@@ -46,7 +46,7 @@ const Report = () => {
   if (!currentUser?.userId) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-4">📊 Academic Report</h1>
         <p className="text-gray-500">Please log in to view your reports.</p>
       </div>
     );
@@ -54,7 +54,7 @@ const Report = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">📊 Report Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">📊 Academic Report</h1>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">

@@ -10,11 +10,33 @@ import Login from "./auth/login";
 import ForgotPassword from "./auth/forgotpassword";
 import Landingpage from "./auth/landingpage";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { AchievementProvider, useAchievementNotifications } from "../context/AchievementContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
 import Header from "./auth/Header";
 import AdminDashboard from "./admin/AdminDashboard";
+import AchievementNotificationModal from "./common/AchievementNotificationModal";
+
+// Achievement Modal Manager Component
+function AchievementModalManager() {
+  const { currentNotification, isModalOpen, closeNotification } = useAchievementNotifications();
+
+  if (!isModalOpen || !currentNotification) {
+    return null;
+  }
+
+  return (
+    <AchievementNotificationModal
+      isOpen={isModalOpen}
+      onClose={closeNotification}
+      achievement={currentNotification.type === 'achievement' ? currentNotification.achievement : null}
+      isLevelUp={currentNotification.type === 'levelup'}
+      newLevel={currentNotification.type === 'levelup' ? currentNotification.newLevel : null}
+      levelUpRewards={currentNotification.type === 'levelup' ? currentNotification.levelUpRewards : null}
+    />
+  );
+}
 
 // Role-based routing component
 function AppRoutes() {
@@ -248,19 +270,29 @@ function App() {
           ======================================== */}
       <AuthProvider>
         {/* ========================================
-            MAIN APP CONTAINER
+            ACHIEVEMENT PROVIDER (Global Achievement State)
             ======================================== */}
-        <div className="min-h-screen flex flex-col bg-green-100">
+        <AchievementProvider>
           {/* ========================================
-              MAIN CONTENT AREA
+              MAIN APP CONTAINER
               ======================================== */}
-          <main className="page flex items-center justify-center bg-white">
+          <div className="min-h-screen flex flex-col bg-green-100">
             {/* ========================================
-                ROUTES CONFIGURATION
+                MAIN CONTENT AREA
                 ======================================== */}
-            <AppRoutes />
-          </main>
-        </div>
+            <main className="page flex items-center justify-center bg-white">
+              {/* ========================================
+                  ROUTES CONFIGURATION
+                  ======================================== */}
+              <AppRoutes />
+            </main>
+            
+            {/* ========================================
+                GLOBAL ACHIEVEMENT MODAL
+                ======================================== */}
+            <AchievementModalManager />
+          </div>
+        </AchievementProvider>
       </AuthProvider>
     </Router>
   );

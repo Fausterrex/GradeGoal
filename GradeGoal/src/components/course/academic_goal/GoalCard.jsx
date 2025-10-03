@@ -225,6 +225,13 @@ const GoalCard = ({
 
   const priorityStyles = getPriorityStyles(goal.priority);
 
+  // Check if course is completed (for course-specific goals)
+  const isCourseCompleted = useMemo(() => {
+    if (!goal.courseId) return true; // Non-course goals are always considered "completed" for display purposes
+    const course = courses.find(c => c.courseId === goal.courseId);
+    return course?.isCompleted === true;
+  }, [goal.courseId, courses]);
+
   // Get goal type specific colors
   const getGoalTypeColors = (goalType) => {
     switch (goalType) {
@@ -285,11 +292,17 @@ const GoalCard = ({
             {goal.goalTitle || (goal.courseId ? getCourseName(goal.courseId, courses) : 'Untitled Goal')}
           </h3>
           
-          {/* Priority Badge */}
-          <div className="flex justify-center mb-2">
+          {/* Priority Badge and Achievement Status */}
+          <div className="flex justify-center items-center gap-2 mb-2">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${priorityStyles.badge}`}>
               {goal.priority} PRIORITY
             </span>
+            {goal.isAchieved && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                <Award className="w-3 h-3 mr-1" />
+                ACHIEVED
+              </span>
+            )}
           </div>
           
           {/* Goal Type & Due Date */}
@@ -297,7 +310,12 @@ const GoalCard = ({
             <div className="text-sm text-gray-600 font-medium">{getGoalTypeLabel(goal.goalType)}</div>
             <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
               <Calendar className="w-3 h-3" />
-              <span>{formatGoalDate(goal.targetDate)}</span>
+              <span>
+                {goal.isAchieved && goal.achievedDate 
+                  ? `Achieved: ${formatGoalDate(goal.achievedDate)}`
+                  : `Target: ${formatGoalDate(goal.targetDate)}`
+                }
+              </span>
             </div>
           </div>
         </div>

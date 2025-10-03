@@ -4,12 +4,14 @@ import com.project.gradegoal.Entity.Assessment;
 import com.project.gradegoal.Entity.AssessmentCategory;
 import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Entity.Grade;
+import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Entity.UserAnalytics;
 import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
 import com.project.gradegoal.Repository.CourseRepository;
 import com.project.gradegoal.Repository.UserAnalyticsRepository;
 import com.project.gradegoal.Repository.GradeRepository;
+import com.project.gradegoal.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,15 @@ public class AssessmentService {
     @Autowired
     private GradeRepository gradesRepository;
     
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+    
+    @Autowired
+    private PushNotificationService pushNotificationService;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
     /**
      * Create a new assessment
      * @param assessment Assessment object to create
@@ -61,12 +72,16 @@ public class AssessmentService {
      * @return Created assessment object
      */
     public Assessment createAssessmentInCategory(Long categoryId, Assessment assessment) {
-        Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(categoryId);
-        if (categoryOpt.isPresent()) {
-            assessment.setCategoryId(categoryId);
-            return assessmentRepository.save(assessment);
-        }
-        throw new RuntimeException("Assessment category not found with ID: " + categoryId);
+        AssessmentCategory category = assessmentCategoryRepository.findById(categoryId)
+            .orElseThrow(() -> new RuntimeException("Assessment category not found with ID: " + categoryId));
+        
+        assessment.setCategoryId(categoryId);
+        Assessment savedAssessment = assessmentRepository.save(assessment);
+        
+        // Send notification for newly created assessment
+        sendAssessmentCreatedNotifications(savedAssessment, category);
+        
+        return savedAssessment;
     }
     
     /**
@@ -659,5 +674,80 @@ public class AssessmentService {
     @Transactional
     public void deleteAssessmentsByCategoryId(Long categoryId) {
         assessmentRepository.deleteByCategoryId(categoryId);
+    }
+    
+    /**
+     * Send email and push notifications when an assessment is created
+     */
+    private void sendAssessmentCreatedNotifications(Assessment assessment, AssessmentCategory category) {
+        try {
+            // Get course and user information
+            Optional<Course> courseOpt = courseRepository.findById(category.getCourseId());
+            if (!courseOpt.isPresent()) {
+                return;
+            }
+            
+            Course course = courseOpt.get();
+            Optional<User> userOpt = userRepository.findById(course.getUserId());
+            if (!userOpt.isPresent()) {
+                return;
+            }
+            
+            User user = userOpt.get();
+            String userEmail = user.getEmail();
+            String assessmentName = assessment.getAssessmentName();
+            String courseName = course.getCourseName();
+            String dueDate = assessment.getDueDate() != null ? assessment.getDueDate().toString() : "TBA";
+            String assessmentType = getAssessmentTypeFromName(assessmentName);
+            String semester = course.getSemester().toString();
+            String yearLevel = course.getYearLevel();
+            
+            // Send email notification
+            try {
+                emailNotificationService.sendAssessmentCreatedNotification(
+                    userEmail,
+                    assessmentName,
+                    assessmentType,
+                    courseName,
+                    dueDate,
+                    semester,
+                    yearLevel
+                );
+            } catch (Exception e) {
+                // Log error but don't fail the operation
+            }
+            
+            // Send push notification
+            try {
+                pushNotificationService.sendAssessmentCreatedNotification(
+                    userEmail,
+                    assessmentName,
+                    assessmentType,
+                    courseName,
+                    dueDate
+                );
+            } catch (Exception e) {
+                // Log error but don't fail the operation
+            }
+            
+        } catch (Exception e) {
+            // Log error but don't fail the operation
+        }
+    }
+    
+    /**
+     * Determine assessment type from assessment name
+     */
+    private String getAssessmentTypeFromName(String assessmentName) {
+        if (assessmentName == null) return "Assessment";
+        
+        String name = assessmentName.toLowerCase();
+        if (name.contains("quiz")) return "Quiz";
+        if (name.contains("exam") || name.contains("midterm") || name.contains("final")) return "Assessment";
+        if (name.contains("assignment") || name.contains("project")) return "Assignment";
+        if (name.contains("lab") || name.contains("practical")) return "Laboratory";
+        if (name.contains("presentation")) return "Presentation";
+        
+        return "Assessment";
     }
 }

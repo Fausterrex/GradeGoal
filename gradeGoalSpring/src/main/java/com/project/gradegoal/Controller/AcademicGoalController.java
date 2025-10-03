@@ -158,6 +158,19 @@ public class AcademicGoalController {
         }
     }
 
+    @GetMapping("/user/{userId}/achievement-status")
+    public ResponseEntity<List<AcademicGoal>> getGoalsByAchievementStatus(
+            @PathVariable Long userId,
+            @RequestParam Boolean isAchieved) {
+        try {
+            List<AcademicGoal> goals = academicGoalService.getAcademicGoalsByUserIdAndAchievementStatus(userId, isAchieved);
+            return ResponseEntity.ok(goals);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
     @PutMapping("/{goalId}/priority")
     public ResponseEntity<AcademicGoal> updateGoalPriority(
             @PathVariable Long goalId, 
@@ -207,6 +220,17 @@ public class AcademicGoalController {
             goals = goals.stream()
                 .filter(goal -> goal.getUserId().equals(userId))
                 .toList();
+            return ResponseEntity.ok(goals);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    @GetMapping("/user/{userId}/active")
+    public ResponseEntity<List<AcademicGoal>> getActiveGoals(@PathVariable Long userId) {
+        try {
+            List<AcademicGoal> goals = academicGoalService.getActiveGoals(userId);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
             e.printStackTrace();

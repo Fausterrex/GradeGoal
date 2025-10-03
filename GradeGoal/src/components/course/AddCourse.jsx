@@ -67,6 +67,7 @@ function AddCourse({
     creditHours: 6,
     semester: "FIRST",
     academicYear: new Date().getFullYear().toString(),
+    yearLevel: "1st year",
     gradingScale: GRADING_SCALES.PERCENTAGE,
     maxPoints: 100,
     handleMissing: "exclude",
@@ -90,6 +91,7 @@ function AddCourse({
         semester: editingCourse.semester || "FIRST",
         academicYear:
           editingCourse.academicYear || new Date().getFullYear().toString(),
+        yearLevel: editingCourse.yearLevel || "1st year",
         gradingScale: editingCourse.gradingScale || GRADING_SCALES.PERCENTAGE,
         maxPoints: editingCourse.maxPoints || 100,
         handleMissing: editingCourse.handleMissing || "exclude",
@@ -140,6 +142,7 @@ function AddCourse({
         creditHours: 3,
         semester: currentSemester,
         academicYear: currentAcademicYear,
+        yearLevel: "1st year",
         gradingScale: GRADING_SCALES.PERCENTAGE,
         maxPoints: 100,
         handleMissing: "exclude",
@@ -467,6 +470,7 @@ function AddCourse({
         colorIndex: newCourse.colorIndex,
         semester: newCourse.semester,
         academicYear: newCourse.academicYear,
+        yearLevel: newCourse.yearLevel,
       };
 
       let createdCourse;
@@ -565,6 +569,8 @@ function AddCourse({
         units: 3,
         creditHours: 3,
         semester: "",
+        academicYear: new Date().getFullYear().toString(),
+        yearLevel: "1st year",
         gradingScale: GRADING_SCALES.PERCENTAGE,
         maxPoints: 100,
         handleMissing: "exclude",
@@ -775,6 +781,7 @@ function AddCourse({
                   <option value="FIRST">First Semester</option>
                   <option value="SECOND">Second Semester</option>
                   <option value="THIRD">Third Semester</option>
+                  <option value="SUMMER">Summer</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -836,6 +843,51 @@ function AddCourse({
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Select the academic year for this course
+              </p>
+            </div>
+
+            {/* ========================================
+                YEAR LEVEL DROPDOWN FIELD
+                ======================================== */}
+            <div>
+              <label className="block text-sm font-semibold text-[#3E325F] mb-2">
+                Year Level
+              </label>
+              <div className="relative">
+                <select
+                  value={newCourse.yearLevel}
+                  onChange={(e) => {
+                    setNewCourse({
+                      ...newCourse,
+                      yearLevel: e.target.value,
+                    });
+                  }}
+                  className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="1st year">1st Year</option>
+                  <option value="2nd year">2nd Year</option>
+                  <option value="3rd year">3rd Year</option>
+                  <option value="4th year">4th Year</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg
+                    className="w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the year level for this course
               </p>
             </div>
 

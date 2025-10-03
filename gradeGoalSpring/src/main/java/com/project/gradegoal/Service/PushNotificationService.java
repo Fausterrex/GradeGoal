@@ -274,6 +274,25 @@ public class PushNotificationService {
     }
     
     /**
+     * Send assessment created notification
+     * @param userEmail User's email address
+     * @param assessmentName Assessment name
+     * @param assessmentType Assessment type
+     * @param courseName Course name
+     * @param dueDate Due date
+     * @return true if notification sent successfully
+     */
+    public boolean sendAssessmentCreatedNotification(String userEmail, String assessmentName, String assessmentType, String courseName, String dueDate) {
+        String title = "📚 New Assessment Added - " + courseName;
+        String body = String.format("%s: %s (Due: %s)", assessmentType, assessmentName, dueDate);
+        
+        String data = String.format("{\"type\":\"assessment_created\",\"assessment\":\"%s\",\"assessmentType\":\"%s\",\"course\":\"%s\",\"dueDate\":\"%s\"}", 
+            assessmentName, assessmentType, courseName, dueDate);
+        
+        return sendNotificationToUser(userEmail, title, body, data);
+    }
+    
+    /**
      * Check if user has push notifications enabled
      * @param userEmail User's email address
      * @return true if enabled

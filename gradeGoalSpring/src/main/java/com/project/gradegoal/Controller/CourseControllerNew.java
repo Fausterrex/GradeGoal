@@ -146,6 +146,14 @@ public class CourseControllerNew {
                     course.setAcademicYear("2024");
                 }
 
+                // Handle yearLevel
+                if (data.containsKey("yearLevel")) {
+                    String yearLevelStr = data.get("yearLevel").toString();
+                    if (yearLevelStr != null && !yearLevelStr.isEmpty()) {
+                        course.setYearLevel(yearLevelStr);
+                    }
+                }
+
                 // Handle categorySystem
                 if (data.containsKey("categorySystem")) {
                     String categorySystemStr = data.get("categorySystem").toString();
@@ -246,6 +254,9 @@ public class CourseControllerNew {
                 }
                 if (dataMap.containsKey("academicYear")) {
                     existingCourse.setAcademicYear((String) dataMap.get("academicYear"));
+                }
+                if (dataMap.containsKey("yearLevel")) {
+                    existingCourse.setYearLevel((String) dataMap.get("yearLevel"));
                 }
                 if (dataMap.containsKey("categorySystem")) {
                     existingCourse.setCategorySystem((String) dataMap.get("categorySystem"));

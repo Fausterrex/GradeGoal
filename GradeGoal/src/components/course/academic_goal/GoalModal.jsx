@@ -388,13 +388,19 @@ const GoalModal = ({
                       >
                         🥉 3rd Semester {!editingGoal && hasExistingSemesterGoal('THIRD', formData.academicYear) ? '(Already exists)' : ''}
                       </option>
+                      <option 
+                        value="SUMMER"
+                        disabled={!editingGoal && hasExistingSemesterGoal('SUMMER', formData.academicYear)}
+                      >
+                        ☀️ Summer {!editingGoal && hasExistingSemesterGoal('SUMMER', formData.academicYear) ? '(Already exists)' : ''}
+                      </option>
                     </select>
                     {/* Help text for disabled semester options */}
                     {!editingGoal && formData.academicYear && (
                       <div className="mt-3 space-y-1">
-                        {['FIRST', 'SECOND', 'THIRD'].map(semester => {
+                        {['FIRST', 'SECOND', 'THIRD', 'SUMMER'].map(semester => {
                           const hasExisting = hasExistingSemesterGoal(semester, formData.academicYear);
-                          const semesterName = semester === 'FIRST' ? '1st' : semester === 'SECOND' ? '2nd' : '3rd';
+                          const semesterName = semester === 'FIRST' ? '1st' : semester === 'SECOND' ? '2nd' : semester === 'THIRD' ? '3rd' : 'Summer';
                           return hasExisting ? (
                             <div key={semester} className="flex items-center text-xs text-orange-600">
                               <span className="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>

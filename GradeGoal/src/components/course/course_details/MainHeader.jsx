@@ -61,9 +61,10 @@ function MainHeader({
           <h1 className="text-4xl font-bold text-white mb-2">
             {course.courseName}
           </h1>
-          {/*Course Code, Semester, and Academic Year text*/}
+          {/*Course Code, Semester, Academic Year, and Year Level text*/}
           <p className="text-white/80 text-lg mb-2">
             {course.courseCode} • {course.semester} {course.academicYear}
+            {course.yearLevel && ` • ${course.yearLevel}`}
           </p>
           {/* Instructor Name */}
           {course.instructor && (

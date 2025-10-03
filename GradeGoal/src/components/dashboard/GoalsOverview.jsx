@@ -590,13 +590,6 @@ const GoalCard = ({ goal, courses, gpaData }) => {
           )}
         </div>
         
-        {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="text-xs text-gray-400 mb-1">
-            Debug: AI={aiAchievementProbability?.probability !== undefined ? aiAchievementProbability.probability : 'none'}, 
-            Fallback={progress.achievementProbability}
-          </div>
-        )}
         
         {aiAchievementProbability?.probability !== undefined ? (
           <div className="w-full bg-gray-200 rounded-full h-2">

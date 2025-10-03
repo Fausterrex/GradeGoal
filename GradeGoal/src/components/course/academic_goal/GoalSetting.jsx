@@ -19,7 +19,12 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
   // ========================================
   const [goals, setGoals] = useState([]);
   const [filteredGoals, setFilteredGoals] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState({
+    goalType: '',
+    status: '',
+    yearLevel: '',
+    semester: ''
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,14 +74,73 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     loadGoals();
   }, [user?.userId]);
 
-  // Filter goals when activeFilter or goals change
+  // Filter goals when activeFilters or goals change
   useEffect(() => {
-    if (activeFilter === 'all') {
-      setFilteredGoals(goals);
-    } else {
-      setFilteredGoals(goals.filter(goal => goal.goalType === activeFilter));
+    let filtered = goals;
+    
+    // Apply goal type filter
+    if (activeFilters.goalType && activeFilters.goalType !== 'all') {
+      filtered = filtered.filter(goal => goal.goalType === activeFilters.goalType);
     }
-  }, [goals, activeFilter]);
+    
+    // Apply status filter
+    if (activeFilters.status) {
+      if (activeFilters.status === 'active') {
+        // Active goals: not achieved AND course not completed (for course-specific goals)
+        filtered = filtered.filter(goal => {
+          if (goal.isAchieved === true) return false; // Already achieved
+          
+          // For course-specific goals, check if course is completed
+          if (goal.courseId) {
+            const course = courses.find(c => c.courseId === goal.courseId);
+            return course && course.isCompleted !== true;
+          }
+          
+          // Non-course goals (semester/cumulative) are active until achieved
+          return true;
+        });
+      } else if (activeFilters.status === 'achieved') {
+        filtered = filtered.filter(goal => goal.isAchieved === true);
+      } else if (activeFilters.status === 'not_achieved') {
+        // Not achieved goals: includes active goals + completed courses where goal wasn't achieved
+        filtered = filtered.filter(goal => {
+          if (goal.isAchieved === true) return false; // Already achieved
+          
+          // If course is completed and goal wasn't achieved, this counts as "not achieved"
+          if (goal.courseId) {
+            const course = courses.find(c => c.courseId === goal.courseId);
+            return course && course.isCompleted === true;
+          }
+          
+          return false; // Non-course goals without achievement status don't count as "not achieved"
+        });
+      }
+    }
+    
+    // Apply year level filter
+    if (activeFilters.yearLevel) {
+      filtered = filtered.filter(goal => {
+        if (goal.courseId) {
+          const course = courses.find(c => c.courseId === goal.courseId);
+          return course && course.yearLevel === activeFilters.yearLevel;
+        }
+        return false; // Non-course goals don't have year level
+      });
+    }
+    
+    // Apply semester filter
+    if (activeFilters.semester) {
+      filtered = filtered.filter(goal => {
+        if (goal.courseId) {
+          const course = courses.find(c => c.courseId === goal.courseId);
+          return course && course.semester === activeFilters.semester;
+        }
+        return false; // Non-course goals don't have semester
+      });
+    }
+    
+    setFilteredGoals(filtered);
+  }, [goals, activeFilters, courses]);
 
   // Recalculate progress when grades change (debounced to prevent infinite loops)
   useEffect(() => {
@@ -140,8 +204,58 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     all: goals.length,
     cumulative: goals.filter(goal => goal.goalType === 'CUMMULATIVE_GPA').length,
     semester: goals.filter(goal => goal.goalType === 'SEMESTER_GPA').length,
-    course: goals.filter(goal => goal.goalType === 'COURSE_GRADE').length
+    course: goals.filter(goal => goal.goalType === 'COURSE_GRADE').length,
+    active: goals.filter(goal => {
+      if (goal.isAchieved === true) return false; // Already achieved
+      
+      // For course-specific goals, check if course is completed
+      if (goal.courseId) {
+        const course = courses.find(c => c.courseId === goal.courseId);
+        return course && course.isCompleted !== true;
+      }
+      
+      // Non-course goals (semester/cumulative) are active until achieved
+      return true;
+    }).length,
+    achieved: goals.filter(goal => goal.isAchieved === true).length,
+    notAchieved: goals.filter(goal => {
+      if (goal.isAchieved === true) return false; // Already achieved
+      
+      // If course is completed and goal wasn't achieved, this counts as "not achieved"
+      if (goal.courseId) {
+        const course = courses.find(c => c.courseId === goal.courseId);
+        return course && course.isCompleted === true;
+      }
+      
+      return false; // Non-course goals without achievement status don't count as "not achieved"
+    }).length
   };
+
+  // Add year level and semester counts
+  const yearLevels = [...new Set(courses.map(course => course.yearLevel).filter(Boolean))];
+  const semesters = [...new Set(courses.map(course => course.semester).filter(Boolean))];
+
+  // Calculate year level counts
+  yearLevels.forEach(yearLevel => {
+    goalCounts[`year_${yearLevel}`] = goals.filter(goal => {
+      if (goal.courseId) {
+        const course = courses.find(c => c.courseId === goal.courseId);
+        return course && course.yearLevel === yearLevel;
+      }
+      return false;
+    }).length;
+  });
+
+  // Calculate semester counts
+  semesters.forEach(semester => {
+    goalCounts[`semester_${semester}`] = goals.filter(goal => {
+      if (goal.courseId) {
+        const course = courses.find(c => c.courseId === goal.courseId);
+        return course && course.semester === semester;
+      }
+      return false;
+    }).length;
+  });
 
   // ========================================
   // EVENT HANDLERS
@@ -254,8 +368,8 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     }
   };
 
-  const handleFilterChange = (filter) => {
-    setActiveFilter(filter);
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
   };
 
   // ========================================
@@ -280,9 +394,10 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
 
       {/* Filter */}
       <GoalFilter
-        activeFilter={activeFilter}
+        activeFilters={activeFilters}
         onFilterChange={handleFilterChange}
         goalCounts={goalCounts}
+        courses={courses}
         isCompact={isCompact}
       />
 
@@ -291,9 +406,9 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
         <div className="text-center py-12">
           <div className="text-gray-500 text-lg mb-2">No goals found</div>
           <div className="text-gray-400 text-sm">
-            {activeFilter === 'all' 
+            {Object.values(activeFilters).every(filter => !filter)
               ? 'Create your first academic goal to get started!'
-              : 'No goals found for this category.'
+              : 'No goals found for the current filters.'
             }
           </div>
         </div>

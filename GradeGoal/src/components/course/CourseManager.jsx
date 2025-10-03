@@ -43,6 +43,10 @@ function CourseManager({
   // State for managing completed courses
   const [completedCourses, setCompletedCourses] = useState([]);
   const [showCompleted, setShowCompleted] = useState(false);
+  
+  // State for completed courses filtering
+  const [completedYearFilter, setCompletedYearFilter] = useState("1st year");
+  const [completedSemesterFilter, setCompletedSemesterFilter] = useState("all");
 
   // State for confirmation modals
   const [confirmationModal, setConfirmationModal] = useState({
@@ -59,6 +63,32 @@ function CourseManager({
     onConfirm: null,
     onClose: null,
   });
+
+  // Helper function to filter completed courses
+  const getFilteredCompletedCourses = () => {
+    let filtered = completedCourses;
+    
+    // Debug logging
+    console.log("Completed courses:", completedCourses);
+    console.log("Current year filter:", completedYearFilter);
+    console.log("Current semester filter:", completedSemesterFilter);
+    
+    // Filter by year level - handle cases where yearLevel might be null/undefined
+    filtered = filtered.filter(course => {
+      // If course doesn't have yearLevel, show it in 1st year filter for backward compatibility
+      const courseYearLevel = course.yearLevel || "1st year";
+      console.log(`Course ${course.name}: yearLevel=${course.yearLevel}, using=${courseYearLevel}, matches=${courseYearLevel === completedYearFilter}`);
+      return courseYearLevel === completedYearFilter;
+    });
+    
+    // Filter by semester (keep "all" option for semester since it makes sense within a year level)
+    if (completedSemesterFilter !== "all") {
+      filtered = filtered.filter(course => course.semester === completedSemesterFilter);
+    }
+    
+    console.log("Filtered completed courses:", filtered);
+    return filtered;
+  };
 
   // Effect to handle course updates
   useEffect(() => {
@@ -515,6 +545,11 @@ function CourseManager({
                           <h3 className="text-base font-semibold text-gray-700 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors duration-300">
                             {course.name}
                           </h3>
+                          {course.yearLevel && (
+                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                              {course.yearLevel} • {course.semester} {course.academicYear}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -791,6 +826,11 @@ function CourseManager({
                             <h3 className="text-base font-semibold text-gray-700 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors duration-300">
                               {course.name}
                             </h3>
+                            {course.yearLevel && (
+                              <p className="text-xs text-gray-500 mt-1 font-medium">
+                                {course.yearLevel} • {course.semester} {course.academicYear}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -941,15 +981,64 @@ function CourseManager({
           </button>
           <div className="ml-auto flex items-center">
             <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-md font-bold whitespace-nowrap">
-              {completedCourses.length} Completed
+              {getFilteredCompletedCourses().length} of {completedCourses.length} Completed
             </span>
           </div>
         </div>
 
+        {/* ========================================
+            COMPLETED COURSES FILTERS
+            ======================================== */}
+        {showCompleted && completedCourses.length > 0 && (
+          <div className="mb-6 bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Year Level:</span>
+                <select
+                  value={completedYearFilter}
+                  onChange={(e) => setCompletedYearFilter(e.target.value)}
+                  className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="1st year">1st Year</option>
+                  <option value="2nd year">2nd Year</option>
+                  <option value="3rd year">3rd Year</option>
+                  <option value="4th year">4th Year</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Semester:</span>
+                <select
+                  value={completedSemesterFilter}
+                  onChange={(e) => setCompletedSemesterFilter(e.target.value)}
+                  className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">All Semesters</option>
+                  <option value="FIRST">1st Semester</option>
+                  <option value="SECOND">2nd Semester</option>
+                  <option value="THIRD">3rd Semester</option>
+                  <option value="SUMMER">Summer</option>
+                </select>
+              </div>
+              
+              {completedSemesterFilter !== "all" && (
+                <button
+                  onClick={() => {
+                    setCompletedSemesterFilter("all");
+                  }}
+                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-all duration-200"
+                >
+                  Clear Semester Filter
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {showCompleted &&
-          (completedCourses.length > 0 ? (
+          (getFilteredCompletedCourses().length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {completedCourses.map((course) => {
+              {getFilteredCompletedCourses().map((course) => {
                 // Get course color scheme using stored colorIndex or fallback to generated
                 const colorScheme = getCourseColorScheme(
                   course.name,
@@ -998,6 +1087,11 @@ function CourseManager({
                             <h3 className="text-base font-semibold text-gray-700 leading-tight line-clamp-1 group-hover:text-gray-800 transition-colors duration-300">
                               {course.name}
                             </h3>
+                            {course.yearLevel && (
+                              <p className="text-xs text-gray-500 mt-1 font-medium">
+                                {course.yearLevel} • {course.semester} {course.academicYear}
+                              </p>
+                            )}
                           </div>
                         </div>
 

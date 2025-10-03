@@ -1,12 +1,41 @@
 // ========================================
 // POINTS SYSTEM MODAL COMPONENT
 // ========================================
-// Displays comprehensive points system guide with achievement details
+// Displays comprehensive points system guide with achievement details and checklist
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { getAllAchievementsWithProgress } from "../../backend/api";
+import { useAuth } from "../../context/AuthContext";
 
 function PointsSystemModal({ isOpen, onClose }) {
+  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState("points"); // points, achievements
+  const [achievements, setAchievements] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch achievements when modal opens
+  useEffect(() => {
+    if (isOpen && currentUser?.userId && activeTab === "achievements") {
+      fetchAchievements();
+    }
+  }, [isOpen, currentUser?.userId, activeTab]);
+
+  const fetchAchievements = async () => {
+    if (!currentUser?.userId) return;
+    
+    setLoading(true);
+    try {
+      const response = await getAllAchievementsWithProgress(currentUser.userId);
+      setAchievements(response || []);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      setAchievements([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -21,9 +50,9 @@ function PointsSystemModal({ isOpen, onClose }) {
       {/* Modal Content */}
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[10000]">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-blue-500 text-white p-6 rounded-t-2xl">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Points System Guide</h2>
+        <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-t-2xl">
+          <div className="flex justify-between items-center p-6">
+            <h2 className="text-2xl font-bold">Points & Achievements</h2>
             <button
               onClick={onClose}
               className="text-white hover:text-gray-200 transition-colors"
@@ -37,8 +66,37 @@ function PointsSystemModal({ isOpen, onClose }) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Level System */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+          
+          {/* Tabs - Now inside content */}
+          <div className="flex justify-center">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab("points")}
+                className={`px-6 py-3 rounded-lg mr-1 transition-colors font-medium ${
+                  activeTab === "points"
+                    ? "bg-white text-purple-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                📈 Points System
+              </button>
+              <button
+                onClick={() => setActiveTab("achievements")}
+                className={`px-6 py-3 rounded-lg transition-colors font-medium ${
+                  activeTab === "achievements"
+                    ? "bg-white text-purple-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                🏆 Achievements
+              </button>
+            </div>
+          </div>
+          
+          {activeTab === "points" && (
+            <>
+              {/* Level System */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
               <span className="text-2xl mr-2">📈</span>
               Level System
@@ -425,6 +483,126 @@ function PointsSystemModal({ isOpen, onClose }) {
               </div>
             </div>
           </div>
+            </>
+          )}
+
+          {activeTab === "achievements" && (
+            <div className="space-y-6">
+              {/* Achievements Header */}
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">🏆 Achievement Checklist</h3>
+                <p className="text-gray-600">Track your progress and see what achievements you can unlock next!</p>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Loading achievements...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {achievements.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No achievements data available.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Achievement Categories */}
+                      {["ACADEMIC", "CONSISTENCY", "IMPROVEMENT", "GOAL", "SOCIAL"].map(category => {
+                        const categoryAchievements = achievements.filter(a => a.category === category);
+                        if (categoryAchievements.length === 0) return null;
+
+                        const completedCount = categoryAchievements.filter(a => a.unlocked).length;
+                        const totalCount = categoryAchievements.length;
+
+                        return (
+                          <div key={category} className="bg-white rounded-xl border border-gray-200 p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                                <span className="mr-2">
+                                  {category === "ACADEMIC" && "📚"}
+                                  {category === "CONSISTENCY" && "⏰"}
+                                  {category === "IMPROVEMENT" && "📈"}
+                                  {category === "GOAL" && "🎯"}
+                                  {category === "SOCIAL" && "👥"}
+                                </span>
+                                {category.charAt(0) + category.slice(1).toLowerCase()} Achievements
+                              </h4>
+                              <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                                {completedCount}/{totalCount} completed
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              {categoryAchievements.map(achievement => (
+                                <div 
+                                  key={achievement.achievementId} 
+                                  className={`flex items-start p-4 rounded-lg border-2 transition-all ${
+                                    achievement.unlocked 
+                                      ? "bg-green-50 border-green-200" 
+                                      : "bg-gray-50 border-gray-200"
+                                  }`}
+                                >
+                                  <div className="flex-shrink-0 mr-3 mt-1">
+                                    {achievement.unlocked ? (
+                                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                    ) : (
+                                      <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex-grow">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h5 className={`font-semibold ${
+                                        achievement.unlocked ? "text-green-800" : "text-gray-800"
+                                      }`}>
+                                        {achievement.name}
+                                      </h5>
+                                      <div className="flex items-center space-x-2">
+                                        <span className={`text-sm px-2 py-1 rounded-full ${
+                                          achievement.rarity === "LEGENDARY" ? "bg-yellow-100 text-yellow-800" :
+                                          achievement.rarity === "EPIC" ? "bg-purple-100 text-purple-800" :
+                                          achievement.rarity === "RARE" ? "bg-blue-100 text-blue-800" :
+                                          achievement.rarity === "UNCOMMON" ? "bg-green-100 text-green-800" :
+                                          "bg-gray-100 text-gray-800"
+                                        }`}>
+                                          {achievement.rarity}
+                                        </span>
+                                        <span className="text-sm font-medium text-gray-600">
+                                          +{achievement.points} pts
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    <p className={`text-sm mb-2 ${
+                                      achievement.unlocked ? "text-green-700" : "text-gray-600"
+                                    }`}>
+                                      {achievement.description}
+                                    </p>
+
+                                    {achievement.unlocked && achievement.earnedAt && (
+                                      <p className="text-xs text-green-600">
+                                        ✓ Earned on {new Date(achievement.earnedAt).toLocaleDateString()}
+                                      </p>
+                                    )}
+
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>,

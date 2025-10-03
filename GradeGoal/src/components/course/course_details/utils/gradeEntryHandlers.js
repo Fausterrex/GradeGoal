@@ -46,7 +46,8 @@ export const createScoreSubmitHandler = (
   setSelectedGrade,
   setScoreExtraCredit,
   setScoreExtraCreditPoints,
-  onGradeUpdate
+  onGradeUpdate,
+  checkForAchievements = null
 ) => {
   return async (e) => {
     e.preventDefault();
@@ -95,7 +96,7 @@ export const createScoreSubmitHandler = (
 
             // Award points and check achievements using utility function
             if (currentUserId) {
-              await awardPointsAndCheckAchievements(currentUserId, 10, 'GRADE_ADDED');
+              await awardPointsAndCheckAchievements(currentUserId, 10, 'GRADE_ADDED', checkForAchievements);
             }
 
             // Check if grade alert should be sent (real-time notification)

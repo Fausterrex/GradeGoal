@@ -146,6 +146,47 @@ public class EmailNotificationService {
     }
     
     /**
+     * Send goal achievement notification
+     * @param userEmail User's email address
+     * @param goalTitle Goal title
+     * @param goalType Goal type
+     * @param achievedValue Achieved value
+     * @param courseName Course name
+     * @param semester Semester
+     */
+    public void sendGoalAchievementNotification(String userEmail, String goalTitle, String goalType, String achievedValue, String courseName, String semester) {
+        if (!isEmailNotificationsEnabled(userEmail)) {
+            return;
+        }
+        
+        String subject = "🎯 Goal Achieved - Congratulations!";
+        String content = buildGoalAchievementEmailContent(goalTitle, goalType, achievedValue, courseName, semester);
+        
+        sendEmail(userEmail, subject, content);
+    }
+    
+    /**
+     * Send assessment created notification
+     * @param userEmail User's email address
+     * @param assessmentName Assessment name
+     * @param assessmentType Assessment type (Quiz, Assignment, etc.)
+     * @param courseName Course name
+     * @param dueDate Due date
+     * @param semester Semester
+     * @param yearLevel Year level
+     */
+    public void sendAssessmentCreatedNotification(String userEmail, String assessmentName, String assessmentType, String courseName, String dueDate, String semester, String yearLevel) {
+        if (!isEmailNotificationsEnabled(userEmail)) {
+            return;
+        }
+        
+        String subject = "📚 New Assessment Added - " + courseName;
+        String content = buildAssessmentCreatedEmailContent(assessmentName, assessmentType, courseName, dueDate, semester, yearLevel);
+        
+        sendEmail(userEmail, subject, content);
+    }
+    
+    /**
      * Send email using Gmail SMTP
      * @param toEmail Recipient email
      * @param subject Email subject
@@ -617,6 +658,171 @@ public class EmailNotificationService {
                     </div>
                     <div class="footer">
                         <p>Visit <a href="http://localhost:3000">GradeGoal</a> to manage your assessments and track your progress.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """);
+        
+        return content.toString();
+    }
+    
+    /**
+     * Build HTML content for goal achievement email
+     * @param goalTitle Goal title
+     * @param goalType Goal type
+     * @param achievedValue Achieved value
+     * @param courseName Course name
+     * @param semester Semester
+     * @return HTML email content
+     */
+    private String buildGoalAchievementEmailContent(String goalTitle, String goalType, String achievedValue, String courseName, String semester) {
+        StringBuilder content = new StringBuilder();
+        
+        content.append("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+                    .achievement-box { background: #e8f5e8; border: 1px solid #d4edda; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .goal-display { font-size: 24px; font-weight: bold; color: #28a745; text-align: center; margin: 20px 0; }
+                    .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                    .stat-box { background: #f8f9fa; padding: 15px; text-align: center; border-radius: 4px; flex: 1; margin: 0 5px; }
+                    .stat-label { font-size: 12px; color: #6c757d; margin-bottom: 5px; }
+                    .stat-value { font-size: 18px; font-weight: bold; color: #495057; }
+                    .footer { text-align: center; margin-top: 30px; color: #6c757d; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🎯 Goal Achieved!</h1>
+                        <p>Congratulations on achieving your academic goal!</p>
+                    </div>
+                    <div class="achievement-box">
+                        <h3>Goal Details:</h3>
+                        <p><strong>Goal:</strong> """).append(goalTitle).append("</p>");
+        content.append("<p><strong>Type:</strong> ").append(goalType).append("</p>");
+        content.append("<p><strong>Course:</strong> ").append(courseName).append("</p>");
+        content.append("<p><strong>Semester:</strong> ").append(semester).append("</p>");
+        
+        content.append("<div class=\"goal-display\">");
+        content.append("Achieved: ").append(achievedValue).append("<br>");
+        content.append("🎉 SUCCESS!").append("</div>");
+        
+        content.append("""
+                    </div>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Goal Type</div>
+                            <div class="stat-value">""").append(goalType).append("</div>");
+        content.append("</div>");
+        content.append("<div class=\"stat-box\">");
+        content.append("<div class=\"stat-label\">Achieved Value</div>");
+        content.append("<div class=\"stat-value\">").append(achievedValue).append("</div>");
+        content.append("</div>");
+        content.append("<div class=\"stat-box\">");
+        content.append("<div class=\"stat-label\">Status</div>");
+        content.append("<div class=\"stat-value\">✅ Achieved</div>");
+        content.append("</div>");
+        
+        content.append("""
+                    </div>
+                    <div class="footer">
+                        <p>Keep up the excellent work! Achieving goals is a step towards academic success.</p>
+                        <p>Visit <a href="http://localhost:3000">GradeGoal</a> to track your progress and set new goals.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """);
+        
+        return content.toString();
+    }
+    
+    /**
+     * Build HTML content for assessment created email
+     * @param assessmentName Assessment name
+     * @param assessmentType Assessment type
+     * @param courseName Course name
+     * @param dueDate Due date
+     * @param semester Semester
+     * @param yearLevel Year level
+     * @return HTML email content
+     */
+    private String buildAssessmentCreatedEmailContent(String assessmentName, String assessmentType, String courseName, String dueDate, String semester, String yearLevel) {
+        StringBuilder content = new StringBuilder();
+        
+        content.append("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #4285f4, #34a853); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+                    .assessment-box { background: #e8f0fe; border: 1px solid #d2e3fc; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .assessment-title { font-size: 22px; font-weight: bold; color: #1565c0; text-align: center; margin: 15px 0; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+                    .info-item { background: #f8f9fa; padding: 12px; border-radius: 4px; border-left: 4px solid #4285f4; }
+                    .info-label { font-size: 12px; color: #6c757d; margin-bottom: 3px; text-transform: uppercase; }
+                    .info-value { font-weight: bold; color: #495057; }
+                    .due-date-highlight { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 15px 0; border-radius: 4px; text-align: center; }
+                    .footer { text-align: center; margin-top: 30px; color: #6c757d; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>📚 New Assessment Added</h1>
+                        <p>A new assessment has been added to your course!</p>
+                    </div>
+                    <div class="assessment-box">
+                        <div class="assessment-title">""").append(assessmentName).append("</div>");
+        
+        content.append("<div class=\"info-grid\">");
+        content.append("<div class=\"info-item\">");
+        content.append("<div class=\"info-label\">Assessment Type</div>");
+        content.append("<div class=\"info-value\">").append(assessmentType).append("</div>");
+        content.append("</div>");
+        content.append("<div class=\"info-item\">");
+        content.append("<div class=\"info-label\">Course</div>");
+        content.append("<div class=\"info-value\">").append(courseName).append("</div>");
+        content.append("</div>");
+        content.append("<div class=\"info-item\">");
+        content.append("<div class=\"info-label\">Semester</div>");
+        content.append("<div class=\"info-value\">").append(semester).append("</div>");
+        content.append("</div>");
+        content.append("<div class=\"info-item\">");
+        content.append("<div class=\"info-label\">Year Level</div>");
+        content.append("<div class=\"info-value\">").append(yearLevel).append("</div>");
+        content.append("</div>");
+        content.append("</div>");
+        
+        content.append("<div class=\"due-date-highlight\">");
+        content.append("<h3 style=\"margin: 0; color: #856404;\">📅 Due Date</h3>");
+        content.append("<p style=\"margin: 5px 0; font-size: 18px; font-weight: bold; color: #856404;\">").append(dueDate).append("</p>");
+        content.append("</div>");
+        
+        content.append("""
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #495057;">💡 Important Notes:</h4>
+                        <ul style="margin: 0; padding-left: 20px;">
+                            <li>Make sure to prepare thoroughly for this assessment</li>
+                            <li>Check the due date and plan your schedule accordingly</li>
+                            <li>Review course materials and assignments</li>
+                            <li>Contact your instructor if you have any questions</li>
+                        </ul>
+                    </div>
+                    <div class="footer">
+                        <p>Stay organized and on top of your assignments!</p>
+                        <p>Visit <a href="http://localhost:3000">GradeGoal</a> to track your progress and manage your assessments.</p>
                     </div>
                 </div>
             </body>

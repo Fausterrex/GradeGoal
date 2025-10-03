@@ -4,10 +4,12 @@ import com.project.gradegoal.Entity.Grade;
 import com.project.gradegoal.Entity.Assessment;
 import com.project.gradegoal.Entity.AssessmentCategory;
 import com.project.gradegoal.Entity.Course;
+import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Repository.GradeRepository;
 import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
 import com.project.gradegoal.Repository.CourseRepository;
+import com.project.gradegoal.Repository.UserRepository;
 import com.project.gradegoal.Service.DatabaseCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,15 @@ public class GradeService {
     
     @Autowired
     private DatabaseCalculationService databaseCalculationService;
+    
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+    
+    @Autowired
+    private PushNotificationService pushNotificationService;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     @Autowired
     private CourseRepository courseRepository;
@@ -326,6 +337,9 @@ public class GradeService {
             assessment.setCreatedAt(LocalDateTime.now());
 
             Assessment savedAssessment = assessmentRepository.save(assessment);
+            
+            // Send notification for newly created assessment
+            sendAssessmentCreatedNotifications(savedAssessment, category.get());
 
             Grade grade = new Grade();
             grade.setAssessmentId(savedAssessment.getAssessmentId());
@@ -461,6 +475,81 @@ public class GradeService {
             System.err.println("Error getting userId from course: " + e.getMessage());
         }
         return null;
+    }
+    
+    /**
+     * Send email and push notifications when an assessment is created
+     */
+    private void sendAssessmentCreatedNotifications(Assessment assessment, AssessmentCategory category) {
+        try {
+            // Get course and user information
+            Optional<Course> courseOpt = courseRepository.findById(category.getCourseId());
+            if (!courseOpt.isPresent()) {
+                return;
+            }
+            
+            Course course = courseOpt.get();
+            Optional<User> userOpt = userRepository.findById(course.getUserId());
+            if (!userOpt.isPresent()) {
+                return;
+            }
+            
+            User user = userOpt.get();
+            String userEmail = user.getEmail();
+            String assessmentName = assessment.getAssessmentName();
+            String courseName = course.getCourseName();
+            String dueDate = assessment.getDueDate() != null ? assessment.getDueDate().toString() : "TBA";
+            String assessmentType = getAssessmentTypeFromName(assessmentName);
+            String semester = course.getSemester().toString();
+            String yearLevel = course.getYearLevel();
+            
+            // Send email notification
+            try {
+                emailNotificationService.sendAssessmentCreatedNotification(
+                    userEmail,
+                    assessmentName,
+                    assessmentType,
+                    courseName,
+                    dueDate,
+                    semester,
+                    yearLevel
+                );
+            } catch (Exception e) {
+                // Log error but don't fail the operation
+            }
+            
+            // Send push notification
+            try {
+                pushNotificationService.sendAssessmentCreatedNotification(
+                    userEmail,
+                    assessmentName,
+                    assessmentType,
+                    courseName,
+                    dueDate
+                );
+            } catch (Exception e) {
+                // Log error but don't fail the operation
+            }
+            
+        } catch (Exception e) {
+            // Log error but don't fail the operation
+        }
+    }
+    
+    /**
+     * Determine assessment type from assessment name
+     */
+    private String getAssessmentTypeFromName(String assessmentName) {
+        if (assessmentName == null) return "Assessment";
+        
+        String name = assessmentName.toLowerCase();
+        if (name.contains("quiz")) return "Quiz";
+        if (name.contains("exam") || name.contains("midterm") || name.contains("final")) return "Exam";
+        if (name.contains("assignment") || name.contains("project")) return "Assignment";
+        if (name.contains("lab") || name.contains("practical")) return "Laboratory";
+        if (name.contains("presentation")) return "Presentation";
+        
+        return "Assessment";
     }
 
 }

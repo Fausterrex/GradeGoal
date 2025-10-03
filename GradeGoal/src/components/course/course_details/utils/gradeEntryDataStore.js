@@ -220,14 +220,19 @@ export const deleteAssessment = async (assessmentId) => {
 /**
  * Award points and trigger achievement checks
  */
-export const awardPointsAndCheckAchievements = async (userId, points, activityType) => {
+export const awardPointsAndCheckAchievements = async (userId, points, activityType, checkForAchievementsCallback = null) => {
   try {
     await awardPoints(userId, points, activityType);
     await checkGoalProgress(userId);
     await checkGradeAlerts(userId);
     
-    // Check for achievements (this will award achievements and send notifications)
-    await checkAchievements(userId);
+    // Check for achievements using the callback if provided, otherwise use direct API call
+    if (checkForAchievementsCallback) {
+      await checkForAchievementsCallback();
+    } else {
+      // Fallback to direct API call (for backward compatibility)
+      await checkAchievements(userId);
+    }
     
     return { success: true };
   } catch (error) {

@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useAchievements } from "../../../hooks/useAchievements";
 import AddCourse from "../AddCourse";
 import GradeSuccessFeedback from "../GradeSuccessFeedback";
 import ConfirmationModal from "../../common/ConfirmationModal";
@@ -76,6 +77,9 @@ import {
 function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClearSelectedCourse, onCloseCourseManager }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  
+  // Initialize achievement checking hook
+  const { checkForAchievements } = useAchievements(currentUser?.userId);
 
   // Debug log when GradeEntry component mounts/renders
   useEffect(() => {
@@ -379,7 +383,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     setSelectedGrade,
     setScoreExtraCredit,
     setScoreExtraCreditPoints,
-    onGradeUpdate
+    onGradeUpdate,
+    checkForAchievements
   );
 
   // Create handler using utility function

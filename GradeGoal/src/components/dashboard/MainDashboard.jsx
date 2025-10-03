@@ -446,14 +446,14 @@ function MainDashboard({ initialTab = "overview" }) {
     ) {
       loadAllGrades(courses);
     }
-  }, [courses, activeTab, loadAllGrades]);
+  }, [courses.length, activeTab, loadAllGrades]);
 
   // Load grades when switching to goals tab
   useEffect(() => {
     if (activeTab === "goals" && courses.length > 0 && Object.keys(grades).length === 0) {
       loadAllGrades(courses);
     }
-  }, [activeTab, courses, grades, loadAllGrades]);
+  }, [activeTab, courses.length, Object.keys(grades).length, loadAllGrades]);
 
   useEffect(() => {
     // Only set initial tab on first load, not on every courses update
@@ -473,7 +473,7 @@ function MainDashboard({ initialTab = "overview" }) {
         }
       }
     }
-  }, [initialTab, courses, activeTab]);
+  }, [initialTab, courses.length, activeTab]);
 
   useEffect(() => {
     const handlePopState = (event) => {
@@ -516,7 +516,7 @@ function MainDashboard({ initialTab = "overview" }) {
     // Only add the event listener, don't call handlePopState immediately
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [courses, isCourseManagerExpanded]);
+  }, [courses.length, isCourseManagerExpanded]);
 
   useEffect(() => {
     if (selectedCourse) {

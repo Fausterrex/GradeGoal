@@ -440,10 +440,11 @@ public class AchievementService {
      */
     public List<Map<String, Object>> getAllAchievementsWithProgress(Long userId) {
         List<Achievement> allAchievements = achievementRepository.findByIsActiveTrue();
-        Set<Integer> earnedIds = userAchievementRepository.findByUserId(userId)
-            .stream()
-            .map(UserAchievement::getAchievementId)
-            .collect(Collectors.toSet());
+        List<UserAchievement> userAchievements = userAchievementRepository.findByUserId(userId);
+        
+        // Create a map for quick lookup of earned achievements
+        Map<Integer, UserAchievement> earnedMap = userAchievements.stream()
+            .collect(Collectors.toMap(UserAchievement::getAchievementId, ua -> ua));
         
         return allAchievements.stream().map(achievement -> {
             Map<String, Object> data = new HashMap<>();
@@ -453,7 +454,15 @@ public class AchievementService {
             data.put("category", achievement.getCategory());
             data.put("rarity", achievement.getRarity());
             data.put("points", achievement.getPointsValue());
-            data.put("unlocked", earnedIds.contains(achievement.getAchievementId()));
+            data.put("unlockCriteria", achievement.getUnlockCriteria());
+            
+            UserAchievement userAchievement = earnedMap.get(achievement.getAchievementId());
+            boolean isUnlocked = userAchievement != null;
+            data.put("unlocked", isUnlocked);
+            
+            if (isUnlocked && userAchievement != null) {
+                data.put("earnedAt", userAchievement.getEarnedAt());
+            }
             
             return data;
         }).collect(Collectors.toList());

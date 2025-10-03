@@ -45,6 +45,9 @@ public class CourseService {
     private AcademicGoalRepository academicGoalRepository;
 
     @Autowired
+    private AcademicGoalService academicGoalService;
+
+    @Autowired
     private UserAnalyticsRepository userAnalyticsRepository;
 
     @Autowired
@@ -71,6 +74,7 @@ public class CourseService {
         existingCourse.setCourseCode(courseData.getCourseCode());
         existingCourse.setSemester(courseData.getSemester());
         existingCourse.setAcademicYear(courseData.getAcademicYear());
+        existingCourse.setYearLevel(courseData.getYearLevel());
         existingCourse.setCreditHours(courseData.getCreditHours());
         // Target grades are now managed through the Academic Goals system
         existingCourse.setInstructorName(courseData.getInstructorName());
@@ -223,6 +227,15 @@ public class CourseService {
 
             Course savedCourse = courseRepository.save(course);
 
+            // Evaluate academic goals when course is completed
+            try {
+                academicGoalService.evaluateGoalsOnCourseCompletion(courseId);
+                logger.info("Academic goals evaluated for completed course: {}", courseId);
+            } catch (Exception e) {
+                logger.error("Error evaluating academic goals for course: {}", courseId, e);
+                // Don't fail the course completion if goal evaluation fails
+            }
+
             // Send course completion notifications
             try {
                 // Get user information for notifications
@@ -288,7 +301,18 @@ public class CourseService {
 
             // Only mark as not completed - preserve existing grades
             course.setIsCompleted(false);
-            return courseRepository.save(course);
+            Course savedCourse = courseRepository.save(course);
+
+            // Reactivate academic goals when course is marked as incomplete
+            try {
+                academicGoalService.reactivateGoalsOnCourseIncomplete(courseId);
+                logger.info("Academic goals reactivated for incomplete course: {}", courseId);
+            } catch (Exception e) {
+                logger.error("Error reactivating academic goals for course: {}", courseId, e);
+                // Don't fail the course uncomplete if goal reactivation fails
+            }
+
+            return savedCourse;
         }
         return null;
     }

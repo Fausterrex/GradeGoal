@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { checkAchievements } from '../backend/api';
+import { useAchievementNotifications } from '../context/AchievementContext';
 
 /**
  * Custom hook for achievement checking and management
@@ -8,6 +9,7 @@ import { checkAchievements } from '../backend/api';
 export const useAchievements = (userId) => {
   const [isChecking, setIsChecking] = useState(false);
   const [newAchievements, setNewAchievements] = useState([]);
+  const { showAchievementNotification, showLevelUpNotification } = useAchievementNotifications();
 
   /**
    * Check for achievements and return newly unlocked ones
@@ -22,12 +24,17 @@ export const useAchievements = (userId) => {
       if (response.success && response.newlyUnlocked && response.newlyUnlocked.length > 0) {
         setNewAchievements(response.newlyUnlocked);
         
-        // Show achievement notification toast for each new achievement
+        // Show achievement notification modal for each new achievement
         response.newlyUnlocked.forEach(achievement => {
-          showAchievementToast(achievement);
+          showAchievementNotification(achievement);
         });
         
         return response.newlyUnlocked;
+      }
+      
+      // Check for level up notifications in the response
+      if (response.success && response.levelUpInfo && response.levelUpInfo.leveledUp) {
+        showLevelUpNotification(response.levelUpInfo.newLevel, response.levelUpInfo.rewards);
       }
       
       return [];
@@ -37,42 +44,7 @@ export const useAchievements = (userId) => {
     } finally {
       setIsChecking(false);
     }
-  }, [userId, isChecking]);
-
-  /**
-   * Show achievement toast notification
-   */
-  const showAchievementToast = (achievement) => {
-    // Check if browser supports notifications
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
-      return;
-    }
-
-    const rarityEmojis = {
-      LEGENDARY: '🏆',
-      EPIC: '💎',
-      RARE: '⭐',
-      UNCOMMON: '🎖️',
-      COMMON: '🏅'
-    };
-
-    const emoji = rarityEmojis[achievement.rarity] || '🎉';
-    const title = `${emoji} Achievement Unlocked!`;
-    const body = `${achievement.achievementName} - ${achievement.description}`;
-
-    // Create a custom browser notification if permission is granted
-    if (Notification.permission === 'granted') {
-      new Notification(title, {
-        body: body,
-        icon: '/vite.svg', // You can replace with achievement icon
-        badge: '/vite.svg',
-        tag: `achievement-${achievement.achievementId}`,
-        requireInteraction: achievement.rarity === 'LEGENDARY',
-        vibrate: achievement.rarity === 'LEGENDARY' ? [200, 100, 200] : [100]
-      });
-    }
-  };
+  }, [userId, isChecking, showAchievementNotification, showLevelUpNotification]);
 
   /**
    * Clear new achievements

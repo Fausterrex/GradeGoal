@@ -358,19 +358,19 @@ const MyCalendar = () => {
       {/* Legend */}
       <div className="flex justify-center gap-6 my-5 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-red-500 to-red-600"></div>
+          <div className="w-3.5 h-3.5 rounded shadow-sm" style={{backgroundColor: "#F44336"}}></div>
           <span>Overdue Assessments</span>
         </div>
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-indigo-500 to-purple-500"></div>
+          <div className="w-3.5 h-3.5 rounded shadow-sm" style={{backgroundColor: "#2196F3"}}></div>
           <span>Upcoming Assessments</span>
         </div>
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-green-500 to-green-600"></div>
+          <div className="w-3.5 h-3.5 rounded shadow-sm" style={{backgroundColor: "#4CAF50"}}></div>
           <span>Completed Assessments</span>
         </div>
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          <div className="w-3.5 h-3.5 rounded shadow-sm bg-gradient-to-br from-purple-500 to-purple-600"></div>
+          <div className="w-3.5 h-3.5 rounded shadow-sm" style={{backgroundColor: "#9C27B0"}}></div>
           <span>Custom Events</span>
         </div>
       </div>

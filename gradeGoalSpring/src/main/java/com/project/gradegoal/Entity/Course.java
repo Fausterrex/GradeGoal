@@ -31,6 +31,9 @@ public class Course {
     @Column(name = "academic_year", nullable = false)
     private String academicYear;
 
+    @Column(name = "year_level")
+    private String yearLevel;
+
     @Column(name = "credit_hours", nullable = false)
     private Integer creditHours = 3;
 
@@ -104,6 +107,16 @@ public class Course {
         this.academicYear = academicYear;
     }
 
+    public Course(Long userId, String courseCode, String courseName, Semester semester, String academicYear, String yearLevel) {
+        this();
+        this.userId = userId;
+        this.courseCode = courseCode;
+        this.courseName = courseName;
+        this.semester = semester;
+        this.academicYear = academicYear;
+        this.yearLevel = yearLevel;
+    }
+
     public Long getCourseId() { return courseId; }
     public void setCourseId(Long courseId) { this.courseId = courseId; }
 
@@ -130,6 +143,9 @@ public class Course {
 
     public String getAcademicYear() { return academicYear; }
     public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
+    public String getYearLevel() { return yearLevel; }
+    public void setYearLevel(String yearLevel) { this.yearLevel = yearLevel; }
 
     public Integer getCreditHours() { return creditHours; }
     public void setCreditHours(Integer creditHours) { this.creditHours = creditHours; }
@@ -201,6 +217,7 @@ public class Course {
                 ", courseName='" + courseName + '\'' +
                 ", semester=" + semester +
                 ", academicYear='" + academicYear + '\'' +
+                ", yearLevel='" + yearLevel + '\'' +
                 '}';
     }
 }

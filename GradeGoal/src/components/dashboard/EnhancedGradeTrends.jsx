@@ -4,7 +4,7 @@
 // This component displays GPA cards and grade progression charts
 // Features: GPA calculations, grade trends, filter options, course selection
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Line,
   XAxis,
@@ -46,6 +46,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [viewMode, setViewMode] = useState("semester"); // semester, cumulative, individual, comparison
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [currentSemester, setCurrentSemester] = useState("FIRST"); // Current semester filter
+  const [selectedYearLevel, setSelectedYearLevel] = useState("1st year"); // Year level filter
   const [targetGPAInfo, setTargetGPAInfo] = useState({
     semesterTarget: 0,
     cumulativeTarget: 0,
@@ -60,8 +61,13 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [cumulativeGPA, setCumulativeGPA] = useState(0);
   const [userId, setUserId] = useState(null);
 
+  // Helper function to filter courses by year level
+  const filterCoursesByYearLevel = (coursesToFilter) => {
+    return coursesToFilter.filter(course => course.yearLevel === selectedYearLevel);
+  };
+
   // Load userAnalytics data for the selected course
-  const loadUserAnalytics = async () => {
+  const loadUserAnalytics = useCallback(async () => {
     try {
 
       // Always clear analytics first to prevent state pollution
@@ -100,8 +106,8 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           console.log('❌ [EnhancedGradeTrends] Failed to load individual analytics:', analyticsResponse.status);
         }
       } else {
-        // Semester/Cumulative mode: load analytics for all courses
-        const activeCourses = courses.filter(course => course.isActive !== false);
+        // Semester/Cumulative mode: load analytics for all courses (filtered by year level)
+        const activeCourses = filterCoursesByYearLevel(courses.filter(course => course.isActive !== false));
         console.log('📊 [EnhancedGradeTrends] Loading semester/cumulative analytics', {
           activeCourses: activeCourses.map(c => ({ id: c.id, name: c.name })),
           semester: currentSemester,
@@ -158,7 +164,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       console.error("❌ [EnhancedGradeTrends] Error loading user analytics:", error);
       setUserAnalytics([]);
     }
-  };
+  }, [viewMode, selectedCourse?.id, currentSemester, courses, selectedYearLevel]);
 
   // Set default selected course when courses are loaded
   useEffect(() => {
@@ -168,7 +174,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         setSelectedCourse(firstActiveCourse);
       }
     }
-  }, [courses, selectedCourse]);
+  }, [courses.length, selectedCourse?.id]);
 
   // Load userAnalytics when selectedCourse or viewMode changes
   useEffect(() => {
@@ -182,7 +188,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     if (currentUser) {
       loadUserAnalytics();
     }
-  }, [selectedCourse, currentUser, viewMode, currentSemester]);
+  }, [selectedCourse?.id, currentUser?.userId, viewMode, currentSemester, selectedYearLevel]);
 
   // Load user ID and calculate GPAs when component mounts or data changes
   useEffect(() => {
@@ -190,11 +196,17 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       loadTargetGPAInfo();
       calculateGPAs();
     }
-  }, [currentUser, selectedCourse, courses, grades, gpaData]);
+  }, [currentUser?.userId, selectedCourse?.id, courses.length]);
 
-  // Recalculate GPAs when semester changes
+  // Recalculate GPAs when semester changes OR when gpaData becomes available
   useEffect(() => {
     if (gpaData) {
+      console.log('🔄 [EnhancedGradeTrends] Calculating GPAs due to gpaData/semester change:', {
+        gpaData: !!gpaData,
+        currentSemester,
+        firstSemesterGPA: gpaData.firstSemesterGPA,
+        cumulativeGPA: gpaData.cumulativeGPA
+      });
       calculateGPAs();
     }
   }, [currentSemester, gpaData]);
@@ -279,6 +291,19 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   };
 
   const calculateGPAs = async () => {
+    console.log('🔢 [EnhancedGradeTrends] Calculating GPAs with data:', {
+      hasGpaData: !!gpaData,
+      currentSemester,
+      gpaData: gpaData ? {
+        firstSemesterGPA: gpaData.firstSemesterGPA,
+        secondSemesterGPA: gpaData.secondSemesterGPA,
+        thirdSemesterGPA: gpaData.thirdSemesterGPA,
+        summerSemesterGPA: gpaData.summerSemesterGPA,
+        semesterGPA: gpaData.semesterGPA,
+        cumulativeGPA: gpaData.cumulativeGPA
+      } : null
+    });
+
     // Use semester-specific GPA based on currentSemester
     let semestralGPA = 0;
     if (gpaData) {
@@ -299,6 +324,13 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           semestralGPA = gpaData.semesterGPA || 0;
       }
     }
+
+    console.log('🔢 [EnhancedGradeTrends] Calculated semestral GPA:', {
+      currentSemester,
+      semestralGPA,
+      source: gpaData ? `${currentSemester}_GPA` : 'no gpaData'
+    });
+
     setCurrentSemestralGPA(semestralGPA);
 
     // Calculate individual course GPA if a course is selected
@@ -336,7 +368,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       return [];
     }
 
-    const activeCourses = courses.filter((course) => course.isActive !== false);
+    const activeCourses = filterCoursesByYearLevel(courses.filter((course) => course.isActive !== false));
     if (activeCourses.length === 0) {
       console.log('❌ [EnhancedGradeTrends] No active courses available');
       return [];
@@ -491,15 +523,16 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
 
     return weeklyData;
   }, [
-    courses,
-    userAnalytics,
-    selectedCourse,
+    courses.length,
+    userAnalytics.length,
+    selectedCourse?.id,
     viewMode,
     currentCourseGPA,
     currentSemestralGPA,
     cumulativeGPA,
     overallGPA,
-    currentSemester
+    currentSemester,
+    selectedYearLevel
   ]);
 
 
@@ -592,9 +625,11 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               // Clear analytics to force reload with fresh data
               setUserAnalytics([]);
               
-              // Filter courses by current semester
-              const semesterCourses = courses.filter(
-                (course) => course.isActive !== false && course.semester === currentSemester
+              // Filter courses by current semester and year level
+              const semesterCourses = filterCoursesByYearLevel(
+                courses.filter(
+                  (course) => course.isActive !== false && course.semester === currentSemester
+                )
               );
               
               // Check if current selected course is in the current semester
@@ -623,6 +658,32 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             Individual Courses
           </button>
         </div>
+
+        {/* ========================================
+            YEAR LEVEL FILTER
+            ======================================== */}
+        {(viewMode === "semester" || viewMode === "individual") && (
+          <div className="flex gap-2 items-center">
+            <span className="text-sm font-medium text-gray-600">Year Level:</span>
+            <select
+              value={selectedYearLevel}
+              onChange={(e) => {
+                setSelectedYearLevel(e.target.value);
+                // Clear selected course when year level changes in individual mode
+                if (viewMode === "individual") {
+                  setSelectedCourse(null);
+                  setUserAnalytics([]);
+                }
+              }}
+              className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="1st year">1st Year</option>
+              <option value="2nd year">2nd Year</option>
+              <option value="3rd year">3rd Year</option>
+              <option value="4th year">4th Year</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* ========================================
@@ -897,16 +958,22 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                       to: semester,
                       viewMode
                     });
-                    setCurrentSemester(semester);
-                    // Clear analytics to force reload with new semester
-                    setUserAnalytics([]);
                     
-                    // If in individual mode, check if selected course belongs to new semester
-                    if (viewMode === "individual" && selectedCourse) {
-                      if (selectedCourse.semester !== semester) {
-                        console.log('🎯 [EnhancedGradeTrends] Selected course not in new semester, clearing selection');
-                        setSelectedCourse(null);
+                    // Only update if semester is different
+                    if (currentSemester !== semester) {
+                      setCurrentSemester(semester);
+                      // Clear analytics to force reload with new semester
+                      setUserAnalytics([]);
+                      
+                      // If in individual mode, check if selected course belongs to new semester
+                      if (viewMode === "individual" && selectedCourse) {
+                        if (selectedCourse.semester !== semester) {
+                          console.log('🎯<｜tool▁call▁begin｜>[EnhancedGradeTrends] Selected course not in new semester, clearing selection');
+                          setSelectedCourse(null);
+                        }
                       }
+                    } else {
+                      console.log('📌 [EnhancedGradeTrends] Same semester clicked, no action needed');
                     }
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -967,14 +1034,20 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                        viewMode,
                        selectedCourse: selectedCourse?.name
                      });
-                     setCurrentSemester(semester);
-                     // Clear analytics to force reload with new semester data
-                     setUserAnalytics([]);
                      
-                     // Check if selected course belongs to new semester
-                     if (selectedCourse && selectedCourse.semester !== semester) {
-                       console.log('🎯 [EnhancedGradeTrends] Selected course not in new semester, clearing selection');
-                       setSelectedCourse(null);
+                     // Only update if semester is different
+                     if (currentSemester !== semester) {
+                       setCurrentSemester(semester);
+                       // Clear analytics to force reload with new semester data
+                       setUserAnalytics([]);
+                       
+                       // Check if selected course belongs to new semester
+                       if (selectedCourse && selectedCourse.semester !== semester) {
+                         console.log('🎯 [EnhancedGradeTrends] Selected course not in new semester, clears selection');
+                         setSelectedCourse(null);
+                       }
+                     } else {
+                       console.log('📌 [EnhancedGradeTrends] Same semester clicked in individual mode, no action needed');
                      }
                    }}
                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -996,7 +1069,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               COURSE SELECTION GRID
               ======================================== */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {courses.filter((course) => course.isActive !== false).length ===
+            {filterCoursesByYearLevel(courses.filter((course) => course.isActive !== false)).length ===
             0 ? (
               <div className="col-span-full text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -1010,8 +1083,8 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                 </p>
               </div>
             ) : (
-              courses
-                .filter((course) => course.isActive !== false)
+              filterCoursesByYearLevel(courses
+                .filter((course) => course.isActive !== false))
                 .filter((course) => {
                   // Filter courses by current semester
                   const courseSemester = course.semester;
