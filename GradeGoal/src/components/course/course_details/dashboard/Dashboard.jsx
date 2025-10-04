@@ -24,6 +24,8 @@ function Dashboard({
   userProgress,
   userAnalytics,
   userId,
+  activeSemesterTerm,
+  isMidtermCompleted,
   onSetGoal = () => {} // Callback for setting goals
 }) {
   const [aiAnalysisRefreshTrigger, setAiAnalysisRefreshTrigger] = useState(0);
@@ -39,6 +41,7 @@ function Dashboard({
           categories={categories}
           targetGrade={targetGrade}
           currentGrade={currentGrade}
+          activeSemesterTerm={activeSemesterTerm}
           onAnalysisComplete={(result) => {
             console.log('AI Analysis completed:', result);
             // Trigger refresh of AI recommendations
@@ -103,6 +106,8 @@ function Dashboard({
                   categories={categories}
                   colorScheme={colorScheme}
                   userAnalytics={userAnalytics}
+                  isMidtermCompleted={isMidtermCompleted}
+                  activeSemesterTerm={activeSemesterTerm}
                 />
               </div>
             </div>

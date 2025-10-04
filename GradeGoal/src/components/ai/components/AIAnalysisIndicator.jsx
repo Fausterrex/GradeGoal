@@ -23,6 +23,7 @@ const AIAnalysisIndicator = ({
   categories, 
   targetGrade, 
   currentGrade,
+  activeSemesterTerm,
   onAnalysisComplete,
   courses = [] // Add courses prop for cumulative GPA semester counting
 }) => {
@@ -57,9 +58,10 @@ const AIAnalysisIndicator = ({
       assessmentsCount,
       categoriesData,
       targetData,
-      currentGrade: currentGrade || 0
+      currentGrade: currentGrade || 0,
+      activeSemesterTerm
     });
-  }, [course, grades, categories, targetGrade, currentGrade]);
+  }, [course, grades, categories, targetGrade, currentGrade, activeSemesterTerm]);
 
   // Check if analysis exists and detect changes
   useEffect(() => {
@@ -113,16 +115,36 @@ const AIAnalysisIndicator = ({
         return;
       }
       
+      // Filter grades by MIDTERM for AI analysis (always analyze MIDTERM performance)
+      const filteredGrades = {};
+      if (grades) {
+        console.log('🔍 [AIAnalysisIndicator] Original grades:', grades);
+        console.log('🔍 [AIAnalysisIndicator] Active semester term:', activeSemesterTerm);
+        console.log('🔍 [AIAnalysisIndicator] FORCING AI to analyze MIDTERM data for accurate analysis');
+        
+        Object.keys(grades).forEach(categoryId => {
+          const categoryGrades = grades[categoryId] || [];
+          const filteredCategoryGrades = categoryGrades.filter(grade => 
+            grade.semesterTerm === 'MIDTERM' // Always analyze MIDTERM data
+          );
+          filteredGrades[categoryId] = filteredCategoryGrades;
+          console.log(`🔍 [AIAnalysisIndicator] Category ${categoryId}: ${categoryGrades.length} total, ${filteredCategoryGrades.length} for MIDTERM`);
+        });
+        
+        console.log('🔍 [AIAnalysisIndicator] Filtered grades (MIDTERM only):', filteredGrades);
+      }
+
       // Prepare course data for AI analysis
       const courseData = {
         course: {
           ...course,
           userId: userProfile.userId // Use database user ID
         },
-        grades: grades || [],
+        grades: filteredGrades,
         categories: categories || [],
         currentGPA: currentGrade || 0,
-        progress: calculateProgress(grades, categories)
+        progress: calculateProgress(filteredGrades, categories),
+        activeSemesterTerm: 'MIDTERM' // Always analyze MIDTERM for accurate analysis
       };
       
       const goalData = {

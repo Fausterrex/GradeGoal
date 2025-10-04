@@ -74,6 +74,9 @@ public class Course {
     @Column(name = "is_completed")
     private Boolean isCompleted = false;
 
+    @Column(name = "is_midterm_completed")
+    private Boolean isMidtermCompleted = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -190,6 +193,9 @@ public class Course {
 
     public Boolean getIsCompleted() { return isCompleted; }
     public void setIsCompleted(Boolean isCompleted) { this.isCompleted = isCompleted; }
+
+    public Boolean getIsMidtermCompleted() { return isMidtermCompleted; }
+    public void setIsMidtermCompleted(Boolean isMidtermCompleted) { this.isMidtermCompleted = isMidtermCompleted; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -6,7 +6,7 @@
 
 import React from "react";
 import { getCourseColorScheme } from "../../utils/courseColors";
-import { calculateCourseProgress } from "./course_details/utils/gradeEntryCourse";
+import { calculateCourseProgress } from "../../services/progressCalculationService";
 
 function GradeSuccessFeedback({
   gradeData,

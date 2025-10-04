@@ -795,14 +795,18 @@ export async function calculateCourseGPA(courseId) {
   return response.json();
 }
 
-export async function calculateCategoryGrade(categoryId) {
+export async function calculateCategoryGrade(categoryId, semesterTerm = "MIDTERM") {
   const response = await fetch(
-    `${API_BASE_URL}/api/database-calculations/category/${categoryId}/grade`,
+    `${API_BASE_URL}/api/grades/calculate-category-grade`,
     {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        categoryId: categoryId,
+        semesterTerm: semesterTerm
+      }),
     }
   );
   if (!response.ok) {

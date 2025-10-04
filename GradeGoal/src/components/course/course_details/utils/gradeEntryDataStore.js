@@ -64,6 +64,7 @@ export const loadCourseGrades = async (courseId) => {
         isExtraCredit: grade.isExtraCredit,
         extraCreditPoints: grade.extraCreditPoints,
         note: grade.notes || grade.note,
+        semesterTerm: grade.semesterTerm || 'MIDTERM', // Add semesterTerm field
         createdAt: grade.createdAt,
         updatedAt: grade.updatedAt,
       };
@@ -256,6 +257,7 @@ export const updateGradesState = (prevGrades, categoryId, gradeId, updatedGradeD
       updatedGrades[categoryId][gradeIndex] = {
         ...updatedGrades[categoryId][gradeIndex],
         ...updatedGradeData,
+        semesterTerm: updatedGradeData.semesterTerm || updatedGrades[categoryId][gradeIndex].semesterTerm || 'MIDTERM',
         updatedAt: new Date().toISOString(),
       };
     }

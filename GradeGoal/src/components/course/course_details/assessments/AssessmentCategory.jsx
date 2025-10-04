@@ -32,7 +32,8 @@ function AssessmentCategory({
   course, // Add course prop for AI analysis
   allGrades, // Add all grades for AI analysis
   allCategories, // Add all categories for AI analysis
-  targetGrade // Add target grade for AI analysis
+  targetGrade, // Add target grade for AI analysis
+  activeSemesterTerm // Add active semester term prop
 }) {
   const [focusIndicator, setFocusIndicator] = useState(null);
 

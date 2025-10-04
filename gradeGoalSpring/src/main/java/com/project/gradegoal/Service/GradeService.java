@@ -305,6 +305,7 @@ public class GradeService {
             Long categoryId = getMapValue(assessmentData, "categoryId", Long.class);
             String assessmentType = getMapValue(assessmentData, "assessmentType", String.class);
             String date = getMapValue(assessmentData, "date", String.class);
+            String semesterTerm = getMapValue(assessmentData, "semesterTerm", String.class);
 
             Double score = getMapValue(gradeData, "score", Double.class);
             String notes = getMapValue(gradeData, "note", String.class);
@@ -324,6 +325,7 @@ public class GradeService {
             assessment.setAssessmentName(name);
             assessment.setMaxPoints(maxScore != null ? BigDecimal.valueOf(maxScore) : BigDecimal.ZERO);
             assessment.setCategoryId(categoryId);
+            assessment.setSemesterTerm(semesterTerm != null ? Assessment.SemesterTerm.valueOf(semesterTerm) : Assessment.SemesterTerm.MIDTERM);
 
             if (date != null && !date.trim().isEmpty()) {
                 try {
@@ -360,6 +362,7 @@ public class GradeService {
             grade.setNote(notes);
             grade.setIsExtraCredit(isExtraCredit != null ? isExtraCredit : false);
             grade.setExtraCreditPoints(extraCreditPoints != null ? BigDecimal.valueOf(extraCreditPoints) : null);
+            grade.setSemesterTerm(semesterTerm != null ? Grade.SemesterTerm.valueOf(semesterTerm) : Grade.SemesterTerm.MIDTERM);
 
             Grade savedGrade = gradeRepository.save(grade);
             

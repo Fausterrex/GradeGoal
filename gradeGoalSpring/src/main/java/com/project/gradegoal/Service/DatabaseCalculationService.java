@@ -49,15 +49,33 @@ public class DatabaseCalculationService {
     private EntityManager entityManager;
 
     /**
-     * Calculate course grade using database function
+     * Calculate course grade using database function for specific semester term
+     * @param courseId Course ID
+     * @param semesterTerm Semester term (MIDTERM or FINAL_TERM)
+     * @return Calculated course grade percentage
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateCourseGrade(Long courseId, String semesterTerm) {
+        try {
+            // Call the database function CalculateCourseGrade with semester term
+            BigDecimal result = courseRepository.calculateCourseGrade(courseId, semesterTerm);
+            return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        } catch (Exception e) {
+            System.err.println("Error calculating course grade for course " + courseId + " term " + semesterTerm + ": " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Calculate course grade using database function (backward compatibility)
      * @param courseId Course ID
      * @return Calculated course grade percentage
      */
     @Transactional(readOnly = true)
     public BigDecimal calculateCourseGrade(Long courseId) {
         try {
-            // Call the database function CalculateCourseGrade
-            BigDecimal result = courseRepository.calculateCourseGrade(courseId);
+            // Call the database function CalculateCourseGradeOverall for backward compatibility
+            BigDecimal result = courseRepository.calculateCourseGradeOverall(courseId);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
             System.err.println("Error calculating course grade for course " + courseId + ": " + e.getMessage());
@@ -66,15 +84,33 @@ public class DatabaseCalculationService {
     }
 
     /**
-     * Calculate category grade using database function
+     * Calculate category grade using database function for specific semester term
+     * @param categoryId Category ID
+     * @param semesterTerm Semester term (MIDTERM or FINAL_TERM)
+     * @return Calculated category grade percentage
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateCategoryGrade(Long categoryId, String semesterTerm) {
+        try {
+            // Call the database function CalculateCategoryGrade with semester term
+            BigDecimal result = courseRepository.calculateCategoryGrade(categoryId, semesterTerm);
+            return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        } catch (Exception e) {
+            System.err.println("Error calculating category grade for category " + categoryId + " term " + semesterTerm + ": " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Calculate category grade using database function (backward compatibility)
      * @param categoryId Category ID
      * @return Calculated category grade percentage
      */
     @Transactional(readOnly = true)
     public BigDecimal calculateCategoryGrade(Long categoryId) {
         try {
-            // Call the database function CalculateCategoryGrade
-            BigDecimal result = courseRepository.calculateCategoryGrade(categoryId);
+            // Call the database function CalculateCategoryGradeOverall for backward compatibility
+            BigDecimal result = courseRepository.calculateCategoryGradeOverall(categoryId);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
             System.err.println("Error calculating category grade for category " + categoryId + ": " + e.getMessage());
@@ -604,9 +640,27 @@ public class DatabaseCalculationService {
                         .executeUpdate();
             } catch (Exception e) {
                 System.err.println("Error calling CheckGoalProgress stored procedure: " + e.getMessage());
-            }
         }
+    }
 
-
+    /**
+     * Mark midterm as completed for a course
+     * @param courseId Course ID
+     */
+    @Transactional
+    public void markMidtermCompleted(Long courseId) {
+        try {
+            // Call the stored procedure to mark midterm as completed
+            String procedureCall = "CALL MarkMidtermCompleted(?)";
+            entityManager.createNativeQuery(procedureCall)
+                    .setParameter(1, courseId)
+                    .executeUpdate();
+            
+            System.out.println("✅ [DatabaseCalculationService] Midterm marked as completed for course: " + courseId);
+        } catch (Exception e) {
+            System.err.println("❌ [DatabaseCalculationService] Error marking midterm as completed: " + e.getMessage());
+            throw new RuntimeException("Failed to mark midterm as completed: " + e.getMessage());
+        }
+    }
 
 }

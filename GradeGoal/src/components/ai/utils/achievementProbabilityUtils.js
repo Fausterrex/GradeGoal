@@ -85,7 +85,7 @@ export const calculateMaxPossibleGrade = (grades, categories) => {
   
   // Calculate the final grade as a percentage
   if (totalWeight > 0) {
-    return (totalWeightedScore / totalWeight) * 100;
+    return (totalWeightedScore / totalWeight);
   }
   
   return 0;
@@ -171,7 +171,7 @@ export const calculateCurrentGrade = (grades, categories) => {
   // Calculate the final grade as a percentage
   // Convert weighted score to percentage based on completed work
   if (totalWeight > 0) {
-    return (totalWeightedScore / totalWeight) * 100;
+    return (totalWeightedScore / totalWeight);
   }
   
   return 0;
@@ -250,14 +250,34 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
   console.log('🎯 [RealisticProbability] Remaining assessments:', remainingAssessments.length);
 
   // If no remaining assessments, check if target is already achieved
+  // BUT consider FINAL_TERM potential if midterm is completed
   if (remainingAssessments.length === 0) {
-    const probability = currentGPA >= targetGPA ? 100 : 0;
-    console.log('🎯 [RealisticProbability] No remaining assessments, probability:', probability);
-    return {
-      probability,
-      bestPossibleGPA: currentGPA,
-      confidence: probability === 100 ? "HIGH" : "LOW"
-    };
+    // Check if this is midterm-only analysis and final term could improve grade
+    const isMidtermOnly = currentGrade < 100; // If not perfect, final term could help
+    const finalTermPotential = isMidtermOnly ? 50 : 0; // 50% potential improvement in final term
+    
+    if (currentGPA >= targetGPA) {
+      console.log('🎯 [RealisticProbability] Target already achieved');
+      return {
+        probability: 100,
+        bestPossibleGPA: currentGPA,
+        confidence: "HIGH"
+      };
+    } else if (isMidtermOnly && (currentGPA + finalTermPotential) >= targetGPA) {
+      console.log('🎯 [RealisticProbability] Final term could achieve target:', currentGPA + finalTermPotential);
+      return {
+        probability: 75, // High probability with final term focus
+        bestPossibleGPA: currentGPA + finalTermPotential,
+        confidence: "MEDIUM"
+      };
+    } else {
+      console.log('🎯 [RealisticProbability] Target not achievable even with final term');
+      return {
+        probability: 0,
+        bestPossibleGPA: currentGPA,
+        confidence: "LOW"
+      };
+    }
   }
 
   // Calculate different scenarios
@@ -359,7 +379,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       }
     });
 
-    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
+    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const finalGPA = calculateGPAFromPercentage(finalGrade);
 
     console.log(`🎯 [RealisticProbability] ${scenario.name} scenario:`, {
@@ -433,7 +453,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       }
     });
 
-    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
+    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const finalGPA = calculateGPAFromPercentage(finalGrade);
     
     return finalGPA >= targetGPA;
@@ -490,7 +510,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       }
     });
 
-    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
+    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const bestPossibleGPA = calculateGPAFromPercentage(finalGrade);
 
     console.log('🎯 [RealisticProbability] Best achievable scenario found:', {
@@ -562,7 +582,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       }
     });
 
-    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
+    const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const finalGPA = calculateGPAFromPercentage(finalGrade);
     
     if (finalGPA > bestFinalGPA) {

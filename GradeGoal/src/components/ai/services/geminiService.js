@@ -22,12 +22,12 @@ import { buildRealAnalysisPrompt, parseRealAIResponse } from '../utils/aiRespons
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ 
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.0-flash-exp", // Use the original working model
   generationConfig: {
     temperature: 0.7,
     topK: 40,
     topP: 0.95,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 8192, // Reasonable limit for this model
   }
 });
 
@@ -69,8 +69,9 @@ const generateCacheKey = (courseData, goalData, priorityLevel) => {
   const progress = courseData.progress || 0;
   const targetValue = goalData.targetValue || 'unknown';
   const gradesCount = courseData.grades?.length || 0;
+  const activeSemesterTerm = courseData.activeSemesterTerm || 'MIDTERM'; // Include semester term in cache key
   
-  return `${courseId}-${currentGPA}-${progress}-${targetValue}-${gradesCount}-${priorityLevel}`;
+  return `${courseId}-${currentGPA}-${progress}-${targetValue}-${gradesCount}-${priorityLevel}-${activeSemesterTerm}`;
 };
 
 /**
@@ -188,6 +189,33 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
         // Use Google Generative AI package
         const result = await model.generateContent(prompt);
         aiResponse = result.response.text();
+        
+        // Check if response was truncated (common issue with token limits)
+        if (!aiResponse.trim().endsWith('}') && aiResponse.includes('{')) {
+          console.warn(`⚠️ [Gemini API] Response appears truncated on attempt ${attempt}`);
+          console.warn(`Response length: ${aiResponse.length} characters`);
+          console.warn(`Response ends with: "${aiResponse.slice(-50)}"`);
+          
+          // If this is the last attempt, we'll try to fix it in parsing
+          if (attempt === maxRetries) {
+            console.warn(`⚠️ [Gemini API] Using truncated response with enhanced parsing`);
+          } else {
+            // Retry with a shorter prompt if we have attempts left
+            console.log(`🔄 [Gemini API] Retrying with shorter prompt...`);
+            // Use a shorter prompt for retry attempts
+            const shorterPrompt = buildRealAnalysisPrompt(courseData, goalData, priorityLevel, true); // Pass true for shorter version
+            const retryResult = await model.generateContent(shorterPrompt);
+            aiResponse = retryResult.response.text();
+            
+            // Check if the shorter prompt worked
+            if (aiResponse.trim().endsWith('}')) {
+              console.log(`✅ [Gemini API] Shorter prompt successful on attempt ${attempt + 1}`);
+              break;
+            }
+            continue;
+          }
+        }
+        
         console.log(`✅ [Gemini API] Success on attempt ${attempt}`);
         break; // Success, exit retry loop
       } catch (error) {
@@ -258,7 +286,7 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     });
 
     // Store in memory for immediate retrieval
-    const storageKey = `${courseData.course?.userId || 1}-${courseData.course?.id || 1}`;
+    const storageKey = `${courseData.course?.userId || 1}-${courseData.course?.id || 1}-${courseData.activeSemesterTerm || 'MIDTERM'}`;
     aiAnalysisStorage.set(storageKey, result);
 
     // Set AI analysis data for real-time updates across components

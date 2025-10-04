@@ -109,12 +109,14 @@ public class DatabaseGradeController {
         
         try {
             Long courseId = Long.valueOf(request.get("courseId").toString());
+            String semesterTerm = request.get("semesterTerm") != null ? request.get("semesterTerm").toString() : "MIDTERM";
             
             BigDecimal courseGrade = jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
-                    CallableStatement cs = con.prepareCall("{ ? = call CalculateCourseGrade(?) }");
+                    CallableStatement cs = con.prepareCall("{ ? = call CalculateCourseGrade(?, ?) }");
                     cs.registerOutParameter(1, Types.DECIMAL);
                     cs.setLong(2, courseId);
+                    cs.setString(3, semesterTerm);
                     return cs;
                 },
                 (CallableStatementCallback<BigDecimal>) cs -> {
@@ -145,12 +147,14 @@ public class DatabaseGradeController {
         
         try {
             Long categoryId = Long.valueOf(request.get("categoryId").toString());
+            String semesterTerm = request.get("semesterTerm") != null ? request.get("semesterTerm").toString() : "MIDTERM";
             
             BigDecimal categoryGrade = jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
-                    CallableStatement cs = con.prepareCall("{ ? = call CalculateCategoryGrade(?) }");
+                    CallableStatement cs = con.prepareCall("{ ? = call CalculateCategoryGrade(?, ?) }");
                     cs.registerOutParameter(1, Types.DECIMAL);
                     cs.setLong(2, categoryId);
+                    cs.setString(3, semesterTerm);
                     return cs;
                 },
                 (CallableStatementCallback<BigDecimal>) cs -> {
@@ -187,10 +191,11 @@ public class DatabaseGradeController {
             String scoreType = request.get("scoreType").toString();
             String notes = request.get("notes") != null ? request.get("notes").toString() : "";
             Boolean isExtraCredit = Boolean.valueOf(request.get("isExtraCredit").toString());
+            String semesterTerm = request.get("semesterTerm") != null ? request.get("semesterTerm").toString() : "MIDTERM";
             
             Map<String, Object> result = jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
-                    CallableStatement cs = con.prepareCall("{ call AddOrUpdateGrade(?, ?, ?, ?, ?, ?, ?, ?, ?) }");
+                    CallableStatement cs = con.prepareCall("{ call AddOrUpdateGrade(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }");
                     cs.setLong(1, assessmentId);
                     cs.setBigDecimal(2, pointsEarned);
                     cs.setBigDecimal(3, pointsPossible);
@@ -198,15 +203,16 @@ public class DatabaseGradeController {
                     cs.setString(5, scoreType);
                     cs.setString(6, notes);
                     cs.setBoolean(7, isExtraCredit);
-                    cs.registerOutParameter(8, Types.BIGINT);
-                    cs.registerOutParameter(9, Types.VARCHAR);
+                    cs.setString(8, semesterTerm);
+                    cs.registerOutParameter(9, Types.BIGINT);
+                    cs.registerOutParameter(10, Types.VARCHAR);
                     return cs;
                 },
                 (CallableStatementCallback<Map<String, Object>>) cs -> {
                     cs.execute();
                     Map<String, Object> procResult = new HashMap<>();
-                    procResult.put("gradeId", cs.getLong(8));
-                    procResult.put("result", cs.getString(9));
+                    procResult.put("gradeId", cs.getLong(9));
+                    procResult.put("result", cs.getString(10));
                     return procResult;
                 }
             );
@@ -234,11 +240,13 @@ public class DatabaseGradeController {
         
         try {
             Long courseId = Long.valueOf(request.get("courseId").toString());
+            String semesterTerm = request.get("semesterTerm") != null ? request.get("semesterTerm").toString() : "MIDTERM";
             
             jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
-                    CallableStatement cs = con.prepareCall("{ call UpdateCourseGrades(?) }");
+                    CallableStatement cs = con.prepareCall("{ call UpdateCourseGrades(?, ?) }");
                     cs.setLong(1, courseId);
+                    cs.setString(2, semesterTerm);
                     return cs;
                 },
                 (CallableStatementCallback<Void>) cs -> {

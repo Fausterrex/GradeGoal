@@ -20,6 +20,7 @@ import AssessmentModal from "./assessments/AssessmentModal";
 import AddScoreModal from "./assessments/AddScoreModal";
 import EditScoreModal from "./assessments/EditScoreModal";
 import Dashboard from "./dashboard/Dashboard";
+import SemesterTermTabs from "./SemesterTermTabs";
 
 // Import utility functions
 import { 
@@ -38,7 +39,7 @@ import {
   awardPointsAndCheckAchievements,
   updateGradesState,
 } from "./utils/gradeEntryDataStore";
-import { getCourseById } from "../../../backend/api";
+import { getCourseById, calculateCategoryGrade } from "../../../backend/api";
 import {
   validateScore,
   prepareGradeData,
@@ -50,11 +51,12 @@ import {
 } from "./utils/gradeEntryAssessments";
 import { generateAssessmentName } from "./assessments/AssessmentUtils";
 import RealtimeNotificationService from "../../../services/realtimeNotificationService";
+import { calculateCourseProgress } from "../../../services/progressCalculationService";
 import {
   getCourseColors,
   loadCourseTargetGrade,
-  calculateCourseProgress,
   getCourseStatistics,
+  getCourseStatisticsByTerm,
   isCourseArchived,
   getCourseDisplayName,
 } from "./utils/gradeEntryCourse";
@@ -74,7 +76,7 @@ import {
   createSuccessFeedbackHandlers,
 } from "./utils/gradeEntryHandlers";
 
-function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClearSelectedCourse, onCloseCourseManager }) {
+function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClearSelectedCourse, onCloseCourseManager, onCourseDataRefresh }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   
@@ -111,6 +113,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const [userProgress, setUserProgress] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);
   const [courseGrade, setCourseGrade] = useState(0);
+  const [activeSemesterTerm, setActiveSemesterTerm] = useState('MIDTERM');
+  const [isMidtermCompleted, setIsMidtermCompleted] = useState(false);
 
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -134,6 +138,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     if (course && currentUser) {
       loadCategories();
       loadUserAndTargetGrade();
+      loadMidtermStatus();
     }
   }, [course, currentUser]);
 
@@ -156,6 +161,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       loadGrades();
     }
   }, [course, currentUser]);
+
+  // Update newGrade semesterTerm when activeSemesterTerm changes
+  useEffect(() => {
+    setNewGrade(prev => ({
+      ...prev,
+      semesterTerm: activeSemesterTerm
+    }));
+  }, [activeSemesterTerm]);
 
   // Load analytics when grades or categories change
   useEffect(() => {
@@ -221,6 +234,63 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       }
     } catch (error) {
       console.error("Error loading target grade:", error);
+    }
+  };
+
+  const loadMidtermStatus = async () => {
+    try {
+      // Check if midterm is completed from the course data
+      if (course.isMidtermCompleted) {
+        setIsMidtermCompleted(true);
+        setActiveSemesterTerm('FINAL_TERM');
+      } else {
+        setIsMidtermCompleted(false);
+        setActiveSemesterTerm('MIDTERM');
+      }
+    } catch (error) {
+      console.error("Error loading midterm status:", error);
+    }
+  };
+
+  const handleTermChange = (term) => {
+    // Only allow switching to final term if midterm is completed
+    if (term === 'FINAL_TERM' && !isMidtermCompleted) {
+      return; // Don't allow switching to final term if midterm is not completed
+    }
+    setActiveSemesterTerm(term);
+  };
+
+  const markMidtermAsDone = async () => {
+    try {
+      const response = await fetch(`/api/database-calculations/course/${course.courseId}/mark-midterm-completed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        setIsMidtermCompleted(true);
+        setActiveSemesterTerm('FINAL_TERM');
+        setSuccessMessage("Midterm marked as completed! Final Term is now unlocked.");
+        
+        // Update the course object locally to reflect the change
+        const updatedCourse = { ...course, isMidtermCompleted: true };
+        
+        // Refresh course data and grades
+        if (onGradeUpdate) {
+          onGradeUpdate();
+        }
+        
+        // Refresh the course data in the parent component
+        if (onCourseDataRefresh) {
+          onCourseDataRefresh();
+        }
+      } else {
+        console.error("Failed to mark midterm as completed");
+      }
+    } catch (error) {
+      console.error("Error marking midterm as completed:", error);
     }
   };
 
@@ -314,7 +384,19 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // CALCULATION FUNCTIONS
   // ========================================
   const getCategoryAverage = async (categoryId) => {
-    return await calculateCategoryAverage(categoryId);
+    console.log(`🔍 [GradeEntry] getCategoryAverage called for category ${categoryId} with term ${activeSemesterTerm}`);
+    try {
+      // Use the same API call as AssessmentCategories but with term parameter
+      const result = await calculateCategoryGrade(categoryId, activeSemesterTerm);
+      console.log(`🔍 [GradeEntry] getCategoryAverage result:`, result);
+      if (result.success) {
+        return parseFloat(result.categoryGrade);
+      }
+      return null;
+    } catch (error) {
+      console.error(`❌ [GradeEntry] getCategoryAverage error:`, error);
+      return null;
+    }
   };
 
   const updateCourseGrade = async () => {
@@ -338,13 +420,13 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   };
 
   const getTotalAssessments = () => {
-    const stats = getCourseStatistics(categories, grades);
+    const stats = getCourseStatisticsByTerm(categories, grades, activeSemesterTerm);
     return stats.totalAssessments;
   };
 
   const getProgressPercentage = () => {
-    const stats = getCourseStatistics(categories, grades);
-    return stats.completionPercentage;
+    // Use centralized progress calculation service
+    return calculateCourseProgress(course, categories, grades);
   };
 
   // ========================================
@@ -360,7 +442,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     setShowAddGrade,
     setEditingGrade,
     setSuccessMessage,
-    onGradeUpdate
+    onGradeUpdate,
+    course
   );
 
   // Create handler using utility function
@@ -460,6 +543,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // Create view toggle handler
   const handleToggleView = createViewToggleHandler(showDashboard, setShowDashboard);
 
+  // Set up global function for marking midterm as done
+  useEffect(() => {
+    window.markMidtermAsDone = markMidtermAsDone;
+    return () => {
+      delete window.markMidtermAsDone;
+    };
+  }, [markMidtermAsDone]);
+
   return (
     <div className={`w-full h-full ${colorScheme.light} flex flex-col overflow-y-auto`}>
       <MainHeader
@@ -494,6 +585,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               userProgress={userProgress}
               userAnalytics={userAnalytics}
               userId={userId}
+              activeSemesterTerm={activeSemesterTerm}
+              isMidtermCompleted={isMidtermCompleted}
               onSetGoal={() => {
                 // Clear the selected course and close course manager first, then navigate
                 if (onClearSelectedCourse) {
@@ -508,6 +601,13 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
           </div>
         ) : (
           <div className="max-w-[1600px] mx-auto">
+            <SemesterTermTabs
+              activeTerm={activeSemesterTerm}
+              onTermChange={handleTermChange}
+              isMidtermCompleted={isMidtermCompleted}
+              colorScheme={colorScheme}
+              setConfirmationModal={setConfirmationModal}
+            />
             <AssessmentCategories
               categories={categories}
               grades={grades}
@@ -520,6 +620,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               onDeleteAssessment={handleDeleteAssessment}
               course={course}
               targetGrade={targetGrade}
+              activeSemesterTerm={activeSemesterTerm}
             />
           </div>
         )}
@@ -535,6 +636,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         colorScheme={colorScheme}
         onSubmit={handleSubmit}
         onCancel={cancelGradeEdit}
+        activeSemesterTerm={activeSemesterTerm}
       />
 
       <AddScoreModal

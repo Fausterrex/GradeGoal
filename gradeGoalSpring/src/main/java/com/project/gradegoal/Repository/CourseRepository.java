@@ -53,11 +53,18 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // DATABASE FUNCTION CALLS
     // ========================================
 
-    @Query(value = "SELECT CalculateCourseGrade(:courseId)", nativeQuery = true)
-    BigDecimal calculateCourseGrade(@Param("courseId") Long courseId);
+    @Query(value = "SELECT CalculateCourseGrade(:courseId, :semesterTerm)", nativeQuery = true)
+    BigDecimal calculateCourseGrade(@Param("courseId") Long courseId, @Param("semesterTerm") String semesterTerm);
 
-    @Query(value = "SELECT CalculateCategoryGrade(:categoryId)", nativeQuery = true)
-    BigDecimal calculateCategoryGrade(@Param("categoryId") Long categoryId);
+    @Query(value = "SELECT CalculateCategoryGrade(:categoryId, :semesterTerm)", nativeQuery = true)
+    BigDecimal calculateCategoryGrade(@Param("categoryId") Long categoryId, @Param("semesterTerm") String semesterTerm);
+
+    // Backward compatibility methods
+    @Query(value = "SELECT CalculateCourseGradeOverall(:courseId)", nativeQuery = true)
+    BigDecimal calculateCourseGradeOverall(@Param("courseId") Long courseId);
+
+    @Query(value = "SELECT CalculateCategoryGradeOverall(:categoryId)", nativeQuery = true)
+    BigDecimal calculateCategoryGradeOverall(@Param("categoryId") Long categoryId);
 
     @Query(value = "SELECT CalculateGPA(:percentage)", nativeQuery = true)
     BigDecimal calculateGPA(@Param("percentage") BigDecimal percentage);

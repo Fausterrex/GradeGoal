@@ -311,7 +311,8 @@ export const createAssessmentSubmitHandler = (
   setShowAddGrade,
   setEditingGrade,
   setSuccessMessage,
-  onGradeUpdate
+  onGradeUpdate,
+  course
 ) => {
   return async (e) => {
     e.preventDefault();
@@ -368,6 +369,7 @@ export const createAssessmentSubmitHandler = (
           isExtraCredit: savedGrade.isExtraCredit,
           extraCreditPoints: savedGrade.extraCreditPoints,
           note: savedGrade.note,
+          semesterTerm: newGrade.semesterTerm || 'MIDTERM',
           createdAt: savedGrade.createdAt,
           updatedAt: savedGrade.updatedAt,
         };
@@ -393,15 +395,31 @@ export const createAssessmentSubmitHandler = (
           isExtraCredit: savedGrade.isExtraCredit,
           extraCreditPoints: savedGrade.extraCreditPoints,
           note: savedGrade.note,
+          semesterTerm: newGrade.semesterTerm || 'MIDTERM',
           createdAt: savedGrade.createdAt,
           updatedAt: savedGrade.updatedAt,
         });
       }
 
+      // First update the local state immediately for responsive UI
       setGrades(updatedGrades);
 
-      if (onGradeUpdate) {
-        onGradeUpdate(updatedGrades);
+      // Then refresh from database to ensure accuracy and include semesterTerm
+      try {
+        const refreshResult = await loadCourseGrades(course.id);
+        if (refreshResult.success) {
+          setGrades(refreshResult.grades);
+          
+          // Update parent component with fresh data
+          if (onGradeUpdate) {
+            onGradeUpdate(refreshResult.grades);
+          }
+        }
+      } catch (refreshError) {
+        // Fallback to local state update
+        if (onGradeUpdate) {
+          onGradeUpdate(updatedGrades);
+        }
       }
 
       setSuccessMessage(

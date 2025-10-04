@@ -35,6 +35,10 @@ public class Assessment {
     @Column(name = "status")
     private AssessmentStatus status = AssessmentStatus.UPCOMING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "semester_term")
+    private SemesterTerm semesterTerm = SemesterTerm.MIDTERM;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -85,6 +89,9 @@ public class Assessment {
     public AssessmentStatus getStatus() { return status; }
     public void setStatus(AssessmentStatus status) { this.status = status; }
 
+    public SemesterTerm getSemesterTerm() { return semesterTerm; }
+    public void setSemesterTerm(SemesterTerm semesterTerm) { this.semesterTerm = semesterTerm; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -108,6 +115,10 @@ public class Assessment {
 
     public enum AssessmentStatus {
         UPCOMING, COMPLETED, OVERDUE, CANCELLED
+    }
+
+    public enum SemesterTerm {
+        MIDTERM, FINAL_TERM
     }
 
     @Override

@@ -8,9 +8,13 @@ import { calculateCurrentGrade, calculateGPAFromPercentage } from './achievement
 /**
  * Build comprehensive prompt for real AI analysis
  */
-export const buildRealAnalysisPrompt = (courseData, goalData, priorityLevel) => {
-  const { course, grades, categories, currentGPA, progress } = courseData;
+export const buildRealAnalysisPrompt = (courseData, goalData, priorityLevel, isShorter = false) => {
+  const { course, grades, categories, currentGPA, progress, activeSemesterTerm } = courseData;
   const { targetValue, goalType } = goalData;
+
+  console.log('🔍 [buildRealAnalysisPrompt] Course data:', courseData);
+  console.log('🔍 [buildRealAnalysisPrompt] Active semester term:', activeSemesterTerm);
+  console.log('🔍 [buildRealAnalysisPrompt] Grades:', grades);
 
   // Calculate current performance metrics
   const currentGrade = calculateCurrentGrade(grades, categories);
@@ -28,10 +32,19 @@ COURSE INFORMATION:
 - Current Progress: ${progress || 0}%
 - Current GPA: ${currentGPA || 0}
 - Current Course Grade: ${currentGrade || 0}%
+- Current Semester Term: ${activeSemesterTerm || 'MIDTERM'} (${activeSemesterTerm === 'MIDTERM' ? 'Midterm Period' : 'Final Term Period'})
+- Midterm Completed: ${course?.isMidtermCompleted ? 'Yes' : 'No'}
 
-ASSESSMENT BREAKDOWN:
+ASSESSMENT BREAKDOWN FOR CURRENT TERM (${activeSemesterTerm}):
 ${categories.map(cat => {
   const categoryGrades = grades[cat.id] || [];
+  const currentTermGrades = categoryGrades.filter(grade => grade.semesterTerm === activeSemesterTerm);
+  
+  return `- ${cat.categoryName || cat.name} (${cat.weightPercentage || cat.weight}% weight):
+    ${activeSemesterTerm} GRADES: ${currentTermGrades.length > 0 ? currentTermGrades.map(grade => 
+      `${grade.percentageScore}% (${grade.pointsEarned}/${grade.pointsPossible} points)`
+    ).join(', ') : 'No grades yet for this term'}`;
+}).join('\n')}
   const completedCount = categoryGrades.filter(grade => 
     grade.score !== null && grade.score !== undefined && grade.score > 0
   ).length;
@@ -50,28 +63,26 @@ ${categories.map(cat => {
     if (parseFloat(averageGrade) >= 80) {
       // Even with good performance, if there's only 1 assessment, suggest adding more for GPA improvement
       if (totalCount === 1) {
-        priorityNote = `🟡 MEDIUM PRIORITY: Good performance (${averageGrade}% average) but consider adding more assessments to improve GPA`;
+        priorityNote = '🟡 MEDIUM PRIORITY: Good performance (' + averageGrade + '% average) but consider adding more assessments to improve GPA';
       } else {
-        priorityNote = `✅ LOW PRIORITY: All assessments completed with good performance (${averageGrade}% average)`;
+        priorityNote = '✅ LOW PRIORITY: All assessments completed with good performance (' + averageGrade + '% average)';
       }
     } else if (parseFloat(averageGrade) < 70) {
-      priorityNote = `🔴 HIGH PRIORITY: All assessments completed but performance needs improvement (${averageGrade}% average)`;
+      priorityNote = '🔴 HIGH PRIORITY: All assessments completed but performance needs improvement (' + averageGrade + '% average)';
     } else {
-      priorityNote = `🟡 MEDIUM PRIORITY: All assessments completed, room for improvement (${averageGrade}% average)`;
+      priorityNote = '🟡 MEDIUM PRIORITY: All assessments completed, room for improvement (' + averageGrade + '% average)';
     }
   } else {
     // Some assessments remaining - always MEDIUM priority
     priorityNote = '🟠 MEDIUM PRIORITY: Some assessments remaining - focus on upcoming ones to maintain/improve performance';
   }
   
-  return `
-- ${cat.categoryName}: ${cat.weight}% weight
-  Current Average: ${averageGrade}%
-  Completed: ${completedCount}/${totalCount}
-  Status: ${totalCount === 0 ? 'EMPTY CATEGORY - NO ASSESSMENTS ADDED' : 
-           completedCount === totalCount ? 'ALL COMPLETED' : 'IN PROGRESS'}
-  ${priorityNote}
-`;
+  return '- ' + cat.categoryName + ': ' + cat.weight + '% weight\n' +
+    '  Current Average: ' + averageGrade + '%\n' +
+    '  Completed: ' + completedCount + '/' + totalCount + '\n' +
+    '  Status: ' + (totalCount === 0 ? 'EMPTY CATEGORY - NO ASSESSMENTS ADDED' : 
+           completedCount === totalCount ? 'ALL COMPLETED' : 'IN PROGRESS') + '\n' +
+    '  ' + priorityNote + '\n';
 }).join('')}
 
 COMPLETED ASSESSMENTS:
@@ -171,22 +182,33 @@ TARGET GOAL:
 - Note: ${goalType === 'COURSE_GRADE' ? 'Target is a percentage grade (0-100%)' : 'Target is in GPA format (0.0-4.0 scale)'}
 
 ANALYSIS REQUIREMENTS:
-1. **PREDICTED FINAL GRADE**: Calculate the likely final grade based on current scores + remaining assessments
-2. **ASSESSMENT GRADE RECOMMENDATIONS**: Specific score recommendations for each upcoming assessment
+1. **PREDICTED FINAL GRADE**: Calculate the likely final grade based on current ${activeSemesterTerm} scores + remaining assessments
+   - Focus on the CURRENT TERM (${activeSemesterTerm}) performance and predictions
+   - Consider the current semester term context (${activeSemesterTerm === 'MIDTERM' ? 'Currently in Midterm Period' : 'Currently in Final Term Period'})
+2. **ASSESSMENT GRADE RECOMMENDATIONS**: Specific score recommendations for each upcoming assessment in the ${activeSemesterTerm}
+   - Focus on ${activeSemesterTerm} assessment recommendations only
+   - Consider the academic calendar timing and preparation time available for the current term
 3. **TARGET GOAL ANALYSIS**: Provide analysis of the target goal achievability:
-   - Calculate the current weighted grade %.
-   - Simulate perfect scores on all remaining assessments → compute maximum possible final grade % and GPA.
-   - Compare maximum possible vs target and provide analysis.
-   - Show clearly the minimum score required on each pending assessment to still reach the target.
-   - Use GPA-to-percentage mapping rules when target is GPA (e.g., "≥97% = 4.0").
-4. **STATUS UPDATE**: Current academic status and progress summary
-5. **FOCUS INDICATORS**: Identify which assessment categories need attention (e.g Assignments, Quizzes, Exams, Empty Categories)
-6. **SCORE PREDICTIONS**: Predict what scores are needed on upcoming assessments to reach the target
+   - Calculate the current weighted grade % for the ${activeSemesterTerm} period
+   - Simulate perfect scores on all remaining ${activeSemesterTerm} assessments → compute maximum possible final grade % and GPA
+   - Compare maximum possible vs target and provide analysis
+   - Show clearly the minimum score required on each pending ${activeSemesterTerm} assessment to still reach the target
+   - Use GPA-to-percentage mapping rules when target is GPA (e.g., "≥97% = 4.0")
+   - Consider ${activeSemesterTerm} performance as the primary focus
+4. **STATUS UPDATE**: Current academic status and progress summary for ${activeSemesterTerm}
+   - Include ${activeSemesterTerm} completion status and its impact on planning
+   - Provide ${activeSemesterTerm}-specific insights and recommendations
+5. **FOCUS INDICATORS**: Identify which assessment categories need attention in the ${activeSemesterTerm} (e.g Assignments, Quizzes, Exams, Empty Categories)
+   - Focus indicators for ${activeSemesterTerm} period only
+   - Consider the academic calendar and timing of ${activeSemesterTerm} assessments
+6. **SCORE PREDICTIONS**: Predict what scores are needed on upcoming ${activeSemesterTerm} assessments to reach the target
+   - Provide ${activeSemesterTerm}-specific predictions only
+   - Consider the learning curve and improvement potential for the current term
 7. **EMPTY CATEGORIES ANALYSIS**: CRITICAL - If there are empty categories:
    - Explain that the course is NOT truly complete until all categories have assessments
    - Provide specific recommendations for each empty category
    - Calculate the impact of adding assessments to empty categories
-   - Suggest appropriate assessment types and quantities
+   - Suggest appropriate assessment types and quantities for each semester term
    - Provide target scores needed for new assessments to maintain/achieve goals
    - Include empty categories in focusIndicators with HIGH priority
    - Add specific recommendations for each empty category in topPriorityRecommendations
@@ -325,6 +347,34 @@ RESPONSE FORMAT (JSON):
 Provide a detailed, actionable analysis that helps the student understand exactly what they need to do to reach their target goal.
 
 REMEMBER: This analysis is ONLY for the course "${course?.courseName || 'Unknown'}" (ID: ${course?.id || 'N/A'}). Do not reference or consider any other courses in your analysis.`;
+
+  // Return shorter version if requested
+  if (isShorter) {
+    return `Course: ${course?.courseName || 'Unknown'} | Grade: ${currentGrade || 0}% | Target: ${targetValue}
+
+${categories.map(cat => {
+  const categoryGrades = grades[cat.id] || [];
+  const avgScore = categoryGrades.length > 0 ? 
+    (categoryGrades.reduce((sum, grade) => sum + (grade.percentageScore || 0), 0) / categoryGrades.length).toFixed(1) : 
+    '0';
+  
+  return `${cat.categoryName || cat.name}: ${avgScore}%`;
+}).join('\n')}
+
+JSON:
+{
+  "predictedFinalGrade": {"percentage": "X%", "confidence": "HIGH/MEDIUM/LOW", "explanation": "brief"},
+  "targetGoalAnalysis": {"achievable": true/false, "analysis": "brief", "confidence": "HIGH/MEDIUM/LOW"},
+  "statusUpdate": {"currentStatus": "ON_TRACK/AT_RISK/EXCELLING", "progressSummary": "brief"},
+  "topPriorityRecommendations": [
+    {"title": "title", "description": "brief", "priority": "HIGH/MEDIUM/LOW", "category": "COURSE_SPECIFIC/GENERAL_ACADEMIC"},
+    {"title": "title", "description": "brief", "priority": "HIGH/MEDIUM/LOW", "category": "COURSE_SPECIFIC/GENERAL_ACADEMIC"},
+    {"title": "title", "description": "brief", "priority": "HIGH/MEDIUM/LOW", "category": "COURSE_SPECIFIC/GENERAL_ACADEMIC"}
+  ]
+}`;
+  }
+
+  return prompt;
 };
 
 /**
@@ -448,6 +498,86 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       
       // Fix single quotes to double quotes
       fixedJsonStr = fixedJsonStr.replace(/'/g, '"');
+      
+      // Fix control characters and quotes in JSON strings
+      try {
+        // First, try to parse as-is to see if it works
+        JSON.parse(fixedJsonStr);
+      } catch (parseError) {
+        console.log('🔧 [parseRealAIResponse] Detected JSON issues, attempting to fix...');
+        console.log('🔧 [parseRealAIResponse] Parse error:', parseError.message);
+        
+        // Fix control characters (newlines, tabs, etc.) in string values
+        fixedJsonStr = fixedJsonStr.replace(/"([^"]*[\r\n\t][^"]*)"/g, (match, content) => {
+          // Escape control characters
+          const escapedContent = content
+            .replace(/\r/g, '\\r')
+            .replace(/\n/g, '\\n')
+            .replace(/\t/g, '\\t')
+            .replace(/\f/g, '\\f')
+            .replace(/\b/g, '\\b');
+          return `"${escapedContent}"`;
+        });
+        
+        // Fix unescaped quotes in string values
+        // Pattern: "text with "quotes" inside"
+        fixedJsonStr = fixedJsonStr.replace(/"([^"]*)"([^"]*)"([^"]*)"/g, (match, p1, p2, p3) => {
+          // Escape quotes in the middle part
+          const escapedMiddle = p2.replace(/"/g, '\\"');
+          return `"${p1}${escapedMiddle}${p3}"`;
+        });
+        
+        // Pattern: "text with "quotes" at end"
+        fixedJsonStr = fixedJsonStr.replace(/"([^"]*)"([^"]*)":/g, (match, p1, p2) => {
+          // Escape quotes in the second part
+          const escapedSecond = p2.replace(/"/g, '\\"');
+          return `"${p1}${escapedSecond}":`;
+        });
+      }
+      
+      // Fix truncated JSON by completing incomplete structures
+      // Check if JSON ends abruptly and try to complete it
+      if (!fixedJsonStr.trim().endsWith('}')) {
+        console.log('🔧 [parseRealAIResponse] Detected truncated JSON, attempting to complete...');
+        
+        // Count opening and closing braces to see what's missing
+        const openBraces = (fixedJsonStr.match(/\{/g) || []).length;
+        const closeBraces = (fixedJsonStr.match(/\}/g) || []).length;
+        const openBrackets = (fixedJsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (fixedJsonStr.match(/\]/g) || []).length;
+        
+        // Complete missing closing braces/brackets
+        let completion = '';
+        for (let i = 0; i < (openBraces - closeBraces); i++) {
+          completion += '}';
+        }
+        for (let i = 0; i < (openBrackets - closeBrackets); i++) {
+          completion += ']';
+        }
+        
+        // If the last field is incomplete, try to complete it
+        if (fixedJsonStr.includes('"schedule": "') && !fixedJsonStr.includes('"schedule": "', fixedJsonStr.lastIndexOf('"schedule": "'))) {
+          // Find the last incomplete schedule field and complete it
+          const lastScheduleIndex = fixedJsonStr.lastIndexOf('"schedule": "');
+          if (lastScheduleIndex !== -1) {
+            const beforeSchedule = fixedJsonStr.substring(0, lastScheduleIndex);
+            const afterSchedule = fixedJsonStr.substring(lastScheduleIndex);
+            const scheduleMatch = afterSchedule.match(/"schedule": "([^"]*)/);
+            if (scheduleMatch) {
+              const incompleteSchedule = scheduleMatch[1];
+              // Complete the schedule field with a reasonable default
+              const completedSchedule = incompleteSchedule + 'Focus on current term assessments and maintain good performance.';
+              fixedJsonStr = beforeSchedule + afterSchedule.replace(
+                /"schedule": "[^"]*/, 
+                `"schedule": "${completedSchedule}"`
+              );
+            }
+          }
+        }
+        
+        fixedJsonStr += completion;
+        console.log('🔧 [parseRealAIResponse] Completed truncated JSON');
+      }
       
       console.log('🔧 [parseRealAIResponse] Attempting to fix JSON...');
       

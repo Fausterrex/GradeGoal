@@ -43,6 +43,10 @@ public class Grade {
     @Column(name = "extra_credit_points", precision = 8, scale = 2)
     private BigDecimal extraCreditPoints;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "semester_term")
+    private SemesterTerm semesterTerm = SemesterTerm.MIDTERM;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -98,6 +102,9 @@ public class Grade {
 
     public BigDecimal getExtraCreditPoints() { return extraCreditPoints; }
     public void setExtraCreditPoints(BigDecimal extraCreditPoints) { this.extraCreditPoints = extraCreditPoints; }
+
+    public SemesterTerm getSemesterTerm() { return semesterTerm; }
+    public void setSemesterTerm(SemesterTerm semesterTerm) { this.semesterTerm = semesterTerm; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
@@ -203,6 +210,10 @@ public class Grade {
 
     public enum ScoreType {
         PERCENTAGE, POINTS
+    }
+
+    public enum SemesterTerm {
+        MIDTERM, FINAL_TERM
     }
 
     @Override

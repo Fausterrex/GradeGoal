@@ -572,6 +572,28 @@ public class DatabaseCalculationController {
     }
 
     /**
+     * Mark midterm as completed for a course
+     */
+    @PostMapping("/course/{courseId}/mark-midterm-completed")
+    public ResponseEntity<Map<String, Object>> markMidtermCompleted(@PathVariable Long courseId) {
+        try {
+            databaseCalculationService.markMidtermCompleted(courseId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("courseId", courseId);
+            response.put("message", "Midterm marked as completed successfully");
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to mark midterm as completed: " + e.getMessage());
+            errorResponse.put("success", false);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
      * Get user analytics for a specific course
      * Returns all analytics records for the user and course, ordered by date
      * Supports optional semester filtering

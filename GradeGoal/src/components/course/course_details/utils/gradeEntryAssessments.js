@@ -75,6 +75,7 @@ export const prepareAssessmentData = (gradeData, categoryId, categories, grades)
     extraCreditPoints: null,
     note: gradeData.note || "",
     categoryId: categoryId,
+    semesterTerm: gradeData.semesterTerm || 'MIDTERM', // Add semesterTerm field
   };
 };
 
@@ -108,6 +109,7 @@ export const getInitialGradeState = () => {
     maxScore: "",
     date: new Date().toISOString().split("T")[0],
     note: "",
+    semesterTerm: "MIDTERM", // Add default semester term
   };
 };
 

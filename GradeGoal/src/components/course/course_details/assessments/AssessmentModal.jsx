@@ -13,7 +13,8 @@ function AssessmentModal({
   categories,
   colorScheme,
   onSubmit,
-  onCancel
+  onCancel,
+  activeSemesterTerm
 }) {
   if (!isOpen) return null;
 
@@ -68,6 +69,23 @@ function AssessmentModal({
                   </p>
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Semester Term
+                </label>
+                <select
+                  value={newGrade.semesterTerm || activeSemesterTerm}
+                  onChange={(e) =>
+                    setNewGrade({ ...newGrade, semesterTerm: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  required
+                >
+                  <option value="MIDTERM">Midterm</option>
+                  <option value="FINAL_TERM">Final Term</option>
+                </select>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

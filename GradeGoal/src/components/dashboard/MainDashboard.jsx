@@ -30,7 +30,7 @@ import {
   FaCog,
 } from "react-icons/fa";
 import { getCourseColorScheme } from "../../utils/courseColors";
-import { calculateCourseProgress } from "../course/course_details/utils/gradeEntryCourse";
+import { calculateCourseProgress } from "../../services/progressCalculationService";
 import RealtimeNotificationService from "../../services/realtimeNotificationService";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 import UserSettings from "../settings/UserSettings";
@@ -152,6 +152,7 @@ function MainDashboard({ initialTab = "overview" }) {
                 course.colorIndex !== undefined ? course.colorIndex : 0,
               semester: course.semester,
               academicYear: course.academicYear,
+              isMidtermCompleted: course.isMidtermCompleted || false, // Ensure this field is preserved
               categories,
             };
 
@@ -166,6 +167,7 @@ function MainDashboard({ initialTab = "overview" }) {
                 course.colorIndex !== undefined ? course.colorIndex : 0,
               semester: course.semester,
               academicYear: course.academicYear,
+              isMidtermCompleted: course.isMidtermCompleted || false, // Ensure this field is preserved
               categories: [],
             };
             return transformedCourse;
@@ -219,8 +221,8 @@ function MainDashboard({ initialTab = "overview" }) {
           let hasGrades = false;
 
           if (course.categories && course.categories.length > 0) {
-            // Calculate progress using the same logic as loadAllGrades
-            progress = calculateCourseProgress(course.categories, allGrades);
+            // Calculate progress using centralized service
+            progress = calculateCourseProgress(course, course.categories, allGrades);
             
             // Check if course has any grades to determine hasGrades
             hasGrades = course.categories.some(category => 
@@ -347,8 +349,8 @@ function MainDashboard({ initialTab = "overview" }) {
             let hasGrades = false;
 
             if (course.categories && course.categories.length > 0) {
-              // Calculate progress using the same logic as GradeEntry
-              progress = calculateCourseProgress(course.categories, allGrades);
+              // Calculate progress using centralized service
+              progress = calculateCourseProgress(course, course.categories, allGrades);
               
               // Check if course has any grades to determine hasGrades
               hasGrades = course.categories.some(category => 
@@ -582,6 +584,12 @@ function MainDashboard({ initialTab = "overview" }) {
   };
 
   const handleGradeUpdate = (updatedData) => {
+    // Safety check: ensure updatedData is not null/undefined
+    if (!updatedData) {
+      console.warn("handleGradeUpdate called with null/undefined data");
+      return;
+    }
+
     if (
       updatedData &&
       typeof updatedData === "object" &&
@@ -621,8 +629,8 @@ function MainDashboard({ initialTab = "overview" }) {
               let hasGrades = false;
 
               if (course.categories && course.categories.length > 0) {
-                // Calculate progress using the same logic as GradeEntry
-                progress = calculateCourseProgress(course.categories, mergedGrades);
+                // Calculate progress using centralized service
+                progress = calculateCourseProgress(course, course.categories, mergedGrades);
                 
                 // Check if course has any grades to determine hasGrades
                 hasGrades = course.categories.some(category => 
@@ -1356,6 +1364,11 @@ function MainDashboard({ initialTab = "overview" }) {
                       }, 500);
                     } else {
                       setIsCourseManagerExpanded(false);
+                    }
+                  }}
+                  onCourseDataRefresh={() => {
+                    if (currentUser?.email) {
+                      loadCoursesAndGrades();
                     }
                   }}
                 />

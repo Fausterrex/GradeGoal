@@ -183,7 +183,19 @@ function UnifiedRecommendations({
           // Check if this is the new AI analysis format
           if (recommendation.recommendationType === 'AI_ANALYSIS' && recommendation.content) {
             try {
-              const content = typeof recommendation.content === 'string' ? JSON.parse(recommendation.content) : recommendation.content;
+              // Handle malformed JSON content
+              let content;
+              if (typeof recommendation.content === 'string') {
+                try {
+                  content = JSON.parse(recommendation.content);
+                } catch (parseError) {
+                  console.warn('Failed to parse AI recommendation content:', parseError.message);
+                  // Skip this recommendation if JSON is malformed
+                  return null;
+                }
+              } else {
+                content = recommendation.content;
+              }
               // If it has the new format structure, render inline
               if (content.focusIndicators || content.scorePredictions || content.achievementProbability) {
                 return (
@@ -308,6 +320,8 @@ function UnifiedRecommendations({
               }
             } catch (error) {
               console.error('Error parsing recommendation content:', error);
+              // Skip malformed recommendations instead of showing error
+              return null;
             }
           }
           

@@ -36,6 +36,8 @@ public class DatabaseAnalyticsController {
             Long userId = Long.valueOf(request.get("userId").toString());
             Long courseId = request.get("courseId") != null ? 
                 Long.valueOf(request.get("courseId").toString()) : null;
+            String semesterTerm = request.get("semesterTerm") != null ? 
+                request.get("semesterTerm").toString() : "MIDTERM";
             
             jdbcTemplate.execute(
                 (CallableStatementCreator) con -> {
@@ -46,9 +48,7 @@ public class DatabaseAnalyticsController {
                     } else {
                         cs.setNull(2, Types.BIGINT);
                     }
-                    // Get the semester from the course
-                    String semester = getCourseSemester(courseId);
-                    cs.setString(3, semester);
+                    cs.setString(3, semesterTerm);
                     return cs;
                 },
                 (CallableStatementCallback<Void>) cs -> {
