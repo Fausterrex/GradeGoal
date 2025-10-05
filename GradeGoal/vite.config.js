@@ -40,6 +40,8 @@ export default defineConfig({
         changeOrigin: true,               // Handle CORS issues
         secure: false,                    // Allow HTTP connections in development
       }
-    }
+    },
+    // Enable SPA fallback for development server
+    historyApiFallback: true
   }
 })

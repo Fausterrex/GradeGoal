@@ -489,6 +489,19 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // Create handler using utility function
   const handleEditCourseClick = createCourseEditHandler(course, setEditingCourse, setShowEditCourse);
 
+  // Create custom back handler that navigates to courses instead of dashboard
+  const handleBackToCourses = () => {
+    // Clear the selected course and close course manager first
+    if (onClearSelectedCourse) {
+      onClearSelectedCourse();
+    }
+    if (onCloseCourseManager) {
+      onCloseCourseManager();
+    }
+    // Navigate to courses page
+    navigate('/dashboard/courses');
+  };
+
   // Create handler using utility function
   const handleCourseUpdated = createCourseUpdateHandler(
     course,
@@ -560,7 +573,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       <MainHeader
         course={course}
         colorScheme={colorScheme}
-        onBack={onBack}
+        onBack={handleBackToCourses}
         onEditCourseClick={handleEditCourseClick}
         progressPercentage={progressPercentage}
         totalAssessments={totalAssessments}

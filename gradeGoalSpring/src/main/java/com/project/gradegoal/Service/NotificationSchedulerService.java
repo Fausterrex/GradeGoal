@@ -49,11 +49,9 @@ public class NotificationSchedulerService {
     @Value("${notification.upcoming.enabled:true}")
     private boolean upcomingNotificationsEnabled;
     
-    @Value("${notification.upcoming.days.before:3}")
+    @Value("${notification.upcoming.days.before:2}")
     private int upcomingDaysBefore;
     
-    @Value("${notification.reminder.days.before:2}")
-    private int reminderDaysBefore;
     
     /**
      * Scheduled method to check and send notifications daily at 9 AM
@@ -89,7 +87,7 @@ public class NotificationSchedulerService {
     private void sendNotificationsForUser(User user) {
         try {
             // Get user's assessments
-            List<Assessment> userAssessments = assessmentService.getAllAssessmentsWithCourseInfo()
+            List<Assessment> userAssessments = assessmentService.getAssessmentsByUserId(user.getUserId())
                 .stream()
                 .filter(assessment -> assessment.getCourseName() != null) // Only assessments with course info
                 .collect(Collectors.toList());
@@ -137,22 +135,6 @@ public class NotificationSchedulerService {
                 }
             }
             
-            // Check for 2-day prior assessment reminders
-            List<Assessment> reminderAssessments = getReminderAssessments(userAssessments);
-            if (!reminderAssessments.isEmpty()) {
-                logger.info("Sending 2-day reminder notification to: {} ({} assessments)", 
-                    user.getEmail(), reminderAssessments.size());
-                
-                // Send email notification if enabled
-                if (user.getEmailNotificationsEnabled() != null && user.getEmailNotificationsEnabled()) {
-                    emailNotificationService.sendAssessmentReminderNotification(user.getEmail(), reminderAssessments);
-                }
-                
-                // Send push notification if enabled
-                if (user.getPushNotificationsEnabled() != null && user.getPushNotificationsEnabled()) {
-                    sendAssessmentReminderPushNotification(user.getEmail(), reminderAssessments);
-                }
-            }
             
         } catch (Exception e) {
             logger.error("Error sending notifications for user: {}", user.getEmail(), e);
@@ -175,19 +157,17 @@ public class NotificationSchedulerService {
     }
     
     /**
-     * Get upcoming assessments for a user
+     * Get upcoming assessments for a user (2 days prior)
      * @param assessments List of user's assessments
-     * @return List of upcoming assessments
+     * @return List of upcoming assessments due in 2 days
      */
     private List<Assessment> getUpcomingAssessments(List<Assessment> assessments) {
         LocalDate today = LocalDate.now();
-        LocalDate futureDate = today.plusDays(upcomingDaysBefore);
+        LocalDate upcomingDate = today.plusDays(upcomingDaysBefore);
         
         return assessments.stream()
             .filter(assessment -> assessment.getDueDate() != null)
-            .filter(assessment -> assessment.getDueDate().isAfter(today))
-            .filter(assessment -> assessment.getDueDate().isBefore(futureDate) || 
-                    assessment.getDueDate().isEqual(futureDate))
+            .filter(assessment -> assessment.getDueDate().equals(upcomingDate))
             .filter(assessment -> assessment.getStatus() != Assessment.AssessmentStatus.COMPLETED)
             .collect(Collectors.toList());
     }
@@ -252,51 +232,6 @@ public class NotificationSchedulerService {
         }
     }
     
-    /**
-     * Get assessments that need 2-day reminders
-     * @param assessments List of all assessments
-     * @return List of assessments due in 2 days
-     */
-    private List<Assessment> getReminderAssessments(List<Assessment> assessments) {
-        LocalDate today = LocalDate.now();
-        LocalDate reminderDate = today.plusDays(reminderDaysBefore);
-        
-        return assessments.stream()
-            .filter(assessment -> assessment.getDueDate() != null)
-            .filter(assessment -> assessment.getDueDate().equals(reminderDate))
-            .filter(assessment -> assessment.getStatus() != Assessment.AssessmentStatus.COMPLETED)
-            .collect(Collectors.toList());
-    }
-    
-    /**
-     * Send assessment reminder push notification
-     * @param userEmail User's email address
-     * @param reminderAssessments List of assessments needing reminders
-     */
-    private void sendAssessmentReminderPushNotification(String userEmail, List<Assessment> reminderAssessments) {
-        try {
-            String title = "📚 Study Reminder - GradeGoal";
-            String body = String.format("You have %d assessment(s) in 2 days - time to review!", reminderAssessments.size());
-            
-            StringBuilder dataBuilder = new StringBuilder();
-            dataBuilder.append("{\"type\":\"assessment_reminder\",\"assessments\":[");
-            for (int i = 0; i < reminderAssessments.size(); i++) {
-                Assessment assessment = reminderAssessments.get(i);
-                dataBuilder.append(String.format("{\"name\":\"%s\",\"course\":\"%s\",\"dueDate\":\"%s\"}", 
-                    assessment.getAssessmentName(), 
-                    assessment.getCourseName(), 
-                    assessment.getDueDate()));
-                if (i < reminderAssessments.size() - 1) {
-                    dataBuilder.append(",");
-                }
-            }
-            dataBuilder.append("]}");
-            
-            pushNotificationService.sendNotificationToUser(userEmail, title, body, dataBuilder.toString());
-        } catch (Exception e) {
-            logger.error("Error sending assessment reminder push notification to user: {}", userEmail, e);
-        }
-    }
     
     /**
      * Scheduled method to check for custom event reminders

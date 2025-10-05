@@ -182,6 +182,18 @@ function AppRoutes() {
                     }
                   />
                   <Route
+                    path="/dashboard/course/:id"
+                    element={
+                      <div className="flex flex-col h-screen w-full">
+                        <PrivateRoute
+                          component={MainDashboard}
+                          initialTab="grades"
+                          requiredRole="USER"
+                        />
+                      </div>
+                    }
+                  />
+                  <Route
                     path="/dashboard/settings"
                     element={
                       <div className="flex flex-col h-screen w-full">

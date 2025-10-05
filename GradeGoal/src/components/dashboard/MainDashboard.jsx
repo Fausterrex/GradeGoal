@@ -481,6 +481,12 @@ function MainDashboard({ initialTab = "overview" }) {
       setActiveTab(initialTab);
     }
 
+    // Handle courses tab - show full screen CourseManager
+    if (initialTab === "courses") {
+      setIsCourseManagerExpanded(true);
+      setIsOpeningOverlay(true);
+    }
+
     if (initialTab === "grades") {
       const path = window.location.pathname;
       if (path.startsWith("/dashboard/course/")) {
@@ -495,6 +501,37 @@ function MainDashboard({ initialTab = "overview" }) {
     }
   }, [initialTab, courses.length, activeTab]);
 
+  // Separate effect to handle course selection when courses are loaded
+  useEffect(() => {
+    if (initialTab === "grades" && courses.length > 0) {
+      const path = window.location.pathname;
+      if (path.startsWith("/dashboard/course/")) {
+        const courseId = path.split("/")[3];
+        if (courseId) {
+          // Convert courseId to both string and number for comparison
+          const courseIdStr = courseId.toString();
+          const courseIdNum = parseInt(courseId, 10);
+          
+          const course = courses.find((c) => 
+            c.id === courseIdStr || 
+            c.id === courseIdNum || 
+            c.id === courseId ||
+            c.courseId === courseIdStr ||
+            c.courseId === courseIdNum ||
+            c.courseId === courseId
+          );
+          
+          if (course && !selectedCourse) {
+            console.log('🎯 [MainDashboard] Setting selected course from URL:', course.name, 'ID:', course.id);
+            setSelectedCourse(course);
+          } else if (!course) {
+            console.log('⚠️ [MainDashboard] Course not found for ID:', courseId, 'Available courses:', courses.map(c => ({ id: c.id, name: c.name })));
+          }
+        }
+      }
+    }
+  }, [courses, initialTab, selectedCourse]);
+
   useEffect(() => {
     const handlePopState = (event) => {
       const path = window.location.pathname;
@@ -505,28 +542,48 @@ function MainDashboard({ initialTab = "overview" }) {
         const tab = path.split("/")[2];
          if (["courses", "goals", "reports", "calendar", "settings"].includes(tab)) {
            setActiveTab(tab);
-           // Clear selected course when navigating to goals, reports, calendar, or settings
-           if (tab === "goals" || tab === "reports" || tab === "calendar" || tab === "settings") {
-            setSelectedCourse(null);
-            // Also close course manager when navigating to these tabs
-            if (isCourseManagerExpanded) {
-              setIsClosingOverlay(true);
-              setTimeout(() => {
-                setIsCourseManagerExpanded(false);
-                setIsClosingOverlay(false);
-              }, 500);
-            } else {
-              setIsCourseManagerExpanded(false);
-            }
-          }
+           
+           // Handle courses tab - show full screen CourseManager
+           if (tab === "courses") {
+             setIsCourseManagerExpanded(true);
+             setIsOpeningOverlay(true);
+           } else {
+             // Clear selected course when navigating to goals, reports, calendar, or settings
+             setSelectedCourse(null);
+             // Also close course manager when navigating to these tabs
+             if (isCourseManagerExpanded) {
+               setIsClosingOverlay(true);
+               setTimeout(() => {
+                 setIsCourseManagerExpanded(false);
+                 setIsClosingOverlay(false);
+               }, 500);
+             } else {
+               setIsCourseManagerExpanded(false);
+             }
+           }
         } else if (tab === "course") {
           const courseId = path.split("/")[3];
           if (courseId) {
-            const course = courses.find((c) => c.id === courseId);
+            // Convert courseId to both string and number for comparison
+            const courseIdStr = courseId.toString();
+            const courseIdNum = parseInt(courseId, 10);
+            
+            const course = courses.find((c) => 
+              c.id === courseIdStr || 
+              c.id === courseIdNum || 
+              c.id === courseId ||
+              c.courseId === courseIdStr ||
+              c.courseId === courseIdNum ||
+              c.courseId === courseId
+            );
+            
             if (course) {
+              console.log('🎯 [MainDashboard] handlePopState: Setting selected course:', course.name, 'ID:', course.id);
               setPreviousRoute(window.location.pathname); // Store current route before navigation
               setSelectedCourse(course);
               setActiveTab("grades");
+            } else {
+              console.log('⚠️ [MainDashboard] handlePopState: Course not found for ID:', courseId, 'Available courses:', courses.map(c => ({ id: c.id, name: c.name })));
             }
           }
         }

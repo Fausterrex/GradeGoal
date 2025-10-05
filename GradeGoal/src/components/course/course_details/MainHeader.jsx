@@ -34,8 +34,7 @@ function MainHeader({
             onClick={onBack}
             className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors duration-200"
           >
-            <span className="text-xl">←</span>
-            <span className="font-medium">Back to Dashboard</span>
+            <span className="text-2xl font-bold">←</span>
           </button>
           
           {/* Edit Course Button */}
