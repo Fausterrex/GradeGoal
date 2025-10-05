@@ -344,6 +344,7 @@ public class AssessmentService {
      * Regenerate analytics records for all assessments in a course
      * This creates one analytics record per assessment to support the trajectory chart
      * It updates existing records instead of creating duplicates
+     * IMPORTANT: Only creates analytics for assessments that have actual scores (grades)
      */
     public void regenerateAnalyticsForCourse(Long userId, Long courseId) {
         try {
@@ -357,6 +358,25 @@ public class AssessmentService {
             List<Assessment> assessments = assessmentRepository.findByCategoryIdIn(categoryIds);
             
             System.out.println("🔍 Found " + assessments.size() + " assessments for course " + courseId);
+            
+            // Filter assessments to only include those with actual scores (grades)
+            List<Assessment> assessmentsWithScores = assessments.stream()
+                .filter(assessment -> {
+                    List<Grade> grades = gradesRepository.findByAssessmentId(assessment.getAssessmentId());
+                    // Only include assessments that have grades with actual scores (not null and > 0)
+                    return grades.stream().anyMatch(grade -> 
+                        grade.getPointsEarned() != null && grade.getPointsEarned().compareTo(BigDecimal.ZERO) > 0
+                    );
+                })
+                .collect(Collectors.toList());
+            
+            System.out.println("🔍 Found " + assessmentsWithScores.size() + " assessments with scores for course " + courseId);
+            
+            // If no assessments have scores, don't create any analytics records
+            if (assessmentsWithScores.isEmpty()) {
+                System.out.println("📊 No assessments with scores found - skipping analytics creation");
+                return;
+            }
             
             // Get existing analytics for this course
             List<UserAnalytics> existingAnalytics = userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
@@ -376,11 +396,11 @@ public class AssessmentService {
             BigDecimal currentGPA = currentCourseGrade != null ? 
                 currentCourseGrade.divide(BigDecimal.valueOf(25.0), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO; // Convert percentage to GPA
             
-            // Count completed and pending assignments
-            long completedCount = assessments.stream()
+            // Count completed and pending assignments (only those with scores)
+            long completedCount = assessmentsWithScores.stream()
                 .mapToLong(assessment -> gradesRepository.findByAssessmentId(assessment.getAssessmentId()).size())
                 .sum();
-            long totalAssessments = assessments.size();
+            long totalAssessments = assessmentsWithScores.size();
             long pendingCount = totalAssessments - completedCount;
             
             // Check if we should update existing analytics or create new ones
@@ -388,7 +408,7 @@ public class AssessmentService {
                 // No existing analytics - create one record per assessment
                 System.out.println("📊 No existing analytics found - creating new records for each assessment");
                 
-                for (Assessment assessment : assessments) {
+                for (Assessment assessment : assessmentsWithScores) {
                     try {
                         UserAnalytics analytics = createAnalyticsRecord(userId, courseId, course, assessment, currentGPA, completedCount, pendingCount);
                         userAnalyticsRepository.save(analytics);
@@ -405,7 +425,7 @@ public class AssessmentService {
                 System.out.println("📊 Updating existing analytics records instead of creating duplicates");
                 
                 // Check if we need to adjust the number of analytics records
-                int targetAnalyticsCount = assessments.size();
+                int targetAnalyticsCount = assessmentsWithScores.size();
                 int currentAnalyticsCount = existingAnalytics.size();
                 
                 System.out.println("📊 Target analytics count: " + targetAnalyticsCount + ", Current analytics count: " + currentAnalyticsCount);
@@ -426,7 +446,7 @@ public class AssessmentService {
                     // Update the remaining analytics records
                     for (int i = 0; i < targetAnalyticsCount; i++) {
                         UserAnalytics analytics = existingAnalytics.get(i);
-                        Assessment assessment = assessments.get(i);
+                        Assessment assessment = assessmentsWithScores.get(i);
                         
                         // Calculate GPA for this specific assessment
                         BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
@@ -458,7 +478,7 @@ public class AssessmentService {
                     // Update existing analytics records first
                     for (int i = 0; i < currentAnalyticsCount; i++) {
                         UserAnalytics analytics = existingAnalytics.get(i);
-                        Assessment assessment = assessments.get(i);
+                        Assessment assessment = assessmentsWithScores.get(i);
                         
                         // Calculate GPA for this specific assessment
                         BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
@@ -485,7 +505,7 @@ public class AssessmentService {
                     
                     // Create additional analytics records for new assessments
                     for (int i = currentAnalyticsCount; i < targetAnalyticsCount; i++) {
-                        Assessment assessment = assessments.get(i);
+                        Assessment assessment = assessmentsWithScores.get(i);
                         try {
                             UserAnalytics analytics = createAnalyticsRecord(userId, courseId, course, assessment, currentGPA, completedCount, pendingCount);
                             userAnalyticsRepository.save(analytics);
@@ -503,7 +523,7 @@ public class AssessmentService {
                     
                     for (int i = 0; i < currentAnalyticsCount; i++) {
                         UserAnalytics analytics = existingAnalytics.get(i);
-                        Assessment assessment = assessments.get(i);
+                        Assessment assessment = assessmentsWithScores.get(i);
                         
                         // Calculate GPA for this specific assessment
                         BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);

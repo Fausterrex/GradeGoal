@@ -39,14 +39,17 @@ export const calculateCourseProgress = (course, categories = null, grades = null
     return course.isMidtermCompleted ? 50 : 0;
   }
   
-  // Priority 4: Fallback to assessment-based calculation
+  // Priority 4: Fallback to assessment-based calculation with improved logic
   if (categories && grades) {
     const assessmentProgress = calculateAssessmentBasedProgress(categories, grades);
     
-    // If course is not completed and has high assessment progress,
-    // assume it's midterm progress and cap at 50%
-    if (course.isCompleted !== true && assessmentProgress > 50) {
-      return 50; // Assume midterm is done but course is not fully completed
+    // Check if midterm assessments are completed by analyzing actual grades
+    const hasMidtermAssessments = checkMidtermCompletion(categories, grades);
+    
+    if (hasMidtermAssessments) {
+      // If midterm assessments are completed, show at least 50% progress
+      const finalTermProgress = calculateFinalTermProgress(categories, grades);
+      return Math.min(50 + finalTermProgress, 100);
     }
     
     return assessmentProgress;
@@ -91,6 +94,45 @@ const calculateFinalTermProgress = (categories, grades) => {
     (completedAssessments / totalExpectedAssessments) * 50 : 0;
   
   return finalTermProgress;
+};
+
+/**
+ * Check if midterm assessments are completed by analyzing actual grades
+ * @param {Array} categories - Assessment categories
+ * @param {Object} grades - Grades data
+ * @returns {boolean} True if midterm assessments are completed
+ */
+const checkMidtermCompletion = (categories, grades) => {
+  if (!categories || categories.length === 0) return false;
+  
+  let hasMidtermAssessments = false;
+  let completedMidtermAssessments = 0;
+  let totalMidtermAssessments = 0;
+  
+  categories.forEach((category) => {
+    const categoryGrades = grades[category.id] || [];
+    
+    // Filter for midterm assessments only
+    const midtermGrades = categoryGrades.filter(grade => 
+      grade.semesterTerm === 'MIDTERM'
+    );
+    
+    if (midtermGrades.length > 0) {
+      hasMidtermAssessments = true;
+      totalMidtermAssessments += midtermGrades.length;
+      
+      // Count completed midterm assessments
+      midtermGrades.forEach((grade) => {
+        if (hasValidScore(grade)) {
+          completedMidtermAssessments++;
+        }
+      });
+    }
+  });
+  
+  // Consider midterm completed if we have assessments and most/all are completed
+  return hasMidtermAssessments && completedMidtermAssessments > 0 && 
+         (completedMidtermAssessments / totalMidtermAssessments) >= 0.8; // 80% threshold
 };
 
 /**

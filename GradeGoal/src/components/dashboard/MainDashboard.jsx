@@ -545,6 +545,7 @@ function MainDashboard({ initialTab = "overview" }) {
            
            // Handle courses tab - show full screen CourseManager
            if (tab === "courses") {
+             setSelectedCourse(null); // Clear selected course to show CourseManager
              setIsCourseManagerExpanded(true);
              setIsOpeningOverlay(true);
            } else {
@@ -836,9 +837,12 @@ function MainDashboard({ initialTab = "overview" }) {
       }
     }
 
-    if (tab === "courses" && !selectedCourse) {
+    if (tab === "courses") {
+      // Always open CourseManager in full screen when navigating to courses tab
       setIsOpeningOverlay(true);
       setIsCourseManagerExpanded(true);
+      // Clear selected course to ensure full screen mode
+      setSelectedCourse(null);
       // Refresh course data when opening course manager to ensure up-to-date progress
       if (currentUser?.email) {
         loadCoursesAndGrades();

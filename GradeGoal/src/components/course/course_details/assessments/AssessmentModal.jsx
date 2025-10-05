@@ -14,7 +14,8 @@ function AssessmentModal({
   colorScheme,
   onSubmit,
   onCancel,
-  activeSemesterTerm
+  activeSemesterTerm,
+  isMidtermCompleted
 }) {
   if (!isOpen) return null;
 
@@ -82,9 +83,16 @@ function AssessmentModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   required
                 >
-                  <option value="MIDTERM">Midterm</option>
+                  <option value="MIDTERM" disabled={isMidtermCompleted}>
+                    Midterm {isMidtermCompleted ? '(Completed - Locked)' : ''}
+                  </option>
                   <option value="FINAL_TERM">Final Term</option>
                 </select>
+                {isMidtermCompleted && (
+                  <p className="text-xs text-red-500 mt-1">
+                    Cannot add midterm assessments when midterm is already completed
+                  </p>
+                )}
               </div>
 
               <div>

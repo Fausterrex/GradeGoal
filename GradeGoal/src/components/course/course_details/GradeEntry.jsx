@@ -87,6 +87,11 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   useEffect(() => {
   }, [course]);
 
+  // Sync local course state with prop changes
+  useEffect(() => {
+    setLocalCourse(course);
+  }, [course]);
+
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -115,6 +120,9 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const [courseGrade, setCourseGrade] = useState(0);
   const [activeSemesterTerm, setActiveSemesterTerm] = useState('MIDTERM');
   const [isMidtermCompleted, setIsMidtermCompleted] = useState(false);
+  
+  // Local course state that can be updated immediately
+  const [localCourse, setLocalCourse] = useState(course);
 
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -278,8 +286,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         setActiveSemesterTerm('FINAL_TERM');
         setSuccessMessage("Midterm marked as completed! Final Term is now unlocked.");
         
-        // Update the course object locally to reflect the change
-        const updatedCourse = { ...course, isMidtermCompleted: true };
+        // Update the local course state immediately for instant UI update
+        setLocalCourse(prevCourse => ({ ...prevCourse, isMidtermCompleted: true }));
         
         // Refresh course data and grades
         if (onGradeUpdate) {
@@ -429,8 +437,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   };
 
   const getProgressPercentage = () => {
-    // Use centralized progress calculation service
-    return calculateCourseProgress(course, categories, grades);
+    // Use centralized progress calculation service with local course state
+    return calculateCourseProgress(localCourse, categories, grades);
   };
 
   // ========================================
@@ -491,14 +499,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
 
   // Create custom back handler that navigates to courses instead of dashboard
   const handleBackToCourses = () => {
-    // Clear the selected course and close course manager first
-    if (onClearSelectedCourse) {
-      onClearSelectedCourse();
-    }
-    if (onCloseCourseManager) {
-      onCloseCourseManager();
-    }
-    // Navigate to courses page
+    // Navigate to courses page - this will trigger CourseManager to open in full screen
     navigate('/dashboard/courses');
   };
 
@@ -571,7 +572,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   return (
     <div className={`w-full h-full ${colorScheme.light} flex flex-col overflow-y-auto`}>
       <MainHeader
-        course={course}
+        course={localCourse}
         colorScheme={colorScheme}
         onBack={handleBackToCourses}
         onEditCourseClick={handleEditCourseClick}
@@ -585,15 +586,15 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
 
       <div
         className={`w-full ${showDashboard ? 'px-0 py-0' : 'px-8 py-12'} ${
-          course.isActive === false ? "opacity-90" : ""
+          localCourse.isActive === false ? "opacity-90" : ""
         } flex-1`}
       >
-        {course.isActive === false && <ArchivedWarning />}
+        {localCourse.isActive === false && <ArchivedWarning />}
 
         {showDashboard ? (
           <div className="w-full">
             <Dashboard
-              course={course}
+              course={localCourse}
               grades={grades}
               categories={categories}
               targetGrade={targetGrade}
@@ -635,9 +636,10 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               onEditScore={handleEditScore}
               onEditAssessment={handleEditAssessment}
               onDeleteAssessment={handleDeleteAssessment}
-              course={course}
+              course={localCourse}
               targetGrade={targetGrade}
               activeSemesterTerm={activeSemesterTerm}
+              isMidtermCompleted={isMidtermCompleted}
             />
           </div>
         )}
@@ -654,6 +656,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         onSubmit={handleSubmit}
         onCancel={cancelGradeEdit}
         activeSemesterTerm={activeSemesterTerm}
+        isMidtermCompleted={isMidtermCompleted}
       />
 
       <AddScoreModal
@@ -711,14 +714,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         }}
         onCourseCreated={handleCourseUpdated}
         editingCourse={editingCourse}
-        existingCourses={[course]}
+        existingCourses={[localCourse]}
         courseColorScheme={colorScheme}
       />
 
       {showSuccessFeedback && lastSavedGrade && (
         <GradeSuccessFeedback
           gradeData={lastSavedGrade}
-          course={course}
+          course={localCourse}
           grades={grades}
           categories={categories}
           onEnterAnother={(categoryId) => {
@@ -737,7 +740,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
           onReturnToCourse={() => {
             setShowSuccessFeedback(false);
             if (onNavigateToCourse) {
-              onNavigateToCourse(course);
+              onNavigateToCourse(localCourse);
             } else {
               onBack();
             }
