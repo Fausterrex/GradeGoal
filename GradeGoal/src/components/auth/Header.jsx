@@ -10,7 +10,7 @@ import Logo from "../../drawables/logo.svg";
 
 export default function Header() {
   return (
-    <header className="bg-white border-b border-gray-200 py-4 sticky top-0 z-50">
+    <header className="bg-white border-b border-gray-200 py-2 fixed top-0 left-0 right-0 z-50 m-0 p-0">
       {/* ========================================
           HEADER CONTAINER
           ======================================== */}
@@ -21,12 +21,12 @@ export default function Header() {
         {/* ========================================
             LOGO SECTION
             ======================================== */}
-        <div className="w-25 h-25 flex items-center justify-center">
+        <div className="w-16 h-16 flex items-center justify-center">
           <Link to="/">
             <img
               src={Logo}
               alt="logo"
-              className="h-auto w-auto object-obtain"
+              className="h-12 w-12 object-contain"
             />
           </Link>
         </div>

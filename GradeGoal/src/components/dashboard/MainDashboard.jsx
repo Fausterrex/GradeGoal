@@ -1004,10 +1004,12 @@ function MainDashboard({ initialTab = "overview" }) {
                         MOBILE SIDEBAR LOGO SECTION
                         ======================================== */}
                     <div className="flex flex-col items-center justify-center text-2xl font-bold mb-8">
-                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3">
-                        <span className="text-[#8168C5] text-2xl font-bold">
-                          GG
-                        </span>
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden">
+                        <img 
+                          src="/src/drawables/logo.svg" 
+                          alt="Grade Goal Logo" 
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                       <h2 className="text-3xl">Grade Goal</h2>
                     </div>

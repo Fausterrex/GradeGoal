@@ -33,8 +33,12 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
             LOGO AND BRANDING
             ======================================== */}
         <div className="flex flex-col items-center justify-center text-2xl font-bold mb-4">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-2">
-            <span className="text-[#8168C5] text-xl">GG</span>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 ">
+            <img 
+              src="/src/drawables/logo.svg" 
+              alt="Grade Goal Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h2>Grade Goal</h2>
         </div>
