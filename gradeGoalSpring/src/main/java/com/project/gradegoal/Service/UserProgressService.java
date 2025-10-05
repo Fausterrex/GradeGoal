@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -184,9 +183,9 @@ public class UserProgressService {
     }
     
     /**
-     * Calculate points required to reach a specific level using much harder progressive formula
-     * Formula: (level - 1) * 500 + (level - 2) * 250 for level > 1, and 0 for level 1
-     * This makes leveling significantly harder:
+     * Calculate points required to reach a specific level using progressive formula
+     * Formula: level * 500 + (level - 1) * 250 for level > 1, and 0 for level 1
+     * This matches the database stored procedure formula:
      * Level 1: 0 points
      * Level 2: 500 points  
      * Level 3: 1,250 points
@@ -201,7 +200,7 @@ public class UserProgressService {
      */
     public Integer calculatePointsRequiredForLevel(Integer level) {
         if (level <= 1) return 0;
-        return (level - 1) * 500 + (level - 2) * 250;
+        return level * 500 + (level - 1) * 250;
     }
     
     /**

@@ -2,6 +2,7 @@ package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Repository.UserRepository;
+import com.project.gradegoal.Service.LoginStreakService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private LoginStreakService loginStreakService;
 
     public User createUser(String email, String password, String firstName, String lastName) {
         if (userRepository.existsByEmail(email)) {
@@ -40,6 +44,13 @@ public class UserService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(password, user.getPasswordHash())) {
+                // Update login streak
+                try {
+                    loginStreakService.updateLoginStreak(user.getUserId());
+                } catch (Exception e) {
+                    // Log error but don't fail authentication
+                    System.err.println("Failed to update login streak for user " + user.getUserId() + ": " + e.getMessage());
+                }
                 return user;
             }
         }
@@ -52,6 +63,15 @@ public class UserService {
 
     public Optional<User> findById(Long userId) {
         return userRepository.findById(userId);
+    }
+    
+    /**
+     * Get login streak information for a user
+     * @param userId the user ID
+     * @return LoginStreakService.StreakInfo object
+     */
+    public LoginStreakService.StreakInfo getLoginStreakInfo(Long userId) {
+        return loginStreakService.getStreakInfo(userId);
     }
 
     public User updateProfile(Long userId, String firstName, String lastName) {

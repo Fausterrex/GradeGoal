@@ -562,7 +562,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       priority: categoryPredictions.length > 0 ? "HIGH" : "MEDIUM"
     };
   });
-  
+
   return {
     predictedFinalGrade: {
       percentage: `${(typeof currentGrade === 'number' ? currentGrade : parseFloat(currentGrade) || 0).toFixed(1)}%`,

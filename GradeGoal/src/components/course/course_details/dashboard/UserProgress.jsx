@@ -4,12 +4,13 @@
 // Displays user progress, level, points, and achievements
 
 import React, { useState, useEffect } from "react";
-import { getUserProgressWithRank, getRecentAchievements } from "../../../../backend/api";
+import { getUserProgressWithRank, getRecentAchievements, getUserLoginStreak } from "../../../../backend/api";
 import PointsSystemModal from "../../../common/PointsSystemModal";
 
 function UserProgress({ userProgress, course, userId }) {
   const [progressData, setProgressData] = useState(null);
   const [recentAchievements, setRecentAchievements] = useState([]);
+  const [streakData, setStreakData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPointsModal, setShowPointsModal] = useState(false);
 
@@ -22,8 +23,24 @@ function UserProgress({ userProgress, course, userId }) {
             getUserProgressWithRank(userId),
             getRecentAchievements(userId)
           ]);
+          
+          // Try to get streak data separately to avoid failing the entire request
+          let streakResponse = null;
+          try {
+            streakResponse = await getUserLoginStreak(userId);
+          } catch (streakError) {
+            console.warn('⚠️ [UserProgress] Failed to fetch streak data:', streakError.message);
+            // Continue without streak data
+          }
+          
+          console.log('🎯 [UserProgress] Fetched data:', {
+            progressResponse,
+            achievementsResponse,
+            streakResponse
+          });
           setProgressData(progressResponse);
           setRecentAchievements(achievementsResponse);
+          setStreakData(streakResponse);
         } catch (error) {
           console.error("Error fetching user progress with rank:", error);
           // Fallback to passed userProgress
@@ -74,32 +91,20 @@ function UserProgress({ userProgress, course, userId }) {
   const currentLevel = currentProgress.currentLevel || 1;
   const totalPoints = currentProgress.totalPoints || 0;
   
-  // Determine what the user is working towards
-  const isWorkingTowardsCurrentLevel = totalPoints < pointsRequiredForCurrentLevel;
-  const pointsNeededForCurrentLevel = pointsRequiredForCurrentLevel - totalPoints;
-  const pointsNeededForNextLevel = pointsRequiredForNextLevel - totalPoints;
+  // Calculate points needed for next level (simplified logic)
+  const pointsNeededForNextLevel = Math.max(0, pointsRequiredForNextLevel - totalPoints);
   
-  // Calculate progress percentage correctly
-  // If user hasn't reached current level yet, show progress towards current level
-  // If user has reached current level, show progress towards next level
-  let progressPercentage;
-  
-  if (totalPoints < pointsRequiredForCurrentLevel) {
-    // User hasn't reached current level yet - show progress towards current level
-    progressPercentage = pointsRequiredForCurrentLevel > 0 ? Math.min((totalPoints / pointsRequiredForCurrentLevel) * 100, 100) : 0;
-  } else {
-    // User has reached current level - show progress towards next level
-    const pointsInCurrentLevel = totalPoints - pointsRequiredForCurrentLevel;
-    const pointsNeededForCurrentLevel = pointsRequiredForNextLevel - pointsRequiredForCurrentLevel;
-    progressPercentage = pointsNeededForCurrentLevel > 0 ? Math.min((pointsInCurrentLevel / pointsNeededForCurrentLevel) * 100, 100) : 0;
-  }
+  // Calculate progress percentage towards next level
+  const pointsInCurrentLevel = Math.max(0, totalPoints - pointsRequiredForCurrentLevel);
+  const pointsNeededForCurrentLevel = pointsRequiredForNextLevel - pointsRequiredForCurrentLevel;
+  const progressPercentage = pointsNeededForCurrentLevel > 0 ? Math.min((pointsInCurrentLevel / pointsNeededForCurrentLevel) * 100, 100) : 0;
 
   // Set level_info with dynamic rank
   const level_info = {
     level: currentLevel,
     levelName: rankTitle,
     totalPoints: totalPoints,
-    pointsToNextLevel: isWorkingTowardsCurrentLevel ? pointsNeededForCurrentLevel : pointsNeededForNextLevel,
+    pointsToNextLevel: pointsNeededForNextLevel,
     isMaxLevel: currentLevel >= 100
   };
   
@@ -144,10 +149,7 @@ function UserProgress({ userProgress, course, userId }) {
           </div>
           {!level_info.isMaxLevel && (
             <div className="text-xs text-gray-500 mt-1">
-              {isWorkingTowardsCurrentLevel 
-                ? `${pointsNeededForCurrentLevel} points to reach Level ${currentLevel}`
-                : `${pointsNeededForNextLevel} points to next level`
-              }
+              {pointsNeededForNextLevel} points to next level
             </div>
           )}
         </div>
@@ -173,13 +175,27 @@ function UserProgress({ userProgress, course, userId }) {
             <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
               {/* Front */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-full border border-gray-300 shadow-xl text-center [backface-visibility:hidden]">
-                <div className="text-xl font-bold text-gray-900">{currentProgress.streakDays || 0}</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {(() => {
+                    const streakDays = streakData?.streakDays || currentProgress.streakDays || 0;
+                    console.log('🔥 [UserProgress] Streak display:', { 
+                      streakData, 
+                      currentProgressStreak: currentProgress.streakDays, 
+                      finalStreakDays: streakDays,
+                      hasStreakData: !!streakData,
+                      hasCurrentProgressStreak: currentProgress.streakDays !== undefined
+                    });
+                    return streakDays;
+                  })()}
+                </div>
                 <div className="text-xs font-semibold  text-gray-600">Day Streak</div>
               </div>
               {/* Back */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-200 rounded-full border border-gray-300 shadow-xl text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
                 <div className="text-xl font-bold text-gray-900">🔥</div>
-                <div className="text-xs text-gray-700">Nice Streak!</div>
+                <div className="text-xs text-gray-700">
+                  {streakData?.isStreakActive ? "Keep Going!" : "Start Streak!"}
+                </div>
               </div>
             </div>
           </div>
@@ -284,13 +300,10 @@ function UserProgress({ userProgress, course, userId }) {
             <h4 className="text-lg font-semibold text-gray-900 mb-3">Next Milestone</h4>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 mb-2">
-                {isWorkingTowardsCurrentLevel ? `Level ${currentLevel}` : `Level ${level_info.level + 1}`}
+                Level {level_info.level + 1}
               </div>
               <div className="text-sm text-gray-600 mb-3">
-                {isWorkingTowardsCurrentLevel 
-                  ? `${pointsNeededForCurrentLevel} points needed to reach Level ${currentLevel}`
-                  : `${pointsNeededForNextLevel} points needed`
-                }
+                {pointsNeededForNextLevel} points needed
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div

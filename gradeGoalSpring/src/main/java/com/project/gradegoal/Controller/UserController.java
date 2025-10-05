@@ -2,10 +2,14 @@ package com.project.gradegoal.Controller;
 
 import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Service.UserService;
+import com.project.gradegoal.Service.LoginStreakService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.HashMap;
 
 import java.util.List;
 import java.util.Optional;
@@ -78,6 +82,20 @@ public class UserController {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch user");
+        }
+    }
+    
+    @GetMapping("/{userId}/streak")
+    public ResponseEntity<?> getUserLoginStreak(@PathVariable Long userId) {
+        try {
+            LoginStreakService.StreakInfo streakInfo = userService.getLoginStreakInfo(userId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("streakDays", streakInfo.getStreakDays());
+            response.put("lastActivityDate", streakInfo.getLastActivityDate());
+            response.put("isStreakActive", streakInfo.isStreakActive());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch login streak");
         }
     }
 

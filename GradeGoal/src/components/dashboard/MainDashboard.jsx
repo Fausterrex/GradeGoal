@@ -1033,7 +1033,6 @@ function MainDashboard({ initialTab = "overview" }) {
                     courses={courses}
                     grades={grades}
                     overallGPA={overallGPA}
-                    onSearch={(query) => {}}
                   />
                 </div>
               )}

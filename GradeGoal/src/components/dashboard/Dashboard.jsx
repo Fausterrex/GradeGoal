@@ -15,18 +15,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Search, Bell, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import EnhancedGradeTrends from "./EnhancedGradeTrends";
 import GoalsOverview from "./GoalsOverview";
 import RecentActivities from "./RecentActivities";
 import AIRecommendations from "./AIRecommendations";
 import NotificationBell from "./NotificationBell";
-import { getAcademicGoalsByCourse, getUserProfile } from "../../backend/api";
+import { getAcademicGoalsByCourse, getUserProfile, getUserLoginStreak } from "../../backend/api";
 import { useAuth } from "../../context/AuthContext";
 import { useYearLevel } from "../../context/YearLevelContext";
 import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
 
-const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
+const Dashboard = ({ courses, grades, overallGPA }) => {
   const { currentUser } = useAuth();
   const { showCumulativeData } = useYearLevel();
 
@@ -42,12 +42,14 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
     courseGPAs: {}
   });
   const [isLoadingGpa, setIsLoadingGpa] = useState(false);
+  const [streakData, setStreakData] = useState(null);
 
   // Load user ID, target grades, and GPA data when component mounts
   useEffect(() => {
     if (currentUser && courses.length > 0) {
       loadUserAndTargetGrades();
       loadGpaData();
+      loadStreakData();
     }
   }, [currentUser, courses.length]); // Only depend on courses.length, not the entire courses array
 
@@ -166,6 +168,22 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
       console.error("Error loading GPA data:", error);
     } finally {
       setIsLoadingGpa(false);
+    }
+  };
+
+  const loadStreakData = async () => {
+    try {
+      if (!userId) {
+        const userProfile = await getUserProfile(currentUser.email);
+        setUserId(userProfile.userId);
+        const streakInfo = await getUserLoginStreak(userProfile.userId);
+        setStreakData(streakInfo);
+      } else {
+        const streakInfo = await getUserLoginStreak(userId);
+        setStreakData(streakInfo);
+      }
+    } catch (error) {
+      console.error("Error loading streak data:", error);
     }
   };
 
@@ -291,25 +309,28 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
             <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
               Dashboard
             </div>
+            {/* Login Streak Indicator */}
+            {streakData && (
+              <div className="mt-2 flex items-center justify-center lg:justify-start space-x-2">
+                <div className="flex items-center space-x-1 bg-white/20 rounded-full px-3 py-1">
+                  <span className="text-lg">🔥</span>
+                  <span className="text-sm font-medium text-white">
+                    {streakData.streakDays} day streak
+                  </span>
+                </div>
+                {streakData.isStreakActive && (
+                  <div className="flex items-center space-x-1 bg-green-500/30 rounded-full px-2 py-1">
+                    <span className="text-xs text-green-200">Active</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ========================================
-              SEARCH AND ACTIONS SECTION
+              ACTIONS SECTION
               ======================================== */}
           <div className="flex flex-col sm:flex-row sm:justify-center lg:justify-end items-center space-y-3 sm:space-y-0 sm:space-x-3">
-            {/* ========================================
-                SEARCH BAR INPUT
-                ======================================== */}
-            <div className="relative w-full sm:w-80 lg:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search courses, grades..."
-                className="pl-10 pr-4 py-2.5 rounded-xl border-0 bg-white/90 backdrop-blur-sm text-gray-800 w-full text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
-                onChange={(e) => onSearch && onSearch(e.target.value)}
-              />
-            </div>
-
             {/* ========================================
                 NOTIFICATION BELL ICON
                 ======================================== */}

@@ -619,6 +619,26 @@ export async function getUserProfileByUsername(username) {
   return response.json();
 }
 
+// Get user login streak
+export async function getUserLoginStreak(userId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/users/${userId}/streak`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Failed to fetch login streak with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
 // Update user profile
 export async function updateUserProfile(email, profileData) {
   // First get the user by email to get the user ID
