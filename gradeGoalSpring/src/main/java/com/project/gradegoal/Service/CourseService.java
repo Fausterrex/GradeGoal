@@ -38,8 +38,6 @@ public class CourseService {
     @Autowired
     private PushNotificationService pushNotificationService;
 
-    @Autowired
-    private AIAnalysisRepository aiAnalysisRepository;
 
     @Autowired
     private AcademicGoalRepository academicGoalRepository;
@@ -188,35 +186,28 @@ public class CourseService {
             logger.info("🗑️ Starting cascading deletion for course ID: {}", courseId);
             
             try {
-                // 1. Delete AI Analysis for this course
-                int aiAnalysisDeleted = aiAnalysisRepository.deleteByUserIdAndCourseId(
-                    courseRepository.findById(courseId).get().getUserId(), 
-                    courseId
-                );
-                logger.info("🤖 Deleted {} AI analysis records for course {}", aiAnalysisDeleted, courseId);
-                
-                // 2. Delete Academic Goals for this course
+                // 1. Delete Academic Goals for this course
                 int academicGoalsDeleted = academicGoalRepository.deleteByCourseId(courseId);
                 logger.info("🎯 Deleted {} academic goals for course {}", academicGoalsDeleted, courseId);
                 
-                // 3. Delete User Achievements related to this course
+                // 2. Delete User Achievements related to this course
                 // Note: User achievements are not directly linked to courses, so we skip this
                 
-                // 4. Delete Notifications related to this course
+                // 3. Delete Notifications related to this course
                 // Note: Notifications are not directly linked to courses, so we skip this
                 
-                // 5. Delete User Analytics for this course
+                // 4. Delete User Analytics for this course
                 Long userId = courseRepository.findById(courseId).get().getUserId();
                 List<com.project.gradegoal.Entity.UserAnalytics> analyticsToDelete = 
                     userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
                 userAnalyticsRepository.deleteAll(analyticsToDelete);
                 logger.info("📊 Deleted {} user analytics records for course {}", analyticsToDelete.size(), courseId);
                 
-                // 6. Get all assessment categories for this course
+                // 5. Get all assessment categories for this course
                 List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
                 logger.info("📁 Found {} assessment categories for course {}", categories.size(), courseId);
                 
-                // 7. For each category, delete assessments and their grades
+                // 6. For each category, delete assessments and their grades
                 for (AssessmentCategory category : categories) {
                     // Get all assessments in this category
                     List<com.project.gradegoal.Entity.Assessment> assessments = 
@@ -235,11 +226,11 @@ public class CourseService {
                     logger.info("📝 Deleted {} assessments in category {}", assessments.size(), category.getId());
                 }
                 
-                // 8. Delete all assessment categories for this course
+                // 7. Delete all assessment categories for this course
                 assessmentCategoryRepository.deleteAll(categories);
                 logger.info("📁 Deleted {} assessment categories for course {}", categories.size(), courseId);
                 
-                // 9. Finally, delete the course itself
+                // 8. Finally, delete the course itself
                 courseRepository.deleteById(courseId);
                 logger.info("✅ Successfully deleted course {} and all related data", courseId);
                 

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { getAIRecommendations } from "../../../ai/services/geminiService";
 import { loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
 import { useAuth } from "../../../../context/AuthContext";
+import AIPredictions from "../../../ai/components/AIPredictions";
 import { 
   Target, 
   TrendingUp, 
@@ -109,20 +110,27 @@ function UnifiedRecommendations({
 
   const handleMarkAsRead = async (recommendationId) => {
     try {
-      // For now, we'll just update the local state without calling the backend
-      // This avoids the database connection issues
-      console.log('Simulating recommendation mark as read for ID:', recommendationId);
+      console.log('Marking recommendation as read for ID:', recommendationId);
       
-      // Update local state
-      setAiRecommendations(prev => 
-        prev.map(rec => 
-          rec.recommendationId === recommendationId 
-            ? { ...rec, isRead: true }
-            : rec
-        )
-      );
+      // Call the backend API to mark as read
+      const { markRecommendationAsRead } = await import('../../../../backend/api');
+      const response = await markRecommendationAsRead(recommendationId);
+      
+      if (response.success) {
+        // Update local state
+        setAiRecommendations(prev => 
+          prev.map(rec => 
+            rec.recommendationId === recommendationId 
+              ? { ...rec, isRead: true }
+              : rec
+          )
+        );
+        console.log('✅ Recommendation marked as read successfully');
+      } else {
+        console.error('❌ Failed to mark recommendation as read:', response.error);
+      }
     } catch (err) {
-      console.error('Error marking recommendation as read:', err);
+      console.error('❌ Error marking recommendation as read:', err);
     }
   };
 
@@ -177,6 +185,27 @@ function UnifiedRecommendations({
 
   return (
     <div className="space-y-4">
+      {/* AI Predictions Component */}
+      <AIPredictions 
+        course={course}
+        grades={grades}
+        categories={categories}
+        targetGrade={targetGrade}
+        currentGrade={currentGrade}
+        aiAnalysisData={(() => {
+          const aiRec = aiRecommendations.find(rec => rec.recommendationType === 'AI_ANALYSIS');
+          if (aiRec && aiRec.content) {
+            try {
+              return typeof aiRec.content === 'string' ? JSON.parse(aiRec.content) : aiRec.content;
+            } catch (e) {
+              console.warn('Failed to parse AI analysis content for predictions:', e);
+              return null;
+            }
+          }
+          return null;
+        })()}
+      />
+      
       {/* AI Recommendations List */}
       <div className="space-y-4">
         {aiRecommendations.map((recommendation, index) => {
@@ -260,16 +289,29 @@ function UnifiedRecommendations({
                                   <p className="text-xs text-gray-500">Impact: {rec.impact}</p>
                                 </div>
                               </div>
-                              {rec.actionButton && rec.actionButton.enabled && (
-                                <div className="flex justify-end">
+                              <div className="flex justify-between items-center">
+                                {/* Mark as Read Button */}
+                                {!recommendation.isRead && (
+                                  <button
+                                    onClick={() => handleMarkAsRead(recommendation.recommendationId)}
+                                    className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
+                                  >
+                                    Mark as Read
+                                  </button>
+                                )}
+                                
+                                {/* Action Button (filter out quiz-related actions) */}
+                                {rec.actionButton && rec.actionButton.enabled && 
+                                 !rec.actionButton.text.toLowerCase().includes('quiz') &&
+                                 !rec.actionButton.action.toLowerCase().includes('quiz') && (
                                   <button
                                     onClick={() => handleQuickAction(rec.actionButton.action, rec.title)}
                                     className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
                                   >
                                     {rec.actionButton.text}
                                   </button>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

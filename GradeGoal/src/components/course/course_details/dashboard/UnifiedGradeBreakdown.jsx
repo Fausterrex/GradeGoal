@@ -13,7 +13,9 @@ function UnifiedGradeBreakdown({
   course,
   colorScheme,
   targetGrade,
-  currentGrade
+  currentGrade,
+  activeSemesterTerm,
+  isMidtermCompleted
 }) {
   // Get category analysis with proper calculations
   const getCategoryAnalysis = (category) => {
@@ -46,38 +48,83 @@ function UnifiedGradeBreakdown({
     };
   };
 
-  const getOverallContribution = () => {
-    let totalContribution = 0;
-    let totalWeight = 0;
+  // Calculate term-specific contributions (50/50 split)
+  const getTermContribution = (term) => {
+    let termContribution = 0;
+    let totalCategoryWeight = 0;
     
     categories.forEach(category => {
-      const analysis = getCategoryAnalysis(category);
+      const categoryGrades = grades[category.id] || [];
+      const termGrades = categoryGrades.filter(grade => grade.semesterTerm === term);
+      const completedTermGrades = termGrades.filter(grade => hasValidScore(grade));
       
-      // Check if we should exclude this category based on handle_missing setting
-      const shouldExclude = course?.handleMissing === 'exclude' && 
-                           (analysis.average === null || analysis.completed === 0);
+      // Each term gets 50% of each category's weight
+      const termCategoryWeight = (category.weight || 0) * 0.5;
+      totalCategoryWeight += category.weight || 0;
       
-      if (!shouldExclude) {
-        totalContribution += analysis.contribution;
-        totalWeight += category.weight || 0;
+      if (completedTermGrades.length > 0) {
+        // Calculate term average for this category
+        const termAverage = completedTermGrades.reduce((sum, grade) => {
+          const percentage = calculateAssessmentPercentage(grade.score, grade.maxScore);
+          return sum + (percentage || 0);
+        }, 0) / completedTermGrades.length;
+        
+        // Calculate contribution based on 50% of category weight
+        const categoryContribution = (termAverage * termCategoryWeight) / 100;
+        termContribution += categoryContribution;
       }
     });
     
-    // If we're excluding categories, normalize the result to 100% scale
-    if (course?.handleMissing === 'exclude' && totalWeight < 100) {
-      const normalizedPercentage = (totalContribution / totalWeight) * 100;
-      return normalizedPercentage; // Return as percentage of completed work
-    }
+    return {
+      contribution: termContribution,
+      weight: totalCategoryWeight * 0.5, // Each term gets 50% of total weight
+      percentage: totalCategoryWeight > 0 ? (termContribution / (totalCategoryWeight * 0.5)) * 100 : 0
+    };
+  };
+
+  // Calculate term-specific data
+  const midtermData = getTermContribution('MIDTERM');
+  const finalTermData = getTermContribution('FINAL_TERM');
+
+  const getOverallContribution = () => {
+    // Calculate overall contribution as sum of term contributions for consistency
+    const totalContribution = midtermData.contribution + finalTermData.contribution;
     
     return totalContribution;
   };
 
-  // Calculate current GPA (already in GPA format, no need to convert)
-  const currentGPA = typeof currentGrade === 'number' ? currentGrade : 0;
+  // Calculate current GPA - handle both number and string formats
+  const currentGPA = (() => {
+    if (typeof currentGrade === 'number') {
+      return currentGrade;
+    } else if (typeof currentGrade === 'string') {
+      if (currentGrade === 'R') {
+        return 0; // R grade = 0 GPA
+      } else {
+        return parseFloat(currentGrade) || 0;
+      }
+    }
+    return 0;
+  })();
 
   // Goal achievement likelihood analysis with proper calculations
   const likelihoodAnalysis = useMemo(() => {
-    const targetGPA = targetGrade ? percentageToGPA(parseFloat(targetGrade), course?.gpaScale === '5.0' ? 5.0 : 4.0) : null;
+    // Handle targetGrade conversion - it might be a string like 'R', '1.00', etc.
+    let targetGPA = null;
+    if (targetGrade) {
+      if (typeof targetGrade === 'string') {
+        // If it's already a GPA string (like 'R', '1.00', '2.50'), use it directly
+        if (targetGrade === 'R') {
+          targetGPA = 0; // R grade = 0 GPA
+        } else {
+          targetGPA = parseFloat(targetGrade);
+        }
+      } else if (typeof targetGrade === 'number') {
+        // If it's a number, convert from percentage to GPA
+        targetGPA = percentageToGPA(targetGrade, course?.gpaScale === '5.0' ? 5.0 : 4.0);
+      }
+    }
+    
     const overallContribution = getOverallContribution();
 
     if (!targetGPA) {
@@ -216,7 +263,10 @@ function UnifiedGradeBreakdown({
 
             <div className="text-center p-4 bg-blue-100 rounded-2xl border border-blue-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">
-                {analysis.average ? percentageToGPA(analysis.average, course?.gpaScale === '5.0' ? 5.0 : 4.0).toFixed(2) : '--'}
+                {analysis.average ? (() => {
+                  const gpa = percentageToGPA(analysis.average, course?.gpaScale === '5.0' ? 5.0 : 4.0);
+                  return gpa === 'R' ? 'R' : parseFloat(gpa).toFixed(2);
+                })() : '--'}
               </div>
               <div className="text-sm text-gray-500">
                 {analysis.average ? `(${Math.round(analysis.average)}%)` : ''}
@@ -309,22 +359,68 @@ function UnifiedGradeBreakdown({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
           <div className="text-center p-9 bg-orange-100 rounded-xl border border-orange-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-black">
-              {course?.calculatedCourseGrade ? course.calculatedCourseGrade.toFixed(1) : getOverallContribution().toFixed(1)}%
+              {getOverallContribution().toFixed(1)}%
             </div>
             <div className="text-sm text-gray-600">Weighted Average</div>
           </div>
           <div className="text-center p-4 bg-pink-100 rounded-xl border border-pink-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-gray-900">
-              {course?.courseGpa ? course.courseGpa.toFixed(2) : currentGPA.toFixed(2)}
+              {(() => {
+                const gpa = course?.courseGpa || currentGPA;
+                if (typeof gpa === 'string' && gpa === 'R') return 'R';
+                return parseFloat(gpa).toFixed(2);
+              })()}
             </div>
             <div className="text-sm text-gray-500">
-              ({course?.calculatedCourseGrade ? course.calculatedCourseGrade.toFixed(1) : Math.round(getOverallContribution())}%)
+              ({getOverallContribution().toFixed(1)}%)
             </div>
             <div className="text-sm text-gray-600">Overall GPA</div>
           </div>
           <div className="text-center p-4 bg-red-100 rounded-xl border border-red-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-gray-900">{categories.length}</div>
             <div className="text-sm text-gray-600">Categories</div>
+          </div>
+        </div>
+        
+        {/* Term Contributions (50/50 Split) */}
+        <div className="mt-6">
+          <h5 className="text-lg font-bold text-gray-900 ml-5 mb-2">Term Contributions</h5>
+          <p className="text-sm text-gray-600 ml-5 mb-4">Each term contributes 50% to the final grade</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+            <div className="text-center p-6 bg-blue-100 rounded-xl border border-blue-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
+              <div className="text-2xl font-bold text-gray-900">
+                {midtermData.contribution.toFixed(1)}%
+              </div>
+              <div className="text-sm text-gray-500">
+                (50% of total weight)
+              </div>
+              <div className="text-sm text-gray-600">Midterm</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {isMidtermCompleted ? '✅ Completed' : '⏳ In Progress'}
+              </div>
+            </div>
+            <div className="text-center p-6 bg-green-100 rounded-xl border border-green-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
+              <div className="text-2xl font-bold text-gray-900">
+                {finalTermData.contribution.toFixed(1)}%
+              </div>
+              <div className="text-sm text-gray-500">
+                (50% of total weight)
+              </div>
+              <div className="text-sm text-gray-600">Final Term</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {activeSemesterTerm === 'FINAL_TERM' ? '⏳ In Progress' : '📅 Upcoming'}
+              </div>
+            </div>
+          </div>
+          
+          {/* Debug: Calculation Verification */}
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg ml-5 mr-5">
+            <div className="text-xs text-gray-600">
+              <strong>Calculation Verification:</strong><br/>
+              Midterm: {midtermData.contribution.toFixed(2)}% + Final Term: {finalTermData.contribution.toFixed(2)}% = {(midtermData.contribution + finalTermData.contribution).toFixed(2)}%<br/>
+              Weighted Average: {getOverallContribution().toFixed(2)}%<br/>
+              Difference: {(Math.abs(getOverallContribution() - (midtermData.contribution + finalTermData.contribution))).toFixed(2)}%
+            </div>
           </div>
         </div>
       </div>
@@ -390,28 +486,28 @@ function UnifiedGradeBreakdown({
               <div className="text-gray-500 mb-1 text-2xl">📈</div>
               <div className="font-semibold text-lg text-gray-900">Current GPA</div>
               <div className="text-xl font-bold text-gray-900">
-                {likelihoodAnalysis.metrics.currentGPA.toFixed(2)}
+                {typeof likelihoodAnalysis.metrics.currentGPA === 'string' ? likelihoodAnalysis.metrics.currentGPA : likelihoodAnalysis.metrics.currentGPA.toFixed(2)}
               </div>
             </div>
             <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-green-200 to-green-300 border border-green-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">🎯</div>
               <div className="font-medium text-lg text-gray-900">Target GPA</div>
               <div className="text-xl font-bold text-gray-900">
-                {likelihoodAnalysis.metrics.targetGPA.toFixed(2)}
+                {typeof likelihoodAnalysis.metrics.targetGPA === 'string' ? likelihoodAnalysis.metrics.targetGPA : likelihoodAnalysis.metrics.targetGPA.toFixed(2)}
               </div>
             </div>
             <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-orange-200 to-orange-300 border border-orange-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">📊</div>
               <div className="font-medium text-lg text-gray-900">Gap to Close</div>
               <div className="text-lg font-bold text-gray-900">
-                {Math.abs(likelihoodAnalysis.metrics.gpaGap).toFixed(2)}
+                {Math.abs(typeof likelihoodAnalysis.metrics.gpaGap === 'string' ? parseFloat(likelihoodAnalysis.metrics.gpaGap) : likelihoodAnalysis.metrics.gpaGap).toFixed(2)}
               </div>
             </div>
             <div className="bg-gray-50 rounded-4xl bg-gradient-to-r from-violet-200 to-violet-300 border border-violet-500 p-4 text-center shadow-xl transition-transform duration-300 hover:scale-105">
               <div className="text-gray-500 mb-1 text-2xl">✔️</div>
               <div className="font-medium text-lg text-gray-900">Completion</div>
               <div className="text-lg font-bold text-gray-900">
-                {likelihoodAnalysis.metrics.completionRate.toFixed(0)}%
+                {typeof likelihoodAnalysis.metrics.completionRate === 'string' ? likelihoodAnalysis.metrics.completionRate : likelihoodAnalysis.metrics.completionRate.toFixed(0)}%
               </div>
             </div>
           </div>

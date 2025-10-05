@@ -22,12 +22,12 @@ import { buildRealAnalysisPrompt, parseRealAIResponse } from '../utils/aiRespons
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ 
-  model: "gemini-2.0-flash-exp", // Use the original working model
+  model: "gemini-2.5-flash", // Using Gemini 2.5 Flash for better JSON formatting
   generationConfig: {
     temperature: 0.7,
     topK: 40,
     topP: 0.95,
-    maxOutputTokens: 8192, // Reasonable limit for this model
+    maxOutputTokens: 16384, // Increased to prevent truncation
   }
 });
 
@@ -71,7 +71,7 @@ const generateCacheKey = (courseData, goalData, priorityLevel) => {
   const gradesCount = courseData.grades?.length || 0;
   const activeSemesterTerm = courseData.activeSemesterTerm || 'MIDTERM'; // Include semester term in cache key
   
-  return `${courseId}-${currentGPA}-${progress}-${targetValue}-${gradesCount}-${priorityLevel}-${activeSemesterTerm}`;
+  return `${courseId}-${currentGPA}-${progress}-${targetValue}-${gradesCount}-${priorityLevel}-${activeSemesterTerm}-gemini-2.5-flash`;
 };
 
 /**
@@ -180,6 +180,15 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Build comprehensive prompt for real AI analysis
     const prompt = buildRealAnalysisPrompt(courseData, goalData, priorityLevel);
     
+    // Debug: Calculate input token usage
+    const promptLength = prompt.length;
+    const promptTokens = Math.ceil(promptLength / 4); // Rough estimate: 4 chars per token
+    console.log(`🔍 [Token Debug] Input prompt:`);
+    console.log(`   Prompt length: ${promptLength} characters`);
+    console.log(`   Approximate input tokens: ${promptTokens}`);
+    console.log(`   Max output tokens: ${model.generationConfig.maxOutputTokens}`);
+    console.log(`   Total budget: ${promptTokens + model.generationConfig.maxOutputTokens} tokens`);
+    
     let aiResponse;
     const maxRetries = 3;
     let lastError;
@@ -190,11 +199,37 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
         const result = await model.generateContent(prompt);
         aiResponse = result.response.text();
         
+        // Debug: Calculate approximate token usage
+        const responseLength = aiResponse.length;
+        const approximateTokens = Math.ceil(responseLength / 4); // Rough estimate: 4 chars per token
+        console.log(`🔍 [Token Debug] Attempt ${attempt}:`);
+        console.log(`   Response length: ${responseLength} characters`);
+        console.log(`   Approximate tokens: ${approximateTokens}`);
+        console.log(`   Max tokens set: ${model.generationConfig.maxOutputTokens}`);
+        console.log(`   Token usage: ${((approximateTokens / model.generationConfig.maxOutputTokens) * 100).toFixed(1)}%`);
+        
         // Check if response was truncated (common issue with token limits)
-        if (!aiResponse.trim().endsWith('}') && aiResponse.includes('{')) {
+        // More accurate truncation detection - only check for incomplete JSON structure
+        const trimmedResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks and extra whitespace for accurate detection
+        const cleanResponse = trimmedResponse.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+        
+        const isTruncated = (
+          // Response doesn't end with closing brace (after cleaning)
+          (!cleanResponse.endsWith('}')) ||
+          // Response starts with JSON but is clearly incomplete (missing closing braces)
+          (cleanResponse.startsWith('{') && (cleanResponse.match(/\{/g) || []).length > (cleanResponse.match(/\}/g) || []).length) ||
+          // Response ends abruptly without proper JSON structure
+          (cleanResponse.includes('{') && !cleanResponse.includes('"predictedFinalGrade"'))
+        );
+        
+        if (isTruncated) {
           console.warn(`⚠️ [Gemini API] Response appears truncated on attempt ${attempt}`);
           console.warn(`Response length: ${aiResponse.length} characters`);
           console.warn(`Response ends with: "${aiResponse.slice(-50)}"`);
+          console.warn(`Truncation reasons: cleanEndsWith('}')=${cleanResponse.endsWith('}')}, braceCount=${(cleanResponse.match(/\{/g) || []).length}/${(cleanResponse.match(/\}/g) || []).length}, hasPredictedFinalGrade=${cleanResponse.includes('"predictedFinalGrade"')}`);
+          console.warn(`Clean response ends with: "${cleanResponse.slice(-30)}"`);
           
           // If this is the last attempt, we'll try to fix it in parsing
           if (attempt === maxRetries) {
@@ -204,8 +239,19 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
             console.log(`🔄 [Gemini API] Retrying with shorter prompt...`);
             // Use a shorter prompt for retry attempts
             const shorterPrompt = buildRealAnalysisPrompt(courseData, goalData, priorityLevel, true); // Pass true for shorter version
+            console.log(`🔍 [Token Debug] Shorter prompt length: ${shorterPrompt.length} characters`);
+            console.log(`🔍 [Token Debug] Shorter prompt tokens: ~${Math.ceil(shorterPrompt.length / 4)}`);
+            
             const retryResult = await model.generateContent(shorterPrompt);
             aiResponse = retryResult.response.text();
+            
+            // Debug shorter response
+            const shorterResponseLength = aiResponse.length;
+            const shorterApproximateTokens = Math.ceil(shorterResponseLength / 4);
+            console.log(`🔍 [Token Debug] Shorter response:`);
+            console.log(`   Response length: ${shorterResponseLength} characters`);
+            console.log(`   Approximate tokens: ${shorterApproximateTokens}`);
+            console.log(`   Token usage: ${((shorterApproximateTokens / model.generationConfig.maxOutputTokens) * 100).toFixed(1)}%`);
             
             // Check if the shorter prompt worked
             if (aiResponse.trim().endsWith('}')) {
@@ -261,6 +307,19 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Parse the AI response into structured data
     const parsedAnalysis = parseRealAIResponse(aiResponse, courseData, goalData);
     
+    // Final token usage summary
+    const finalResponseLength = aiResponse.length;
+    const finalTokens = Math.ceil(finalResponseLength / 4);
+    console.log(`🔍 [Token Debug] Final Summary:`);
+    console.log(`   Input tokens: ~${promptTokens}`);
+    console.log(`   Output tokens: ~${finalTokens}`);
+    console.log(`   Total tokens used: ~${promptTokens + finalTokens}`);
+    console.log(`   Max output tokens: ${model.generationConfig.maxOutputTokens}`);
+    console.log(`   Output efficiency: ${((finalTokens / model.generationConfig.maxOutputTokens) * 100).toFixed(1)}%`);
+    if (finalTokens >= model.generationConfig.maxOutputTokens * 0.9) {
+      console.warn(`⚠️ [Token Debug] High token usage detected! Consider increasing maxOutputTokens or reducing prompt size.`);
+    }
+    
     // Post-process to fix incorrect probability calculations
     const correctedAnalysis = postProcessAIResponse(parsedAnalysis, courseData, goalData);
     
@@ -273,7 +332,7 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
       priority: priorityLevel,
       aiGenerated: true,
       aiConfidence: 0.85,
-      aiModel: "gemini-2.0-flash-exp",
+      aiModel: "gemini-2.5-flash",
       createdAt: new Date().toISOString(),
       isRead: false,
       isDismissed: false
@@ -294,13 +353,18 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
 
     // Save to database for persistence
     try {
-      await saveAIAnalysisData(
+      const saveResult = await saveAIAnalysisData(
         result.userId,
         result.courseId,
         correctedAnalysis,
         'COURSE_ANALYSIS'
       );
-      console.log('✅ [generateAIRecommendations] Successfully saved analysis to database');
+      if (saveResult.success) {
+        const action = saveResult.isUpdate ? 'updated' : 'saved';
+        console.log(`✅ [generateAIRecommendations] Successfully ${action} analysis to database`);
+      } else {
+        console.warn('⚠️ [generateAIRecommendations] Failed to save AI analysis to database:', saveResult.error);
+      }
     } catch (error) {
       console.warn('⚠️ [generateAIRecommendations] Failed to save AI analysis to database:', error);
       // Continue with cached result even if database save fails

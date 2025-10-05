@@ -553,7 +553,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           <div className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-600">
             <p className="text-white font-semibold mb-2">{`Week: ${label}`}</p>
             <p className="text-green-400 mb-1 text-lg font-bold">
-              {`${gpaLabel}: ${gpaValue.toFixed(2)}`}
+              {`${gpaLabel}: ${typeof gpaValue === 'string' ? gpaValue : gpaValue.toFixed(2)}`}
             </p>
           <p className="text-gray-300 text-sm">
             {`Percentage: ${Math.round((gpaValue / 4.0) * 100)}%`}
@@ -682,12 +682,12 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             </div>
             <p className="text-4xl font-bold mb-1">
               {viewMode === "individual" && selectedCourse
-                ? currentCourseGPA.toFixed(2)
+                ? (typeof currentCourseGPA === 'string' ? currentCourseGPA : currentCourseGPA.toFixed(2))
                 : viewMode === "semester"
-                ? currentSemestralGPA.toFixed(2)
+                ? (typeof currentSemestralGPA === 'string' ? currentSemestralGPA : currentSemestralGPA.toFixed(2))
                 : viewMode === "cumulative"
-                ? cumulativeGPA.toFixed(2)
-                : currentSemestralGPA.toFixed(2)}
+                ? (typeof cumulativeGPA === 'string' ? cumulativeGPA : cumulativeGPA.toFixed(2))
+                : (typeof currentSemestralGPA === 'string' ? currentSemestralGPA : currentSemestralGPA.toFixed(2))}
             </p>
             <p className="text-lg text-gray-600 mb-1">
               ({viewMode === "individual" && selectedCourse

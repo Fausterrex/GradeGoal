@@ -75,7 +75,9 @@ export const calculateGPAForPercentage = async (percentage) => {
   try {
     const result = await calculateGPAFromPercentage(percentage);
     if (result.success) {
-      return parseFloat(result.gpa).toFixed(2);
+      // Handle both string and number results
+      const gpaValue = typeof result.gpa === 'string' ? result.gpa : result.gpa.toString();
+      return gpaValue === 'R' ? 'R' : parseFloat(gpaValue).toFixed(2);
     }
     return "0.00";
   } catch (error) {

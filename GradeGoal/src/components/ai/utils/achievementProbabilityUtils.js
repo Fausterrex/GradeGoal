@@ -249,35 +249,65 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
 
   console.log('🎯 [RealisticProbability] Remaining assessments:', remainingAssessments.length);
 
-  // If no remaining assessments, check if target is already achieved
-  // BUT consider FINAL_TERM potential if midterm is completed
-  if (remainingAssessments.length === 0) {
-    // Check if this is midterm-only analysis and final term could improve grade
-    const isMidtermOnly = currentGrade < 100; // If not perfect, final term could help
-    const finalTermPotential = isMidtermOnly ? 50 : 0; // 50% potential improvement in final term
+  // Check if target is already achieved or achievable with future potential
+  // Consider both remaining assessments AND future potential (empty categories, final term)
+  const emptyCategories = categories.filter(cat => {
+    const categoryGrades = grades[cat.id] || [];
+    return categoryGrades.length === 0;
+  });
+  
+  const hasEmptyCategories = emptyCategories.length > 0;
+  const isMidtermOnly = currentGrade < 100; // If not perfect, final term could help
+  
+  // Calculate potential improvement from empty categories
+  let emptyCategoryPotential = 0;
+  if (hasEmptyCategories) {
+    // If there are empty categories, assume they could contribute significantly
+    // Calculate weighted potential based on empty category weights
+    emptyCategoryPotential = emptyCategories.reduce((sum, cat) => {
+      return sum + (cat.weightPercentage || cat.weight || 0);
+    }, 0);
     
-    if (currentGPA >= targetGPA) {
-      console.log('🎯 [RealisticProbability] Target already achieved');
-      return {
-        probability: 100,
-        bestPossibleGPA: currentGPA,
-        confidence: "HIGH"
-      };
-    } else if (isMidtermOnly && (currentGPA + finalTermPotential) >= targetGPA) {
-      console.log('🎯 [RealisticProbability] Final term could achieve target:', currentGPA + finalTermPotential);
-      return {
-        probability: 75, // High probability with final term focus
-        bestPossibleGPA: currentGPA + finalTermPotential,
-        confidence: "MEDIUM"
-      };
-    } else {
-      console.log('🎯 [RealisticProbability] Target not achievable even with final term');
-      return {
-        probability: 0,
-        bestPossibleGPA: currentGPA,
-        confidence: "LOW"
-      };
-    }
+    // Convert percentage to GPA potential (assume 90% average on new assessments)
+    emptyCategoryPotential = (emptyCategoryPotential / 100) * 0.9; // 90% = 3.6 GPA
+  }
+  
+  // Calculate final term potential - if midterm is done, consider final term improvement
+  const finalTermPotential = isMidtermOnly ? 0.5 : 0; // 0.5 GPA points potential
+  
+  // Calculate remaining assessment potential
+  let remainingAssessmentPotential = 0;
+  if (remainingAssessments.length > 0) {
+    // Calculate potential from remaining assessments (assume 90% average)
+    remainingAssessmentPotential = remainingAssessments.reduce((sum, assessment) => {
+      const weight = assessment.categoryWeight || 0;
+      return sum + (weight / 100) * 0.9; // 90% = 3.6 GPA
+    }, 0);
+  }
+  
+  const totalPotential = emptyCategoryPotential + finalTermPotential + remainingAssessmentPotential;
+  
+  if (currentGPA >= targetGPA) {
+    console.log('🎯 [RealisticProbability] Target already achieved');
+    return {
+      probability: 100,
+      bestPossibleGPA: currentGPA,
+      confidence: "HIGH"
+    };
+  } else if ((currentGPA + totalPotential) >= targetGPA) {
+    console.log('🎯 [RealisticProbability] Target achievable with future potential:', currentGPA + totalPotential);
+    return {
+      probability: hasEmptyCategories ? 85 : 75, // Higher probability if empty categories exist
+      bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
+      confidence: hasEmptyCategories ? "HIGH" : "MEDIUM"
+    };
+  } else {
+    console.log('🎯 [RealisticProbability] Target not achievable even with future potential');
+    return {
+      probability: 0,
+      bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
+      confidence: "LOW"
+    };
   }
 
   // Calculate different scenarios

@@ -1008,10 +1008,10 @@ export async function debugCourseCalculations(courseId) {
 // AI Analysis API functions
 
 /**
- * Save AI analysis to database
+ * Save AI analysis to recommendations table
  */
 export async function saveAIAnalysis(userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS', aiModel = 'gemini-2.0-flash-exp', confidence = 0.85) {
-  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/save`, {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/save-ai-analysis`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1019,8 +1019,7 @@ export async function saveAIAnalysis(userId, courseId, analysisData, analysisTyp
     body: JSON.stringify({
       userId,
       courseId,
-      analysisData: JSON.stringify(analysisData),
-      analysisType,
+      analysisData: analysisData, // Pass as object, not string
       aiModel,
       confidence
     }),
@@ -1036,10 +1035,10 @@ export async function saveAIAnalysis(userId, courseId, analysisData, analysisTyp
 }
 
 /**
- * Get AI analysis from database
+ * Get AI recommendations for a user
  */
-export async function getAIAnalysis(userId, courseId) {
-  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}`, {
+export async function getAIRecommendations(userId) {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -1049,17 +1048,17 @@ export async function getAIAnalysis(userId, courseId) {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(
-      text || `Failed to get AI analysis with status ${response.status}`
+      text || `Failed to get AI recommendations with status ${response.status}`
     );
   }
   return response.json();
 }
 
 /**
- * Check if AI analysis exists
+ * Get AI recommendations for a specific course
  */
-export async function checkAIAnalysisExists(userId, courseId) {
-  const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/exists`, {
+export async function getAIRecommendationsForCourse(userId, courseId) {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -1069,10 +1068,79 @@ export async function checkAIAnalysisExists(userId, courseId) {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(
-      text || `Failed to check AI analysis existence with status ${response.status}`
+      text || `Failed to get AI recommendations for course with status ${response.status}`
     );
   }
   return response.json();
+}
+
+/**
+ * Mark recommendation as read
+ */
+export async function markRecommendationAsRead(recommendationId) {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/${recommendationId}/mark-read`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to mark recommendation as read with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Dismiss recommendation
+ */
+export async function dismissRecommendation(recommendationId) {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/${recommendationId}/dismiss`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      text || `Failed to dismiss recommendation with status ${response.status}`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * Get AI analysis from database (legacy function - now redirects to recommendations)
+ * @deprecated Use getAIRecommendationsForCourse instead
+ */
+export async function getAIAnalysis(userId, courseId) {
+  // Redirect to recommendations table
+  return await getAIRecommendationsForCourse(userId, courseId);
+}
+
+/**
+ * Check if AI analysis exists (legacy function - now checks recommendations)
+ * @deprecated Use getAIRecommendationsForCourse instead
+ */
+export async function checkAIAnalysisExists(userId, courseId) {
+  try {
+    const response = await getAIRecommendationsForCourse(userId, courseId);
+    return {
+      success: true,
+      exists: response.success && response.recommendations && response.recommendations.length > 0
+    };
+  } catch (error) {
+    return {
+      success: false,
+      exists: false,
+      error: error.message
+    };
+  }
 }
 
 /**

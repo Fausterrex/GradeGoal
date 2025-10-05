@@ -177,7 +177,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
       return `${goal.targetValue}%`;
     } else {
       const gpa = convertToGPA(goal.targetValue, 4.0);
-      return `${gpa.toFixed(2)} GPA`;
+      return `${typeof gpa === 'string' ? gpa : gpa.toFixed(2)} GPA`;
     }
   };
 
@@ -643,7 +643,7 @@ const formatTargetValue = (goal) => {
     return `${goal.targetValue}%`;
   } else {
     const gpa = convertToGPA(goal.targetValue, 4.0);
-    return `${gpa.toFixed(2)} GPA`;
+    return `${typeof gpa === 'string' ? gpa : gpa.toFixed(2)} GPA`;
   }
 };
 

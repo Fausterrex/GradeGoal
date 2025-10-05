@@ -180,7 +180,7 @@ function GoalProgress({
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-1">Current Grade</div>
               <div className="text-2xl font-bold text-gray-900">
-                {currentGrade.toFixed(1)}
+                {typeof currentGrade === 'string' ? currentGrade : currentGrade.toFixed(1)}
               </div>
             </div>
           </div>
@@ -264,8 +264,9 @@ function GoalProgress({
       return "Achievable! 🎯";
     } else if (isCourseCompleted) {
       // Course is completed but goal not reached
-      const gap = (targetGPA - currentGPA).toFixed(2);
-      return `Course Complete - ${gap} GPA short`;
+      const gap = (typeof targetGPA === 'string' ? parseFloat(targetGPA) : targetGPA) - (typeof currentGPA === 'string' ? parseFloat(currentGPA) : currentGPA);
+      const gapDisplay = typeof gap === 'string' ? gap : gap.toFixed(2);
+      return `Course Complete - ${gapDisplay} GPA short`;
     } else if (progressPercentage >= 90) {
       return "Almost There!";
     } else if (progressPercentage >= 70) {
@@ -371,7 +372,7 @@ function GoalProgress({
               {/* Center Content */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className={`${isCompact ? 'text-xl' : 'text-4xl'} font-bold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent`}>
-                  {progressPercentage.toFixed(0)}%
+                  {typeof progressPercentage === 'string' ? progressPercentage : progressPercentage.toFixed(0)}%
                 </span>
                 <span className={`${isCompact ? 'text-xs' : 'text-sm'} font-medium text-gray-500 ${isCompact ? 'mt-0' : 'mt-1'}`}>Progress</span>
               </div>
@@ -400,7 +401,7 @@ function GoalProgress({
               <span className={`text-white ${isCompact ? 'text-xs' : 'text-lg'}`}>📊</span>
             </div>
             <div className={`${isCompact ? 'text-lg' : 'text-3xl'} font-bold text-gray-800 ${isCompact ? 'mb-0' : 'mb-1'}`}>
-              {currentGPA.toFixed(2)}
+              {typeof currentGPA === 'string' ? currentGPA : currentGPA.toFixed(2)}
             </div>
             <div className={`${isCompact ? 'text-xs' : 'text-sm'} font-medium text-gray-600`}>Current GPA</div>
           </div>
@@ -411,7 +412,7 @@ function GoalProgress({
                 <span className="text-white text-lg">🎯</span>
               </div>
               <div className={`text-3xl font-bold text-${primaryColor}-700 mb-1`}>
-                {targetGPA.toFixed(2)}
+                {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)}
               </div>
               <div className={`text-sm font-medium text-${primaryColor}-600`}>Target GPA</div>
             </div>
@@ -423,7 +424,7 @@ function GoalProgress({
                 <span className="text-white text-xs">🎯</span>
               </div>
               <div className={`text-lg font-bold text-${primaryColor}-700 mb-0`}>
-                {targetGPA.toFixed(2)}
+                {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)}
               </div>
               <div className={`text-xs font-medium text-${primaryColor}-600`}>Target GPA</div>
             </div>
@@ -437,10 +438,10 @@ function GoalProgress({
               <span className={`text-white ${isCompact ? 'text-lg' : 'text-2xl'}`}>📈</span>
             </div>
             <div className={`${isCompact ? 'text-base' : 'text-lg'} font-bold text-gray-800 mb-2`}>
-              Need {(targetGPA - currentGPA).toFixed(2)} more GPA points
+              Need {((typeof targetGPA === 'string' ? parseFloat(targetGPA) : targetGPA) - (typeof currentGPA === 'string' ? parseFloat(currentGPA) : currentGPA)).toFixed(2)} more GPA points
             </div>
             <div className={`${isCompact ? 'text-xs' : 'text-sm'} text-gray-600`}>
-              to reach your target GPA of {targetGPA.toFixed(2)}
+              to reach your target GPA of {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)}
             </div>
           </div>
         )}
@@ -455,10 +456,10 @@ function GoalProgress({
               Course Completed!
             </div>
             <div className={`text-sm text-${accentColor}-700 mb-2`}>
-              You finished strong with a {currentGPA.toFixed(2)} GPA!
+              You finished strong with a {typeof currentGPA === 'string' ? currentGPA : currentGPA.toFixed(2)} GPA!
             </div>
             <div className={`text-sm text-${accentColor}-600 mb-3`}>
-              Just {(targetGPA - currentGPA).toFixed(2)} GPA points away from your target of {targetGPA.toFixed(2)}
+              Just {((typeof targetGPA === 'string' ? parseFloat(targetGPA) : targetGPA) - (typeof currentGPA === 'string' ? parseFloat(currentGPA) : currentGPA)).toFixed(2)} GPA points away from your target of {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)}
             </div>
             <div className={`inline-flex items-center px-4 py-2 bg-${accentColor}-100 rounded-full text-sm font-medium text-${accentColor}-700`}>
               💪 Great effort! Every completed course builds your journey.
@@ -475,7 +476,7 @@ function GoalProgress({
               Goal Achieved!
             </div>
             <div className="text-sm text-green-600 mb-4">
-              You've reached your target GPA of {targetGPA.toFixed(2)}
+              You've reached your target GPA of {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)}
             </div>
             <div className="inline-flex items-center px-6 py-3 bg-green-100 rounded-full text-sm font-semibold text-green-700">
               🏆 Congratulations on your success!
@@ -490,7 +491,7 @@ function GoalProgress({
               🎉 Goal Achieved!
             </div>
             <div className="text-xs text-green-600">
-              Target GPA of {targetGPA.toFixed(2)} reached!
+              Target GPA of {typeof targetGPA === 'string' ? targetGPA : targetGPA.toFixed(2)} reached!
             </div>
           </div>
         )}

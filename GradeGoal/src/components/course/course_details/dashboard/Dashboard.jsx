@@ -126,6 +126,8 @@ function Dashboard({
                   colorScheme={colorScheme}
                   targetGrade={targetGrade}
                   currentGrade={currentGrade}
+                  activeSemesterTerm={activeSemesterTerm}
+                  isMidtermCompleted={isMidtermCompleted}
                 />
               </div>
             </div>

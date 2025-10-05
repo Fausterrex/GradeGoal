@@ -186,7 +186,7 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
 
     progressionData.push({
       stage: "Current",
-      grade: parseFloat(overallGPA.toFixed(2)),
+      grade: parseFloat(typeof overallGPA === 'string' ? overallGPA : overallGPA.toFixed(2)),
       completedCourses: 0,
       totalCourses: activeCourses.length,
     });
@@ -205,11 +205,15 @@ const Dashboard = ({ courses, grades, overallGPA, onSearch }) => {
       // Get target grade from academic goals
       const courseId = course.id || course.courseId;
       const targetGrade = targetGrades[courseId];
-      let targetGradeDisplay = targetGrade ? targetGrade.toFixed(2) : "Not Available";
+      let targetGradeDisplay = targetGrade ? 
+        (typeof targetGrade === 'string' ? targetGrade : targetGrade.toFixed(2)) : 
+        "Not Available";
 
       // Get actual course GPA from gpaData
       const courseGPA = gpaData.courseGPAs[courseId] || 0;
-      const gradeDisplay = courseGPA > 0 ? courseGPA.toFixed(2) : "Not Available";
+      const gradeDisplay = courseGPA > 0 ? 
+        (typeof courseGPA === 'string' ? courseGPA : courseGPA.toFixed(2)) : 
+        "Not Available";
 
       // Check if course is archived first
       if (course.isActive === false) {

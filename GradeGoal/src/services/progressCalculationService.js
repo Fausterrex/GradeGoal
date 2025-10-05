@@ -4,6 +4,8 @@
 // Centralized service for calculating course progress across all components
 // This ensures consistency and eliminates duplicate calculation logic
 
+import { hasValidScore } from '../components/course/course_details/utils/gradeEntryCalculations';
+
 /**
  * Calculate overall course progress based on semester term completion
  * This is the single source of truth for progress calculation
@@ -19,12 +21,25 @@ export const calculateCourseProgress = (course, categories = null, grades = null
     return 100;
   }
   
-  // Priority 2: Use midterm completion status if available
+  // Priority 2: Calculate progress based on term completion and assessments
+  if (course.isMidtermCompleted !== undefined && categories && grades) {
+    const midtermProgress = course.isMidtermCompleted ? 50 : 0;
+    
+    // Calculate final term progress based on completed assessments
+    const finalTermProgress = calculateFinalTermProgress(categories, grades);
+    
+    // Total progress = midterm progress + final term progress
+    const totalProgress = midtermProgress + finalTermProgress;
+    
+    return Math.min(totalProgress, 100); // Cap at 100%
+  }
+  
+  // Priority 3: Use midterm completion status if available (fallback)
   if (course.isMidtermCompleted !== undefined) {
     return course.isMidtermCompleted ? 50 : 0;
   }
   
-  // Priority 3: Fallback to assessment-based calculation
+  // Priority 4: Fallback to assessment-based calculation
   if (categories && grades) {
     const assessmentProgress = calculateAssessmentBasedProgress(categories, grades);
     
@@ -37,8 +52,45 @@ export const calculateCourseProgress = (course, categories = null, grades = null
     return assessmentProgress;
   }
   
-  // Priority 4: Default fallback
+  // Priority 5: Default fallback
   return 0;
+};
+
+/**
+ * Calculate final term progress based on completed assessments
+ * @param {Array} categories - Assessment categories
+ * @param {Object} grades - Grades data
+ * @returns {number} Final term progress percentage (0-50)
+ */
+const calculateFinalTermProgress = (categories, grades) => {
+  if (!categories || categories.length === 0) return 0;
+  
+  let totalExpectedAssessments = 0;
+  let completedAssessments = 0;
+  
+  categories.forEach((category) => {
+    // Filter grades for FINAL_TERM only
+    const finalTermGrades = (grades[category.id] || []).filter(grade => 
+      grade.semesterTerm === 'FINAL_TERM'
+    );
+    
+    // Each category should have at least 1 assessment for a complete final term
+    const expectedInCategory = Math.max(finalTermGrades.length, 1);
+    totalExpectedAssessments += expectedInCategory;
+    
+    // Count completed assessments in this category for final term
+    finalTermGrades.forEach((grade) => {
+      if (hasValidScore(grade)) {
+        completedAssessments++;
+      }
+    });
+  });
+  
+  // Calculate final term progress (0-50% of total course progress)
+  const finalTermProgress = totalExpectedAssessments > 0 ? 
+    (completedAssessments / totalExpectedAssessments) * 50 : 0;
+  
+  return finalTermProgress;
 };
 
 /**
@@ -71,17 +123,6 @@ const calculateAssessmentBasedProgress = (categories, grades) => {
   return totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
 };
 
-/**
- * Check if a grade has a valid score
- * @param {Object} grade - Grade object
- * @returns {boolean} True if grade has valid score
- */
-const hasValidScore = (grade) => {
-  return grade && 
-         grade.percentageScore !== null && 
-         grade.percentageScore !== undefined &&
-         grade.percentageScore >= 0;
-};
 
 /**
  * Get progress status text based on progress percentage
@@ -90,6 +131,7 @@ const hasValidScore = (grade) => {
  */
 export const getProgressStatus = (progress) => {
   if (progress >= 100) return "Completed";
+  if (progress >= 75) return "Almost Complete";
   if (progress >= 50) return "Midterm Done";
   if (progress > 0) return "In Progress";
   return "Not Started";
@@ -102,6 +144,7 @@ export const getProgressStatus = (progress) => {
  */
 export const getProgressColor = (progress) => {
   if (progress >= 100) return "text-green-600";
+  if (progress >= 75) return "text-green-500";
   if (progress >= 50) return "text-blue-600";
   if (progress > 0) return "text-yellow-600";
   return "text-gray-600";

@@ -115,25 +115,31 @@ const AIAnalysisIndicator = ({
         return;
       }
       
-      // Filter grades by MIDTERM for AI analysis (always analyze MIDTERM performance)
+      // Include all available grades for comprehensive AI analysis
       const filteredGrades = {};
       if (grades) {
         console.log('🔍 [AIAnalysisIndicator] Original grades:', grades);
         console.log('🔍 [AIAnalysisIndicator] Active semester term:', activeSemesterTerm);
-        console.log('🔍 [AIAnalysisIndicator] FORCING AI to analyze MIDTERM data for accurate analysis');
+        console.log('🔍 [AIAnalysisIndicator] Analyzing ALL available data for comprehensive analysis');
         
         Object.keys(grades).forEach(categoryId => {
           const categoryGrades = grades[categoryId] || [];
-          const filteredCategoryGrades = categoryGrades.filter(grade => 
-            grade.semesterTerm === 'MIDTERM' // Always analyze MIDTERM data
-          );
-          filteredGrades[categoryId] = filteredCategoryGrades;
-          console.log(`🔍 [AIAnalysisIndicator] Category ${categoryId}: ${categoryGrades.length} total, ${filteredCategoryGrades.length} for MIDTERM`);
+          // Analyze ALL available grades, not just MIDTERM
+          filteredGrades[categoryId] = categoryGrades;
+          console.log(`🔍 [AIAnalysisIndicator] Category ${categoryId}: ${categoryGrades.length} total grades`);
         });
         
-        console.log('🔍 [AIAnalysisIndicator] Filtered grades (MIDTERM only):', filteredGrades);
+        console.log('🔍 [AIAnalysisIndicator] All available grades:', filteredGrades);
       }
 
+      // Get the latest course GPA directly from the database
+      const { getCourseById } = await import('../../../backend/api');
+      const latestCourseData = await getCourseById(course.id);
+      const latestGPA = latestCourseData?.courseGpa || currentGrade || 0;
+      
+      console.log('🔍 [AIAnalysisIndicator] Latest course GPA from database:', latestGPA);
+      console.log('🔍 [AIAnalysisIndicator] Current grade prop:', currentGrade);
+      
       // Prepare course data for AI analysis
       const courseData = {
         course: {
@@ -142,9 +148,9 @@ const AIAnalysisIndicator = ({
         },
         grades: filteredGrades,
         categories: categories || [],
-        currentGPA: currentGrade || 0,
+        currentGPA: latestGPA, // Use database GPA, not prop
         progress: calculateProgress(filteredGrades, categories),
-        activeSemesterTerm: 'MIDTERM' // Always analyze MIDTERM for accurate analysis
+        activeSemesterTerm: activeSemesterTerm // Use the actual active semester term
       };
       
       const goalData = {

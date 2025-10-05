@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * AI Recommendation Repository
@@ -16,6 +17,15 @@ import java.util.List;
  */
 @Repository
 public interface AIRecommendationRepository extends JpaRepository<Recommendation, Long> {
+
+    /**
+     * Find existing AI analysis for a specific user, course, and recommendation type
+     */
+    @Query("SELECT r FROM Recommendation r WHERE r.userId = :userId AND r.courseId = :courseId AND r.recommendationType = :recommendationType AND r.aiGenerated = true")
+    Optional<Recommendation> findByUserIdAndCourseIdAndRecommendationTypeAndAiGeneratedTrue(
+            @Param("userId") Long userId, 
+            @Param("courseId") Long courseId, 
+            @Param("recommendationType") String recommendationType);
 
     /**
      * Find AI recommendations by user ID (with limit)

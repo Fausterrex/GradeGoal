@@ -14,24 +14,16 @@ export const percentageToGPA = (percentage, gpaScale = 4.0) => {
   
   const percent = parseFloat(percentage);
   
-  // Standard percentage to GPA conversion
-  if (percent >= 97) return gpaScale;
-  if (percent >= 93) return gpaScale * 0.925; // 3.7 for 4.0 scale
-  if (percent >= 90) return gpaScale * 0.875; // 3.5 for 4.0 scale
-  if (percent >= 87) return gpaScale * 0.825; // 3.3 for 4.0 scale
-  if (percent >= 83) return gpaScale * 0.775; // 3.1 for 4.0 scale
-  if (percent >= 80) return gpaScale * 0.725; // 2.9 for 4.0 scale
-  if (percent >= 77) return gpaScale * 0.675; // 2.7 for 4.0 scale
-  if (percent >= 73) return gpaScale * 0.625; // 2.5 for 4.0 scale
-  if (percent >= 70) return gpaScale * 0.575; // 2.3 for 4.0 scale
-  if (percent >= 67) return gpaScale * 0.525; // 2.1 for 4.0 scale
-  if (percent >= 63) return gpaScale * 0.475; // 1.9 for 4.0 scale
-  if (percent >= 60) return gpaScale * 0.425; // 1.7 for 4.0 scale
-  if (percent >= 57) return gpaScale * 0.375; // 1.5 for 4.0 scale
-  if (percent >= 53) return gpaScale * 0.325; // 1.3 for 4.0 scale
-  if (percent >= 50) return gpaScale * 0.275; // 1.1 for 4.0 scale
+  // Custom GPA scale conversion based on provided table
+  if (percent >= 95.5) return '4.00';
+  if (percent >= 89.5) return '3.50';
+  if (percent >= 83.5) return '3.00';
+  if (percent >= 77.5) return '2.50';
+  if (percent >= 71.5) return '2.00';
+  if (percent >= 65.5) return '1.50';
+  if (percent >= 59.5) return '1.00';
   
-  return 0; // Below 50% = 0.0 GPA
+  return 'R'; // Below 59.5 = R (Remedial/Fail)
 };
 
 /**
@@ -46,24 +38,16 @@ export const gpaToPercentage = (gpa, gpaScale = 4.0) => {
   const gpaValue = parseFloat(gpa);
   const normalizedGPA = (gpaValue / gpaScale) * 4.0; // Normalize to 4.0 scale
   
-  // Standard GPA to percentage conversion
-  if (normalizedGPA >= 4.0) return 100;
-  if (normalizedGPA >= 3.7) return 95;
-  if (normalizedGPA >= 3.5) return 92;
-  if (normalizedGPA >= 3.3) return 89;
-  if (normalizedGPA >= 3.1) return 86;
-  if (normalizedGPA >= 2.9) return 83;
-  if (normalizedGPA >= 2.7) return 80;
-  if (normalizedGPA >= 2.5) return 77;
-  if (normalizedGPA >= 2.3) return 74;
-  if (normalizedGPA >= 2.1) return 71;
-  if (normalizedGPA >= 1.9) return 68;
-  if (normalizedGPA >= 1.7) return 65;
-  if (normalizedGPA >= 1.5) return 62;
-  if (normalizedGPA >= 1.3) return 59;
-  if (normalizedGPA >= 1.1) return 56;
+  // Custom GPA to percentage conversion (matching database CalculateGPA function)
+  if (normalizedGPA >= 4.0) return 95.5;
+  if (normalizedGPA >= 3.5) return 89.5;
+  if (normalizedGPA >= 3.0) return 83.5;
+  if (normalizedGPA >= 2.5) return 77.5;
+  if (normalizedGPA >= 2.0) return 71.5;
+  if (normalizedGPA >= 1.5) return 65.5;
+  if (normalizedGPA >= 1.0) return 59.5;
   
-  return Math.max(0, normalizedGPA * 12.5); // Linear conversion for very low GPAs
+  return 0; // Below 1.0 = 0% (R grade)
 };
 
 /**

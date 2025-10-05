@@ -152,7 +152,11 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // Update course grade when grades or categories change
   useEffect(() => {
     if (course && categories.length > 0) {
-      updateCourseGrade();
+      // Add a small delay to ensure database calculations have completed
+      const timer = setTimeout(() => {
+        updateCourseGrade();
+      }, 500); // 500ms delay to allow database to finish calculations
+      return () => clearTimeout(timer);
     }
   }, [grades, categories, course]);
 

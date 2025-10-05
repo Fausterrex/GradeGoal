@@ -6,21 +6,17 @@
 import DatabaseGradeService from '../../../services/databaseGradeService.js';
 
 /**
- * Calculate GPA from percentage (fallback function matching database logic)
+ * Calculate GPA from percentage (matching database CalculateGPA function)
  */
 export const calculateGPAFromPercentage = (percentage) => {
-  if (percentage >= 97) return 4.00;
-  if (percentage >= 93) return 3.70;
-  if (percentage >= 90) return 3.30;
-  if (percentage >= 87) return 3.00;
-  if (percentage >= 83) return 2.70;
-  if (percentage >= 80) return 2.30;
-  if (percentage >= 77) return 2.00;
-  if (percentage >= 73) return 1.70;
-  if (percentage >= 70) return 1.30;
-  if (percentage >= 67) return 1.00;
-  if (percentage >= 65) return 0.70;
-  return 0.00;
+  if (percentage >= 95.5) return '4.00';
+  if (percentage >= 89.5) return '3.50';
+  if (percentage >= 83.5) return '3.00';
+  if (percentage >= 77.5) return '2.50';
+  if (percentage >= 71.5) return '2.00';
+  if (percentage >= 65.5) return '1.50';
+  if (percentage >= 59.5) return '1.00';
+  return 'R'; // Below 59.5 = R (Remedial/Fail)
 };
 
 /**

@@ -5,7 +5,7 @@ import { useYearLevel } from "../../context/YearLevelContext";
 
 const Report = () => {
   const { currentUser, loading } = useAuth();
-  const { filterDataByYearLevel } = useYearLevel();
+  const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,14 +21,29 @@ const Report = () => {
     axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
       .then((res) => {
         const allCourses = res.data.courses || [];
+        
+        // Debug: Log the structure of the first course to understand the data format
+        if (allCourses.length > 0) {
+          console.log('🎓 [Report] First course structure:', allCourses[0]);
+          console.log('🎓 [Report] Course fields:', Object.keys(allCourses[0]));
+        }
+        
         const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
+        
+        // If filtering returns 0 courses but we have courses, it means the year level field is missing
+        // In this case, show all courses for now (or we could add a different filtering logic)
+        const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
         
         console.log('🎓 [Report] Filtering courses by year level:', {
           totalCourses: allCourses.length,
-          filteredCourses: filteredCourses.length
+          filteredCourses: filteredCourses.length,
+          finalCourses: finalCourses.length,
+          selectedYearLevel: selectedYearLevel,
+          firstCourseYearLevel: allCourses[0]?.creationYearLevel || 'undefined',
+          usingFallback: filteredCourses.length === 0 && allCourses.length > 0
         });
         
-        setCourses(filteredCourses);
+        setCourses(finalCourses);
       })
       .catch((err) => {
         console.error("Report: Fetch error:", err);
@@ -48,14 +63,29 @@ const Report = () => {
       axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
         .then((res) => {
           const allCourses = res.data.courses || [];
+          
+          // Debug: Log the structure of the first course to understand the data format
+          if (allCourses.length > 0) {
+            console.log('🎓 [Report] Year level change - First course structure:', allCourses[0]);
+            console.log('🎓 [Report] Year level change - Course fields:', Object.keys(allCourses[0]));
+          }
+          
           const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
+          
+          // If filtering returns 0 courses but we have courses, it means the year level field is missing
+          // In this case, show all courses for now (or we could add a different filtering logic)
+          const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
           
           console.log('🎓 [Report] Year level change - filtering courses:', {
             totalCourses: allCourses.length,
-            filteredCourses: filteredCourses.length
+            filteredCourses: filteredCourses.length,
+            finalCourses: finalCourses.length,
+            selectedYearLevel: selectedYearLevel,
+            firstCourseYearLevel: allCourses[0]?.creationYearLevel || 'undefined',
+            usingFallback: filteredCourses.length === 0 && allCourses.length > 0
           });
           
-          setCourses(filteredCourses);
+          setCourses(finalCourses);
         })
         .catch((err) => {
           console.error("Report: Year level change fetch error:", err);
