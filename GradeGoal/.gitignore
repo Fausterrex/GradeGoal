@@ -26,3 +26,6 @@ dist-ssr
 
 # Firebase service worker with confidential keys
 public/firebase-messaging-sw.js
+
+# Keep the template file tracked
+!public/firebase-messaging-sw.js.template
