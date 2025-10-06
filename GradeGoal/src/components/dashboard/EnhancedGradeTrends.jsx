@@ -62,7 +62,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const [cumulativeGPA, setCumulativeGPA] = useState(0);
   const [userId, setUserId] = useState(null);
 
-
   // Load userAnalytics data for the selected course
   const loadUserAnalytics = useCallback(async () => {
     try {
@@ -86,31 +85,19 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         // Individual mode: load analytics for specific course
         const userId = selectedCourse.userId || selectedCourse.id;
         const courseId = selectedCourse.courseId || selectedCourse.id;
-        
-        
+
         // For individual mode, always fetch ALL analytics for the course, then filter by semester in frontend
         // This ensures we have complete data and can handle semester switching properly
         const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${courseId}`);
         if (analyticsResponse.ok) {
           const analyticsData = await analyticsResponse.json();
           allAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];
-          console.log('✅ [EnhancedGradeTrends] Individual analytics loaded (all semesters):', {
-            count: allAnalytics.length,
-            data: allAnalytics,
-            willFilterBySemester: currentSemester
-          });
         } else {
           console.log('❌ [EnhancedGradeTrends] Failed to load individual analytics:', analyticsResponse.status);
         }
       } else {
         // Semester/Cumulative mode: load analytics for all courses (filtered by year level)
         const activeCourses = courses.filter(course => course.isActive !== false);
-        console.log('📊 [EnhancedGradeTrends] Loading semester/cumulative analytics', {
-          activeCourses: activeCourses.map(c => ({ id: c.id, name: c.name })),
-          semester: currentSemester,
-          viewMode
-        });
-        
         const analyticsPromises = activeCourses.map(async (course) => {
           const userId = course.userId || course.id;
           const courseId = course.courseId || course.id;
@@ -121,9 +108,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             const apiUrl = viewMode === "cumulative" 
               ? `/api/database-calculations/user/${userId}/analytics/${courseId}`
               : `/api/database-calculations/user/${userId}/analytics/${courseId}?semester=${currentSemester}`;
-              
-            console.log(`🔗 [EnhancedGradeTrends] API call for ${course.name}:`, { viewMode, apiUrl });
-            
             const analyticsResponse = await fetch(apiUrl);
             if (analyticsResponse.ok) {
               const analyticsData = await analyticsResponse.json();
@@ -142,20 +126,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         
         const analyticsResults = await Promise.all(analyticsPromises);
         allAnalytics = analyticsResults.flat();
-        console.log('✅ [EnhancedGradeTrends] All analytics loaded:', {
-          totalCount: allAnalytics.length,
-          byViewMode: viewMode,
-          semester: currentSemester
-        });
       }
-      
-      console.log('🎯 [EnhancedGradeTrends] Setting user analytics:', {
-        count: allAnalytics.length,
-        viewMode,
-        semester: currentSemester,
-        preview: allAnalytics.slice(0, 3)
-      });
-      
       setUserAnalytics(allAnalytics);
     } catch (error) {
       console.error("❌ [EnhancedGradeTrends] Error loading user analytics:", error);
@@ -175,13 +146,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
 
   // Load userAnalytics when selectedCourse or viewMode changes
   useEffect(() => {
-    console.log('🔄 [EnhancedGradeTrends] useEffect triggered for analytics reload:', {
-      currentUser: !!currentUser,
-      viewMode,
-      currentSemester,
-      selectedCourse: selectedCourse ? { id: selectedCourse.id, name: selectedCourse.name } : null
-    });
-    
     if (currentUser) {
       loadUserAnalytics();
     }
@@ -198,12 +162,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   // Recalculate GPAs when semester changes OR when gpaData becomes available
   useEffect(() => {
     if (gpaData) {
-      console.log('🔄 [EnhancedGradeTrends] Calculating GPAs due to gpaData/semester change:', {
-        gpaData: !!gpaData,
-        currentSemester,
-        firstSemesterGPA: gpaData.firstSemesterGPA,
-        cumulativeGPA: gpaData.cumulativeGPA
-      });
       calculateGPAs();
     }
   }, [currentSemester, gpaData]);
@@ -288,19 +246,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   };
 
   const calculateGPAs = async () => {
-    console.log('🔢 [EnhancedGradeTrends] Calculating GPAs with data:', {
-      hasGpaData: !!gpaData,
-      currentSemester,
-      gpaData: gpaData ? {
-        firstSemesterGPA: gpaData.firstSemesterGPA,
-        secondSemesterGPA: gpaData.secondSemesterGPA,
-        thirdSemesterGPA: gpaData.thirdSemesterGPA,
-        summerSemesterGPA: gpaData.summerSemesterGPA,
-        semesterGPA: gpaData.semesterGPA,
-        cumulativeGPA: gpaData.cumulativeGPA
-      } : null
-    });
-
     // Use semester-specific GPA based on currentSemester
     let semestralGPA = 0;
     if (gpaData) {
@@ -321,13 +266,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           semestralGPA = gpaData.semesterGPA || 0;
       }
     }
-
-    console.log('🔢 [EnhancedGradeTrends] Calculated semestral GPA:', {
-      currentSemester,
-      semestralGPA,
-      source: gpaData ? `${currentSemester}_GPA` : 'no gpaData'
-    });
-
     setCurrentSemestralGPA(semestralGPA);
 
     // Calculate individual course GPA if a course is selected
@@ -351,29 +289,19 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   const weeklyData = useMemo(() => {
     // Only log when there's a significant change to reduce console noise
     if (userAnalytics?.length === 0) {
-      console.log('📊 [EnhancedGradeTrends] Calculating weeklyData...', {
-        coursesLength: courses.length,
-        userAnalyticsLength: userAnalytics?.length || 0,
-        viewMode,
-        currentSemester,
-        selectedCourse: selectedCourse ? selectedCourse.name : null
-      });
     }
 
     if (courses.length === 0) {
-      console.log('❌ [EnhancedGradeTrends] No courses available');
       return [];
     }
 
     const activeCourses = courses.filter((course) => course.isActive !== false);
     if (activeCourses.length === 0) {
-      console.log('❌ [EnhancedGradeTrends] No active courses available');
       return [];
     }
 
     // Use userAnalytics data which contains the current_grade progression
     if (!userAnalytics || userAnalytics.length === 0) {
-      console.log('❌ [EnhancedGradeTrends] No userAnalytics data available');
       return [];
     }
 
@@ -389,21 +317,11 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     if (viewMode === "cumulative") {
       // Cumulative mode: include ALL analytics from ALL semesters
       filteredAnalytics = userAnalytics;
-      console.log('🔍 [EnhancedGradeTrends] Cumulative mode - using all analytics:', {
-        totalCount: userAnalytics.length,
-        sampleData: userAnalytics.slice(0, 2)
-      });
     } else {
       // Semester/Individual mode: filter by current semester
       filteredAnalytics = userAnalytics.filter(analytics => 
         analytics.semester === currentSemester
       );
-      console.log('🔍 [EnhancedGradeTrends] After semester filter:', {
-        originalCount: userAnalytics.length,
-        filteredCount: filteredAnalytics.length,
-        semester: currentSemester,
-        sampleData: filteredAnalytics.slice(0, 2)
-      });
     }
 
     // If in individual mode and a course is selected, filter by that specific course
@@ -413,16 +331,9 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       filteredAnalytics = filteredAnalytics.filter(analytics => 
         analytics.courseId === courseId
       );
-      console.log('🔍 [EnhancedGradeTrends] After course filter:', {
-        courseId,
-        beforeCount: beforeCourseFilter,
-        afterCount: filteredAnalytics.length,
-        courseName: selectedCourse.name
-      });
     }
 
     if (filteredAnalytics.length === 0) {
-      console.log('❌ [EnhancedGradeTrends] No filtered analytics available');
       return [];
     }
 
@@ -473,8 +384,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         weeklyGroups[weekKey].latestTimestamp = analytics.calculatedAt || analytics.createdAt;
       }
     });
-    
-    
+
     const weeklyData = [];
     Object.values(weeklyGroups).forEach((group, index) => {
       let currentGPA = group.latestCurrentGrade;
@@ -510,12 +420,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
 
     // Only log successful calculations with data
     if (weeklyData.length > 0) {
-      console.log('✅ [EnhancedGradeTrends] Final weeklyData calculated:', {
-        count: weeklyData.length,
-        viewMode,
-        semester: currentSemester,
-        dataPreview: weeklyData.slice(0, 2)
-      });
     }
 
     return weeklyData;
@@ -530,7 +434,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     overallGPA,
     currentSemester
   ]);
-
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }) => {
@@ -584,7 +487,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              console.log('🔄 [EnhancedGradeTrends] Switching to semester mode');
               setViewMode("semester");
               setSelectedCourse(null);
               // Clear analytics to force reload
@@ -601,7 +503,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           {showCumulativeData() && (
             <button
               onClick={() => {
-                console.log('🔄 [EnhancedGradeTrends] Switching to cumulative mode');
                 setViewMode("cumulative");
                 setSelectedCourse(null);
                 // Clear analytics to force reload
@@ -618,7 +519,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           )}
           <button
             onClick={() => {
-              console.log('🔄 [EnhancedGradeTrends] Switching to individual mode');
               setViewMode("individual");
               // Clear analytics to force reload with fresh data
               setUserAnalytics([]);
@@ -638,7 +538,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                   console.log('🎯 [EnhancedGradeTrends] Auto-selecting first course from current semester:', semesterCourses[0].name);
                   setSelectedCourse(semesterCourses[0]);
                 } else {
-                  console.log('⚠️ [EnhancedGradeTrends] No courses in current semester, clearing selection');
                   setSelectedCourse(null);
                 }
               } else {
@@ -928,12 +827,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                 <button
                   key={semester}
                   onClick={() => {
-                    console.log('🔄 [EnhancedGradeTrends] Switching semester:', {
-                      from: currentSemester,
-                      to: semester,
-                      viewMode
-                    });
-                    
                     // Only update if semester is different
                     if (currentSemester !== semester) {
                       setCurrentSemester(semester);
@@ -943,12 +836,10 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                       // If in individual mode, check if selected course belongs to new semester
                       if (viewMode === "individual" && selectedCourse) {
                         if (selectedCourse.semester !== semester) {
-                          console.log('🎯<｜tool▁call▁begin｜>[EnhancedGradeTrends] Selected course not in new semester, clearing selection');
                           setSelectedCourse(null);
                         }
                       }
                     } else {
-                      console.log('📌 [EnhancedGradeTrends] Same semester clicked, no action needed');
                     }
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -1003,13 +894,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                  <button
                    key={semester}
                    onClick={() => {
-                     console.log('🔄 [EnhancedGradeTrends] Switching semester in individual mode:', {
-                       from: currentSemester,
-                       to: semester,
-                       viewMode,
-                       selectedCourse: selectedCourse?.name
-                     });
-                     
                      // Only update if semester is different
                      if (currentSemester !== semester) {
                        setCurrentSemester(semester);
@@ -1018,11 +902,9 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                        
                        // Check if selected course belongs to new semester
                        if (selectedCourse && selectedCourse.semester !== semester) {
-                         console.log('🎯 [EnhancedGradeTrends] Selected course not in new semester, clears selection');
                          setSelectedCourse(null);
                        }
                      } else {
-                       console.log('📌 [EnhancedGradeTrends] Same semester clicked in individual mode, no action needed');
                      }
                    }}
                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -1064,14 +946,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                   // Filter courses by current semester
                   const courseSemester = course.semester;
                   const matchesSemester = courseSemester === currentSemester;
-                  
-                  console.log('🔍 [EnhancedGradeTrends] Course semester filter:', {
-                    courseName: course.name,
-                    courseSemester,
-                    currentSemester,
-                    matches: matchesSemester
-                  });
-                  
                   return matchesSemester;
                 })
                 .map((course) => {
@@ -1108,12 +982,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                       }`}
                       onClick={() => {
                         const newCourse = isSelected ? null : course;
-                        console.log('🎯 [EnhancedGradeTrends] Course selection changed:', {
-                          from: selectedCourse?.name || 'none',
-                          to: newCourse?.name || 'none',
-                          semester: currentSemester
-                        });
-                        
                         // Clear analytics to force fresh data load for the new course
                         setUserAnalytics([]);
                         setSelectedCourse(newCourse);

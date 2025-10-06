@@ -56,7 +56,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   // DATA LOADING
   // ========================================
   useEffect(() => {
-    if (currentUser && courses.length > 0) {
+    if (currentUser) {
       loadGoalsData();
     }
   }, [currentUser, courses.length]);

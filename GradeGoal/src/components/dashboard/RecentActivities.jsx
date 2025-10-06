@@ -39,7 +39,7 @@ const RecentActivities = ({ courses }) => {
   // DATA LOADING
   // ========================================
   useEffect(() => {
-    if (currentUser && courses.length > 0) {
+    if (currentUser) {
       loadRecentActivities();
     }
   }, [currentUser, courses.length, timeFilter]);
@@ -180,6 +180,21 @@ const RecentActivities = ({ courses }) => {
       // Get user profile
       const userProfile = await getUserProfile(currentUser.email);
       setUserId(userProfile.userId);
+      
+      // If no courses, still load notifications and achievements but skip course-related activities
+      if (!courses.length) {
+        await Promise.all([
+          fetchNotifications(),
+          fetchUserAchievementsWithUserId(userProfile.userId)
+        ]);
+        
+        // Load goals even without courses
+        const allGoals = await getAcademicGoalsByUserId(userProfile.userId);
+        setGoals(allGoals);
+        
+        setIsLoading(false);
+        return;
+      }
       
       // Fetch notifications and user achievements with userId
       await Promise.all([

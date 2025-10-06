@@ -59,7 +59,6 @@ export const usePushNotifications = () => {
               // If database says enabled but browser doesn't have permission, 
               // we might need to re-request permission
               if (user.pushNotificationsEnabled && browserSupported && !hasPermission) {
-                console.log('⚠️ Database says push notifications enabled, but browser permission not granted');
               }
             }
           }

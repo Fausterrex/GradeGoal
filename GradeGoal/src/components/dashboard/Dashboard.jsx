@@ -46,7 +46,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
 
   // Load user ID, target grades, and GPA data when component mounts
   useEffect(() => {
-    if (currentUser && courses.length > 0) {
+    if (currentUser) {
       loadUserAndTargetGrades();
       loadGpaData();
       loadStreakData();

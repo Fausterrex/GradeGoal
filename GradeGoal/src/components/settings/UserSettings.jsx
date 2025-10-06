@@ -67,16 +67,10 @@ const UserSettings = () => {
     }
   }, [currentUser]);
 
-  // Debug: Track profileData changes
-  useEffect(() => {
-    console.log('🔄 [UserSettings] Profile data changed:', profileData);
-  }, [profileData]);
 
   const loadUserPreferences = async () => {
     try {
-      console.log('📥 [UserSettings] Loading user preferences...');
       const user = await getUserProfile(currentUser.email);
-      console.log('📥 [UserSettings] User profile loaded:', user);
       
       setEmailNotificationsEnabled(user.emailNotificationsEnabled ?? true);
       
@@ -88,8 +82,6 @@ const UserSettings = () => {
         profilePictureUrl: user.profilePictureUrl || currentUser.photoURL || '',
         currentYearLevel: user.currentYearLevel || '1'
       };
-      console.log('📥 [UserSettings] Setting profile data:', newProfileData);
-      console.log('📥 [UserSettings] Academic year level loaded:', user.currentYearLevel);
       
       setProfileData(newProfileData);
     } catch (error) {

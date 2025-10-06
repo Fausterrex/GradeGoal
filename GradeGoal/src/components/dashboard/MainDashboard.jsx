@@ -126,7 +126,6 @@ function MainDashboard({ initialTab = "overview" }) {
 
     // Reload courses when year level changes
     useEffect(() => {
-      console.log('🎓 [MainDashboard] Year level changed, reloading courses:', selectedYearLevel);
       if (currentUser?.email) {
         loadCoursesAndGrades();
       }
@@ -141,28 +140,12 @@ function MainDashboard({ initialTab = "overview" }) {
             // This prevents showing email instead of display name
             // Wait for firstName to be loaded (not empty string)
             if (currentUser.firstName && currentUser.firstName.trim() !== '') {
-              console.log('🎯 [MainDashboard] Profile data loaded, checking welcome modal:', {
-                firstName: currentUser.firstName,
-                displayName: currentUser.displayName,
-                email: currentUser.email
-              });
-              
               // Check if user has courses - if no courses, treat as new user
               const shouldShow = await shouldShowWelcomeModal(currentUser.email);
               
               if (shouldShow) {
-                console.log('🎯 [MainDashboard] Showing welcome modal for user:', currentUser.firstName);
                 setShowWelcomeModal(true);
-              } else {
-                console.log('🎯 [MainDashboard] User has courses, not showing welcome modal');
               }
-            } else {
-              console.log('🎯 [MainDashboard] Profile data not ready yet, waiting...', {
-                firstName: currentUser.firstName,
-                displayName: currentUser.displayName,
-                hasEmail: !!currentUser?.email,
-                hasUserId: !!currentUser?.userId
-              });
             }
           } catch (error) {
             console.error('Error checking if user should see welcome modal:', error);
@@ -228,11 +211,6 @@ function MainDashboard({ initialTab = "overview" }) {
 
       // Filter courses based on selected year level
       const filteredCourses = filterDataByYearLevel(coursesWithCategories, 'creationYearLevel');
-      console.log('🎓 [MainDashboard] Filtering courses by year level:', {
-        selectedYearLevel,
-        totalCourses: coursesWithCategories.length,
-        filteredCourses: filteredCourses.length
-      });
 
       // Don't set courses immediately - wait for loadAllGrades to complete
       // setCourses(filteredCourses);

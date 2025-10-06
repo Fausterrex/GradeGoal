@@ -68,21 +68,14 @@ function CourseManager({
   const getFilteredCompletedCourses = () => {
     let filtered = completedCourses;
     
-    // Debug logging
-    console.log('🎓 [CourseManager] Completed courses:', completedCourses);
-    console.log('🎓 [CourseManager] Selected year level:', selectedYearLevel);
-    
     // Apply global year level filtering first
     if (selectedYearLevel !== 'all') {
       filtered = filtered.filter(course => {
         const courseYearLevel = course.creationYearLevel || course.yearLevel || "1"; // Fallback for old data
         const matchesYearLevel = courseYearLevel === selectedYearLevel;
-        console.log(`🎓 [CourseManager] Course ${course.name}: creationYearLevel=${course.creationYearLevel}, yearLevel=${course.yearLevel}, matches=${matchesYearLevel}`);
         return matchesYearLevel;
       });
     }
-    
-    console.log('🎓 [CourseManager] Filtered completed courses:', filtered);
     return filtered;
   };
 

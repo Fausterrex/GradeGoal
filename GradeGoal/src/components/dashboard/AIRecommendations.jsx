@@ -34,7 +34,14 @@ const AIRecommendations = ({ courses }) => {
 
   // Load AI recommendations from all courses
   const loadAIRecommendations = async () => {
-    if (!currentUser || !courses.length) return;
+    if (!currentUser) return;
+    
+    // If no courses, show empty state
+    if (!courses.length) {
+      setRecommendations([]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       setIsLoading(true);
