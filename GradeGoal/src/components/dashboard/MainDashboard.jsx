@@ -16,11 +16,18 @@ import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
 import MyCalendar from "../calendar/Calendar";
 import Report from "./Report";
+import WelcomeModal from "../common/WelcomeModal";
 import {
   getGradesByCourseId,
   getCoursesByUid,
   getAssessmentCategoriesByCourseId,
 } from "../../backend/api";
+import {
+  isFirstTimeUser,
+  hasSeenWelcomeModal,
+  markWelcomeModalAsShown,
+  shouldShowWelcomeModal
+} from "../../utils/firstTimeUserUtils";
 import {
   FaTachometerAlt,
   FaBook,
@@ -97,6 +104,9 @@ function MainDashboard({ initialTab = "overview" }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobileCourseListOpen, setIsMobileCourseListOpen] = useState(false);
   
+  // Welcome modal state
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  
   // Push notifications hook
   const { 
     isEnabled: pushNotificationsEnabled, 
@@ -121,6 +131,47 @@ function MainDashboard({ initialTab = "overview" }) {
         loadCoursesAndGrades();
       }
     }, [selectedYearLevel]);
+
+    // Check for first-time user and show welcome modal
+    useEffect(() => {
+      const checkFirstTimeUser = async () => {
+        if (currentUser?.email && currentUser?.userId) {
+          try {
+            // Only show modal if we have complete user profile data
+            // This prevents showing email instead of display name
+            // Wait for firstName to be loaded (not empty string)
+            if (currentUser.firstName && currentUser.firstName.trim() !== '') {
+              console.log('🎯 [MainDashboard] Profile data loaded, checking welcome modal:', {
+                firstName: currentUser.firstName,
+                displayName: currentUser.displayName,
+                email: currentUser.email
+              });
+              
+              // Check if user has courses - if no courses, treat as new user
+              const shouldShow = await shouldShowWelcomeModal(currentUser.email);
+              
+              if (shouldShow) {
+                console.log('🎯 [MainDashboard] Showing welcome modal for user:', currentUser.firstName);
+                setShowWelcomeModal(true);
+              } else {
+                console.log('🎯 [MainDashboard] User has courses, not showing welcome modal');
+              }
+            } else {
+              console.log('🎯 [MainDashboard] Profile data not ready yet, waiting...', {
+                firstName: currentUser.firstName,
+                displayName: currentUser.displayName,
+                hasEmail: !!currentUser?.email,
+                hasUserId: !!currentUser?.userId
+              });
+            }
+          } catch (error) {
+            console.error('Error checking if user should see welcome modal:', error);
+          }
+        }
+      };
+
+      checkFirstTimeUser();
+    }, [currentUser?.email, currentUser?.userId, currentUser?.firstName, currentUser?.displayName]);
 
   const loadCoursesAndGrades = async () => {
     if (!currentUser) return;
@@ -1476,6 +1527,16 @@ function MainDashboard({ initialTab = "overview" }) {
           </div>
         )}
       </div>
+
+      {/* Welcome Modal */}
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={() => {
+          setShowWelcomeModal(false);
+          // Don't mark as permanently shown - let it show again if user has no courses
+        }}
+        userName={currentUser?.firstName || currentUser?.displayName || currentUser?.email?.split('@')[0]}
+      />
     </div>
   );
 }

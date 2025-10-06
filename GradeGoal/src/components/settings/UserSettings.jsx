@@ -801,7 +801,7 @@ const UserSettings = () => {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={pushNotificationsEnabled}
+                    checked={pushNotificationsEnabled || false}
                     onChange={(e) => handlePushNotificationToggle(e.target.checked)}
                     disabled={pushLoading}
                     className="sr-only peer disabled:cursor-not-allowed"

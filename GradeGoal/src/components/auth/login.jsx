@@ -77,7 +77,11 @@ function Login() {
       const userData = {
         userId: userProfile?.userId || null, // Include userId
         email: firebaseUser.email,
-        displayName: userDataFromDB?.displayName || firebaseUser.email,
+        firstName: userProfile?.firstName || '',
+        lastName: userProfile?.lastName || '',
+        displayName: userProfile?.firstName && userProfile?.lastName 
+          ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+          : userDataFromDB?.displayName || firebaseUser.email,
         role: userProfile?.role || 'USER',
       };
 
