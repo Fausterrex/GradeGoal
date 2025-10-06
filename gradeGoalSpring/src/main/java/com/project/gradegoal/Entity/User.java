@@ -1,9 +1,11 @@
 package com.project.gradegoal.Entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AccessLevel;
 
 /**
  * User Entity
@@ -13,7 +15,8 @@ import lombok.AllArgsConstructor;
  */
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -36,6 +39,7 @@ public class User {
     private String lastName;
     
     @Column(name = "password_hash")
+    @Getter(AccessLevel.NONE)
     private String passwordHash;
     
     @Column(name = "is_active")
@@ -77,5 +81,14 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = java.time.LocalDateTime.now();
+    }
+    
+    /**
+     * Get the password hash for authentication purposes.
+     * This method is intentionally named differently to avoid confusion with plain password getters.
+     * @return the password hash
+     */
+    public String getPasswordHashForAuth() {
+        return passwordHash;
     }
 }

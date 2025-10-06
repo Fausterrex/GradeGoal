@@ -23,7 +23,8 @@ export const calculateCourseProgress = (course, categories = null, grades = null
   
   // Priority 2: Calculate progress based on term completion and assessments
   if (course.isMidtermCompleted !== undefined && categories && grades) {
-    const midtermProgress = course.isMidtermCompleted ? 50 : 0;
+    // Calculate midterm progress based on completed assessments
+    const midtermProgress = calculateMidtermProgress(categories, grades);
     
     // Calculate final term progress based on completed assessments
     const finalTermProgress = calculateFinalTermProgress(categories, grades);
@@ -57,6 +58,43 @@ export const calculateCourseProgress = (course, categories = null, grades = null
   
   // Priority 5: Default fallback
   return 0;
+};
+
+/**
+ * Calculate midterm progress based on completed assessments
+ * @param {Array} categories - Assessment categories
+ * @param {Object} grades - Grades data
+ * @returns {number} Midterm progress percentage (0-50)
+ */
+const calculateMidtermProgress = (categories, grades) => {
+  if (!categories || categories.length === 0) return 0;
+  
+  let totalExpectedAssessments = 0;
+  let completedAssessments = 0;
+  
+  categories.forEach((category) => {
+    // Filter grades for MIDTERM only
+    const midtermGrades = (grades[category.id] || []).filter(grade => 
+      grade.semesterTerm === 'MIDTERM'
+    );
+    
+    // Each category should have at least 1 assessment for a complete midterm
+    const expectedInCategory = Math.max(midtermGrades.length, 1);
+    totalExpectedAssessments += expectedInCategory;
+    
+    // Count completed assessments in this category for midterm
+    midtermGrades.forEach((grade) => {
+      if (hasValidScore(grade)) {
+        completedAssessments++;
+      }
+    });
+  });
+  
+  // Calculate midterm progress (0-50% of total course progress)
+  const midtermProgress = totalExpectedAssessments > 0 ? 
+    (completedAssessments / totalExpectedAssessments) * 50 : 0;
+  
+  return midtermProgress;
 };
 
 /**

@@ -102,14 +102,14 @@ export const createSavedGradeData = (selectedGrade, score, isExtraCredit, extraC
 /**
  * Reset assessment form state
  */
-export const getInitialGradeState = () => {
+export const getInitialGradeState = (activeSemesterTerm = 'MIDTERM') => {
   return {
     categoryId: "",
     name: "",
     maxScore: "",
     date: new Date().toISOString().split("T")[0],
     note: "",
-    semesterTerm: "MIDTERM", // Add default semester term
+    semesterTerm: activeSemesterTerm, // Use the active semester term
   };
 };
 

@@ -43,7 +43,7 @@ public class UserService {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            if (passwordEncoder.matches(password, user.getPasswordHash())) {
+            if (passwordEncoder.matches(password, user.getPasswordHashForAuth())) {
                 // Update login streak
                 try {
                     loginStreakService.updateLoginStreak(user.getUserId());
@@ -134,7 +134,7 @@ public class UserService {
         }
 
         User user = userOpt.get();
-        if (passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+        if (passwordEncoder.matches(currentPassword, user.getPasswordHashForAuth())) {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             userRepository.save(user);
             return true;

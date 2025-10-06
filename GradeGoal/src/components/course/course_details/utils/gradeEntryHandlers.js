@@ -312,7 +312,8 @@ export const createAssessmentSubmitHandler = (
   setEditingGrade,
   setSuccessMessage,
   onGradeUpdate,
-  course
+  course,
+  activeSemesterTerm = 'MIDTERM'
 ) => {
   return async (e) => {
     e.preventDefault();
@@ -429,7 +430,7 @@ export const createAssessmentSubmitHandler = (
       setTimeout(() => setSuccessMessage(""), 3000);
 
       // Reset form state
-      setNewGrade(getInitialGradeState());
+      setNewGrade(getInitialGradeState(activeSemesterTerm));
       setShowAddGrade(false);
       setEditingGrade(null);
     } catch (error) {
@@ -662,10 +663,11 @@ export const createCancelHandler = (
   setShowScoreInput,
   setSelectedGrade,
   setShowEditScore,
-  resetScoreState = null
+  resetScoreState = null,
+  activeSemesterTerm = 'MIDTERM'
 ) => {
   return () => {
-    if (setNewGrade) setNewGrade(getInitialGradeState());
+    if (setNewGrade) setNewGrade(getInitialGradeState(activeSemesterTerm));
     if (setShowAddGrade) setShowAddGrade(false);
     if (setEditingGrade) setEditingGrade(null);
     if (setShowScoreInput) setShowScoreInput(false);

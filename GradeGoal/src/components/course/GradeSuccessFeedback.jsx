@@ -18,7 +18,7 @@ function GradeSuccessFeedback({
   onClose,
 }) {
   // Calculate updated course statistics
-  const progress = calculateCourseProgress(categories, grades);
+  const progress = calculateCourseProgress(course, categories, grades);
   
   // Get current course grade from database (most efficient approach)
   let currentGrade = 0.00;

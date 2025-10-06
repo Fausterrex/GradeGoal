@@ -545,9 +545,13 @@ function MainDashboard({ initialTab = "overview" }) {
            
            // Handle courses tab - show full screen CourseManager
            if (tab === "courses") {
-             setSelectedCourse(null); // Clear selected course to show CourseManager
-             setIsCourseManagerExpanded(true);
-             setIsOpeningOverlay(true);
+             // Clear selected course first to ensure CourseManager shows
+             setSelectedCourse(null);
+             // Use setTimeout to ensure state updates are processed in order
+             setTimeout(() => {
+               setIsCourseManagerExpanded(true);
+               setIsOpeningOverlay(true);
+             }, 0);
            } else {
              // Clear selected course when navigating to goals, reports, calendar, or settings
              setSelectedCourse(null);
@@ -583,6 +587,7 @@ function MainDashboard({ initialTab = "overview" }) {
               setPreviousRoute(window.location.pathname); // Store current route before navigation
               setSelectedCourse(course);
               setActiveTab("grades");
+              setIsCourseManagerExpanded(true);
             } else {
               console.log('⚠️ [MainDashboard] handlePopState: Course not found for ID:', courseId, 'Available courses:', courses.map(c => ({ id: c.id, name: c.name })));
             }
@@ -802,21 +807,31 @@ function MainDashboard({ initialTab = "overview" }) {
   };
 
   const handleBackFromCourse = () => {
-    setSelectedCourse(null);
-
-    // Navigate back to the previous route
-    navigate(previousRoute);
+    // Start slide-out animation (same as CourseManager)
+    setIsClosingOverlay(true);
     
-    // Update active tab based on the previous tab (more reliable than parsing route)
-    setActiveTab(previousTab);
-    
-    // Reset sidebar flag
-    setIsFromSidebar(false);
-    
-    // Refresh course data to get updated progress after assessment changes
-    if (currentUser?.email) {
-      loadCoursesAndGrades();
-    }
+    // After slide-out completes, update state and show CourseManager
+    setTimeout(() => {
+      setSelectedCourse(null);
+      
+      // Always navigate to courses page to show CourseManager
+      navigate('/dashboard/courses');
+      
+      // Set active tab to courses to show CourseManager
+      setActiveTab('courses');
+      
+      // Reset sidebar flag
+      setIsFromSidebar(false);
+      
+      // Show CourseManager with slide-in animation
+      setIsClosingOverlay(false);
+      setIsOpeningOverlay(true);
+      
+      // Refresh course data to get updated progress after assessment changes
+      if (currentUser?.email) {
+        loadCoursesAndGrades();
+      }
+    }, 500); // Match the animation duration
   };
 
 

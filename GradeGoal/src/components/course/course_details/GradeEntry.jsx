@@ -101,7 +101,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const [showScoreInput, setShowScoreInput] = useState(false);
   const [showEditScore, setShowEditScore] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
-  const [newGrade, setNewGrade] = useState(getInitialGradeState());
+  const [newGrade, setNewGrade] = useState(getInitialGradeState('MIDTERM')); // Will be updated when activeSemesterTerm changes
   const [editingGrade, setEditingGrade] = useState(null);
   const [showEditCourse, setShowEditCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -455,7 +455,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     setEditingGrade,
     setSuccessMessage,
     onGradeUpdate,
-    course
+    course,
+    activeSemesterTerm
   );
 
   // Create handler using utility function
@@ -497,10 +498,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // Create handler using utility function
   const handleEditCourseClick = createCourseEditHandler(course, setEditingCourse, setShowEditCourse);
 
-  // Create custom back handler that navigates to courses instead of dashboard
+  // Use the onBack prop from MainDashboard to handle proper state management
   const handleBackToCourses = () => {
-    // Navigate to courses page - this will trigger CourseManager to open in full screen
-    navigate('/dashboard/courses');
+    if (onBack) {
+      onBack(); // Use the proper back handler from MainDashboard
+    } else {
+      // Fallback to direct navigation if onBack is not provided
+      navigate('/dashboard/courses');
+    }
   };
 
   // Create handler using utility function
@@ -518,7 +523,9 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     setEditingGrade,
     null,
     null,
-    null
+    null,
+    null,
+    activeSemesterTerm
   );
 
   // Create missing handlers using utility functions
@@ -678,7 +685,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
           (initialState) => {
             setScoreExtraCredit(initialState.scoreExtraCredit);
             setScoreExtraCreditPoints(initialState.scoreExtraCreditPoints);
-          }
+          },
+          activeSemesterTerm
         )}
       />
 
@@ -701,7 +709,8 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
           (initialState) => {
             setEditScoreExtraCredit(initialState.editScoreExtraCredit);
             setEditScoreExtraCreditPoints(initialState.editScoreExtraCreditPoints);
-          }
+          },
+          activeSemesterTerm
         )}
       />
 
