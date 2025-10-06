@@ -10,7 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, facebookProvider } from "../../backend/firebase";
-import { loginUser, googleSignIn, facebookSignIn, getUserProfile, getUserProfileByUsername } from "../../backend/api";
+import { loginUser, googleSignIn, facebookSignIn, getUserProfile, getUserProfileByUsername, updateUserLoginStreak } from "../../backend/api";
 
 function Login() {
   const emailOrUsernameRef = useRef();
@@ -84,6 +84,17 @@ function Login() {
       updateCurrentUserWithData(userData);
       setSuccess("Logged in successfully!");
       
+      // Update login streak after successful login
+      if (userData.userId) {
+        try {
+          await updateUserLoginStreak(userData.userId);
+          console.log('✅ Login streak updated successfully');
+        } catch (error) {
+          console.error('❌ Failed to update login streak:', error);
+          // Don't fail the login if streak update fails
+        }
+      }
+      
       setTimeout(() => {
         // Redirect based on role
         if (userData.role === 'ADMIN') {
@@ -149,6 +160,18 @@ function Login() {
       updateCurrentUserWithData(userData);
 
       setSuccess("Logged in with Google successfully!");
+      
+      // Update login streak after successful Google login
+      if (userData.userId) {
+        try {
+          await updateUserLoginStreak(userData.userId);
+          console.log('✅ Login streak updated successfully (Google)');
+        } catch (error) {
+          console.error('❌ Failed to update login streak (Google):', error);
+          // Don't fail the login if streak update fails
+        }
+      }
+      
       setTimeout(() => {
         // Redirect based on role
         if (userData.role === 'ADMIN') {
@@ -201,6 +224,18 @@ function Login() {
       updateCurrentUserWithData(userData);
 
       setSuccess("Logged in with Facebook successfully!");
+      
+      // Update login streak after successful Facebook login
+      if (userData.userId) {
+        try {
+          await updateUserLoginStreak(userData.userId);
+          console.log('✅ Login streak updated successfully (Facebook)');
+        } catch (error) {
+          console.error('❌ Failed to update login streak (Facebook):', error);
+          // Don't fail the login if streak update fails
+        }
+      }
+      
       setTimeout(() => {
         // Redirect based on role
         if (userData.role === 'ADMIN') {

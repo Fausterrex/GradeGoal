@@ -147,6 +147,18 @@ export function AuthProvider({ children }) {
         setUserRole(role);
         localStorage.setItem('userRole', role);
         
+        // Update login streak for automatic login (page refresh, etc.)
+        if (enhancedUser.userId) {
+          try {
+            const { updateUserLoginStreak } = await import('../backend/api');
+            await updateUserLoginStreak(enhancedUser.userId);
+            console.log('✅ Login streak updated automatically');
+          } catch (error) {
+            console.error('❌ Failed to update login streak automatically:', error);
+            // Don't fail the authentication if streak update fails
+          }
+        }
+        
       } catch (error) {
         console.error('AuthContext: Failed to fetch user profile:', error);
         // Fallback to Firebase user data only

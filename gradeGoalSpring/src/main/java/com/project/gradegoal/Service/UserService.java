@@ -74,6 +74,15 @@ public class UserService {
         return loginStreakService.getStreakInfo(userId);
     }
 
+    /**
+     * Update login streak for a user
+     * @param userId the user ID
+     * @return LoginStreakService.StreakInfo object
+     */
+    public LoginStreakService.StreakInfo updateLoginStreak(Long userId) {
+        return loginStreakService.updateLoginStreak(userId);
+    }
+
     public User updateProfile(Long userId, String firstName, String lastName) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {

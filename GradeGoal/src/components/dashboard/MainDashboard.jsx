@@ -32,7 +32,7 @@ import {
 import { getCourseColorScheme } from "../../utils/courseColors";
 import { calculateCourseProgress } from "../../services/progressCalculationService";
 import RealtimeNotificationService from "../../services/realtimeNotificationService";
-import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { usePushNotifications } from "../../services/usePushNotifications";
 import UserSettings from "../settings/UserSettings";
 const slideInAnimation = `
   @keyframes slideIn {

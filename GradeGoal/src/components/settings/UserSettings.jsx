@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useYearLevel } from '../../context/YearLevelContext';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { usePushNotifications } from '../../services/usePushNotifications';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Bell, Mail, User, Save, CheckCircle, AlertCircle, Edit, Lock, LogOut, Camera, Eye, EyeOff } from 'lucide-react';
 import { getUserProfile, updateUserPreferences, updateUserProfile, updateUserPassword } from '../../backend/api';

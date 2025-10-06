@@ -99,6 +99,21 @@ public class UserController {
         }
     }
 
+    @PostMapping("/{userId}/update-login-streak")
+    public ResponseEntity<?> updateUserLoginStreak(@PathVariable Long userId) {
+        try {
+            LoginStreakService.StreakInfo streakInfo = userService.updateLoginStreak(userId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("streakDays", streakInfo.getStreakDays());
+            response.put("lastActivityDate", streakInfo.getLastActivityDate());
+            response.put("isStreakActive", streakInfo.isStreakActive());
+            response.put("message", "Login streak updated successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update login streak: " + e.getMessage());
+        }
+    }
+
     @PutMapping("/email/{email}/preferences")
     public ResponseEntity<?> updateUserPreferences(@PathVariable String email, @RequestBody UserPreferencesRequest request) {
         try {
