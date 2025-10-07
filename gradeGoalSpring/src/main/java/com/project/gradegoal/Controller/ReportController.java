@@ -19,35 +19,41 @@ public class ReportController {
     @GetMapping("/courses/grouped")
     public Map<String, Object> getGroupedData(@RequestParam Long userId) {
         String sql = """
-                    SELECT u.user_id, u.first_name, u.last_name, u.email,
-                           c.course_id, c.course_name, c.semester, c.academic_year,
-                           c.calculated_course_grade, c.course_gpa,
-                           g.goal_id, g.goal_title, g.priority, g.target_value, g.goal_type,
-                           ac.category_id, ac.category_name,
-                           a.assessment_id, a.assessment_name, a.status,
-                           gr.grade_id, gr.points_earned, gr.points_possible, gr.percentage_score
-                    FROM users u
-                    JOIN courses c ON c.user_id = u.user_id
-                    LEFT JOIN academic_goals g ON g.course_id = c.course_id AND g.user_id = u.user_id
-                    LEFT JOIN assessment_categories ac ON ac.course_id = c.course_id
-                    LEFT JOIN assessments a ON a.category_id = ac.category_id
-                    LEFT JOIN grades gr ON gr.assessment_id = a.assessment_id
-                    WHERE u.user_id = ?
-                    ORDER BY c.course_id, g.goal_id, ac.category_id, a.assessment_id
+                SELECT 
+                    u.user_id, u.first_name, u.last_name, u.email,
+                    c.course_id, c.course_name, c.semester, c.academic_year AS course_academic_year,
+                    c.year_level, c.calculated_course_grade, c.course_gpa,
+                    g.goal_id, g.goal_title, g.priority, g.target_value, g.goal_type, g.academic_year AS goal_school_year,
+                    ac.category_id, ac.category_name,
+                    a.assessment_id, a.assessment_name, a.status,
+                    gr.grade_id, gr.points_earned, gr.points_possible, gr.percentage_score
+                FROM users u
+                JOIN courses c ON c.user_id = u.user_id
+                LEFT JOIN academic_goals g ON g.course_id = c.course_id AND g.user_id = u.user_id
+                LEFT JOIN assessment_categories ac ON ac.course_id = c.course_id
+                LEFT JOIN assessments a ON a.category_id = ac.category_id
+                LEFT JOIN grades gr ON gr.assessment_id = a.assessment_id
+                WHERE u.user_id = ?
+                ORDER BY c.course_id, g.goal_id, ac.category_id, a.assessment_id
                 """;
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, userId);
-
         Map<Long, Map<String, Object>> courseMap = new LinkedHashMap<>();
+        String fullName = null;
 
         for (Map<String, Object> row : rows) {
             Long courseId = ((Number) row.get("course_id")).longValue();
+
+            if (fullName == null && row.get("first_name") != null && row.get("last_name") != null) {
+                fullName = row.get("first_name") + " " + row.get("last_name");
+            }
 
             courseMap.putIfAbsent(courseId, new HashMap<>(Map.of(
                     "courseId", courseId,
                     "courseName", row.get("course_name"),
                     "semester", row.get("semester"),
-                    "academicYear", row.get("academic_year"),
+                    "academicYear", row.get("course_academic_year"),
+                    "level", row.get("year_level"),
                     "calculatedGrade", row.get("calculated_course_grade"),
                     "currentGpa", row.get("course_gpa"),
                     "goals", new LinkedHashMap<Long, Map<String, Object>>()
@@ -63,17 +69,20 @@ public class ReportController {
                         "goalId", goalId,
                         "goalTitle", row.get("goal_title"),
                         "priority", row.get("priority"),
-                        "targetValue", row.get("target_value"),
+                        "targetGoal", row.get("target_value"), // ✅ renamed for frontend clarity
                         "goalType", row.get("goal_type"),
+                        "schoolYear", row.get("goal_school_year"), // ✅ comes from academic_goals table
                         "categories", new LinkedHashMap<Long, Map<String, Object>>()
                 )));
 
                 Map<String, Object> goal = goals.get(goalId);
 
-                // Progress
-                Double calcGrade = row.get("calculated_course_grade") != null ? ((Number) row.get("calculated_course_grade")).doubleValue() : null;
-                Double target = row.get("target_value") != null ? ((Number) row.get("target_value")).doubleValue() : null;
-                if (calcGrade != null && target != null) {
+                // Calculate progress %
+                Double calcGrade = row.get("calculated_course_grade") != null
+                        ? ((Number) row.get("calculated_course_grade")).doubleValue() : null;
+                Double target = row.get("target_value") != null
+                        ? ((Number) row.get("target_value")).doubleValue() : null;
+                if (calcGrade != null && target != null && target > 0) {
                     double progress = Math.min(100, (calcGrade / target) * 100);
                     goal.put("progress", progress);
                 }
@@ -105,13 +114,16 @@ public class ReportController {
                         assessment.put("pointsEarned", row.get("points_earned"));
                         assessment.put("pointsPossible", row.get("points_possible"));
                         assessment.put("percentageScore", row.get("percentage_score"));
-
                         assessments.add(assessment);
                     }
                 }
             }
         }
 
-        return Map.of("courses", new ArrayList<>(courseMap.values()));
+        Map<String, Object> response = new HashMap<>();
+        response.put("courses", new ArrayList<>(courseMap.values()));
+        response.put("userId", userId);
+        response.put("name", fullName);
+        return response;
     }
 }
