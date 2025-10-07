@@ -15,6 +15,7 @@ const SideCourseList = ({
   isMobileCourseListOpen,
   setIsMobileCourseListOpen,
   isExpanded = false,
+  isLoadingCourses = false,
   onToggleExpanded,
 }) => {
   // Local state for additional filters
@@ -117,7 +118,12 @@ const SideCourseList = ({
           COURSE LIST SECTION
           ======================================== */}
       <div className="flex-1 overflow-y-auto space-y-4 px-2 w-full">
-        {courses.length === 0 ? (
+        {isLoadingCourses ? (
+          <div className="text-center text-gray-300 py-8 w-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300 mx-auto mb-3"></div>
+            <p>Loading courses...</p>
+          </div>
+        ) : courses.length === 0 ? (
           <div className="text-center text-gray-300 py-8 w-full">
             <p>No courses added yet</p>
             <p className="text-sm">Add courses to see them here</p>

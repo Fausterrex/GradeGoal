@@ -44,6 +44,8 @@ function CourseManager({
   // State for managing completed courses
   const [completedCourses, setCompletedCourses] = useState([]);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [completedYearFilter, setCompletedYearFilter] = useState("all");
+  const [completedSemesterFilter, setCompletedSemesterFilter] = useState("all");
   
   // Note: Year level and semester filtering now handled by global YearLevelContext
 
@@ -67,14 +69,23 @@ function CourseManager({
   const getFilteredCompletedCourses = () => {
     let filtered = completedCourses;
     
-    // Apply global year level filtering first
-    if (selectedYearLevel !== 'all') {
+    // Apply year level filtering
+    if (completedYearFilter !== "all") {
       filtered = filtered.filter(course => {
         const courseYearLevel = course.creationYearLevel || course.yearLevel || "1"; // Fallback for old data
-        const matchesYearLevel = courseYearLevel === selectedYearLevel;
+        const matchesYearLevel = courseYearLevel === completedYearFilter;
         return matchesYearLevel;
       });
     }
+    
+    // Apply semester filtering
+    if (completedSemesterFilter !== "all") {
+      filtered = filtered.filter(course => {
+        const courseSemester = course.semester;
+        return courseSemester === completedSemesterFilter;
+      });
+    }
+    
     return filtered;
   };
 
@@ -981,6 +992,17 @@ function CourseManager({
                   <option value="4th year">4th Year</option>
                 </select>
               </div>
+              
+              {completedYearFilter !== "all" && (
+                <button
+                  onClick={() => {
+                    setCompletedYearFilter("all");
+                  }}
+                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-all duration-200"
+                >
+                  Clear Year Filter
+                </button>
+              )}
               
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700">Semester:</span>

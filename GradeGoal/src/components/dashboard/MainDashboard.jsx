@@ -80,7 +80,7 @@ if (typeof document !== "undefined") {
 }
 
 function MainDashboard({ initialTab = "overview" }) {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, loading } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
   const navigate = useNavigate();
 
@@ -119,14 +119,15 @@ function MainDashboard({ initialTab = "overview" }) {
     : currentUser?.displayName || currentUser?.email || "Unknown User";
 
     useEffect(() => {
-      if (currentUser?.email) {
+      // Only load courses when we have complete user data
+      if (currentUser?.email && currentUser?.userId && !loading) {
         loadCoursesAndGrades();
       }
-    }, [currentUser?.email]); // Only reload when email changes, not on profile updates
+    }, [currentUser?.email, currentUser?.userId, loading]); // Wait for both email and userId to be available and auth to finish loading
 
     // Reload courses when year level changes
     useEffect(() => {
-      if (currentUser?.email) {
+      if (currentUser?.email && currentUser?.userId && !loading) {
         loadCoursesAndGrades();
       }
     }, [selectedYearLevel]);
@@ -157,7 +158,7 @@ function MainDashboard({ initialTab = "overview" }) {
     }, [currentUser?.email, currentUser?.userId, currentUser?.firstName, currentUser?.displayName]);
 
   const loadCoursesAndGrades = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.email || !currentUser.userId) return;
     
     // Prevent concurrent calls
     if (isLoadingCourses) {
@@ -1210,6 +1211,7 @@ function MainDashboard({ initialTab = "overview" }) {
               isMobileCourseListOpen={isMobileCourseListOpen}
               setIsMobileCourseListOpen={setIsMobileCourseListOpen}
               isExpanded={isCourseManagerExpanded}
+              isLoadingCourses={isLoadingCourses}
               onToggleExpanded={() => {
                 if (!isCourseManagerExpanded) {
                   // Store current tab and route when expanding course manager
@@ -1316,7 +1318,12 @@ function MainDashboard({ initialTab = "overview" }) {
                         COURSES LIST CONTAINER
                         ======================================== */}
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {courses.length === 0 ? (
+                      {isLoadingCourses ? (
+                        <div className="text-center text-white/60 py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+                          <p>Loading courses...</p>
+                        </div>
+                      ) : courses.length === 0 ? (
                         <div className="text-center text-white/60 py-8">
                           <p>No courses added yet</p>
                           <p className="text-sm">

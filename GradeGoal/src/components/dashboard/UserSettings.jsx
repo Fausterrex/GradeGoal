@@ -5,6 +5,8 @@ import { usePushNotifications } from "../services/usePushNotifications";
 import { useNavigate } from "react-router-dom";
 import { Settings, Bell, Mail, User, Save, CheckCircle, AlertCircle, Edit, Lock, LogOut, Camera, Eye, EyeOff } from "lucide-react";
 import { getUserProfile, updateUserPreferences, updateUserProfile, updateUserPassword } from "../../backend/api";
+import ConfirmationModal from "../modals/ConfirmationModal";
+import SuccessModal from "../modals/SuccessModal";
 /**
  * User Settings Component
  * 
@@ -27,6 +29,12 @@ const UserSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', null
   const [error, setError] = useState(null);
+  
+  // Modal states
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [pendingSaveAction, setPendingSaveAction] = useState(null);
   
   // Profile editing states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -128,6 +136,11 @@ const UserSettings = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSavePreferences = () => {
+    setPendingSaveAction('preferences');
+    setShowConfirmationModal(true);
   };
 
   const handleProfileInputChange = (e) => {
@@ -240,7 +253,12 @@ const UserSettings = () => {
     }
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = () => {
+    setPendingSaveAction('all');
+    setShowConfirmationModal(true);
+  };
+
+  const executeSaveAll = async () => {
     setIsLoading(true);
     setError(null);
     setSaveStatus(null);
@@ -316,8 +334,8 @@ const UserSettings = () => {
         setIsEditingPassword(false);
       }
 
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus(null), 3000);
+      // Show success modal instead of status
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to save settings:', error);
       setError(error.message || 'Failed to save settings. Please try again.');
@@ -334,6 +352,48 @@ const UserSettings = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  // Modal handlers
+  const handleConfirmationConfirm = async () => {
+    setShowConfirmationModal(false);
+    
+    if (pendingSaveAction === 'all') {
+      await executeSaveAll();
+    } else if (pendingSaveAction === 'preferences') {
+      await savePreferences();
+      setShowSuccessModal(true);
+    }
+    
+    setPendingSaveAction(null);
+  };
+
+  const handleConfirmationCancel = () => {
+    setShowConfirmationModal(false);
+    setPendingSaveAction(null);
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+  };
+
+  // Logout modal handlers
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    setShowLogoutModal(false);
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   if (!currentUser) {
@@ -798,11 +858,7 @@ const UserSettings = () => {
         <div className="mt-8 flex justify-between items-center">
           {/* Logout Button - Bottom Left */}
           <button
-            onClick={() => {
-              if (window.confirm("Are you sure you want to logout?")) {
-                handleLogout();
-              }
-            }}
+            onClick={handleLogoutClick}
             className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
           >
             <LogOut className="h-4 w-4" />
@@ -820,6 +876,46 @@ const UserSettings = () => {
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleConfirmationConfirm}
+        type="edit"
+        title="Save Settings"
+        message="Are you sure you want to save your settings? This will update your profile information, notification preferences, and any password changes."
+        confirmText="Save Changes"
+        cancelText="Cancel"
+        isLoading={isLoading}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        title="Settings Saved!"
+        message="Your settings have been successfully saved. All changes have been applied to your account."
+        autoCloseDelay={3000}
+      />
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutModal}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
+        type="delete"
+        title="Confirm Logout"
+        message="Are you sure you want to logout? You will need to sign in again to access your account."
+        confirmText="Logout"
+        cancelText="Cancel"
+        showWarning={true}
+        warningItems={[
+          "You will be signed out of your account",
+          "Any unsaved changes will be lost",
+          "You'll need to sign in again to continue"
+        ]}
+      />
 
     </div>
   );
