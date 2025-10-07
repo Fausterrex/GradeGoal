@@ -5,20 +5,13 @@ import LeftSidebar from "./LeftSidebar";
 import MainContent from "./MainContent";
 import RightSidebar from "./RightSidebar";
 import EditProfileModal from "./EditProfileModal";
-// Sample data arrays
-const SAMPLE_DATA = {
-  students: [
-    { id: '1', name: 'Lynn Johnson', email: 'lynn.johnson@school.edu', joinDate: '2024-01-15', lastLogin: '2024-12-31' },
-    { id: '2', name: 'Oliver Jones', email: 'oliver.jones@school.edu', joinDate: '2024-02-20', lastLogin: '2024-12-30' },
-    { id: '3', name: 'Lucas Miller', email: 'lucas.miller@school.edu', joinDate: '2024-03-10', lastLogin: '2024-12-29' }
-  ],
-  courses: [
-    { id: 'SJ1', name: 'Physics', code: 'PHY101' },
-    { id: 'SJ2', name: 'Chemistry', code: 'CHE101' },
-    { id: 'SJ3', name: 'English', code: 'ENG101' }
-  ],
-  activities: ['Quiz1', 'Activity1', 'Exam1', 'Lab1']
-};
+import ConfirmationModal from "../modals/ConfirmationModal";
+import { 
+  getAdminDashboardData, 
+  updateUserProfileAdmin, 
+  updateUserAccountStatus,
+  notifyAccountStatusChange 
+} from "../../backend/api";
 
 function AdminDashboard() {
   const { currentUser, logout } = useAuth();
@@ -30,6 +23,10 @@ function AdminDashboard() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAccountStatusModal, setShowAccountStatusModal] = useState(false);
+  const [pendingAccountChange, setPendingAccountChange] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Dashboard data with connected arrays
   const [dashboardData, setDashboardData] = useState({
@@ -41,28 +38,98 @@ function AdminDashboard() {
   });
 
   // Add this function to handle profile updates
-  const handleSaveProfileChanges = (updatedData, studentId) => {
-    if (studentId) {
-      // Update student profile
+  const handleSaveProfileChanges = async (updatedData, studentId) => {
+    try {
+      if (studentId) {
+        // Update student profile in database
+        await updateUserProfileAdmin(studentId, updatedData);
+        
+        // Update local state
+        setDashboardData(prev => ({
+          ...prev,
+          students: {
+            ...prev.students,
+            [studentId]: {
+              ...prev.students[studentId],
+              name: updatedData.name,
+              email: updatedData.email,
+              joinDate: updatedData.joinDate,
+              lastLogin: updatedData.lastLogin
+            }
+          }
+        }));
+        
+        alert('Student profile updated successfully!');
+      } else {
+        // Update admin profile (you can add admin state if needed)
+        console.log('Admin profile updated:', updatedData);
+        alert(`Admin profile updated to: ${updatedData.firstName} ${updatedData.lastName}`);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    }
+  };
+
+  // Handle account freeze/unfreeze - show confirmation modal first
+  const handleAccountStatusChange = (userId, isActive) => {
+    const student = dashboardData.students[userId];
+    setPendingAccountChange({ userId, isActive, studentName: student?.name || 'Unknown User' });
+    setShowAccountStatusModal(true);
+  };
+
+  // Confirm account status change
+  const confirmAccountStatusChange = async () => {
+    if (!pendingAccountChange) return;
+
+    const { userId, isActive } = pendingAccountChange;
+    
+    try {
+      await updateUserAccountStatus(userId, isActive);
+      
+      // Update local state
       setDashboardData(prev => ({
         ...prev,
         students: {
           ...prev.students,
-          [studentId]: {
-            ...prev.students[studentId],
-            name: updatedData.name,
-            email: updatedData.email,
-            joinDate: updatedData.joinDate,
-            lastLogin: updatedData.lastLogin
+          [userId]: {
+            ...prev.students[userId],
+            isActive: isActive
           }
         }
       }));
-    } else {
-      // Update admin profile (you can add admin state if needed)
-      console.log('Admin profile updated:', updatedData);
-      // For demo, we'll just show an alert since we don't have admin state
-      alert(`Admin profile updated to: ${updatedData.firstName} ${updatedData.lastName}`);
+      
+      const status = isActive ? 'unfrozen' : 'frozen';
+      
+      // Try to notify user about status change (optional)
+      try {
+        await notifyAccountStatusChange(userId, !isActive);
+        setSuccessMessage(`Account ${status} successfully! User has been notified.`);
+      } catch (notificationError) {
+        console.warn('Failed to send notification:', notificationError);
+        setSuccessMessage(`Account ${status} successfully! (Notification could not be sent)`);
+      }
+      
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error updating account status:', error);
+      alert('Failed to update account status. Please try again.');
+    } finally {
+      setShowAccountStatusModal(false);
+      setPendingAccountChange(null);
     }
+  };
+
+  // Cancel account status change
+  const cancelAccountStatusChange = () => {
+    setShowAccountStatusModal(false);
+    setPendingAccountChange(null);
+  };
+
+  // Close success modal
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessMessage('');
   };
 
   const handleLogout = () => {
@@ -107,101 +174,36 @@ function AdminDashboard() {
     setEditingStudent(null);
   };
 
-  // Initialize sample data
+  // Initialize data from database
   useEffect(() => {
-    const initializeData = () => {
-      // Generate students data
-      const studentsData = {};
-      SAMPLE_DATA.students.forEach((student, index) => {
-        studentsData[student.id] = {
-          user_id: student.id,
-          name: student.name,
-          email: student.email,
-          joinDate: student.joinDate,
-          lastLogin: student.lastLogin,
-          progress: `${Math.floor(Math.random() * 30 + 70)}%`,
-          subjects: {}
-        };
-
-        // Assign courses to students
-        SAMPLE_DATA.courses.forEach((course, courseIndex) => {
-          if (courseIndex === 0 || Math.random() > 0.3) { // Ensure some variety
-            studentsData[student.id].subjects[course.id] = {
-              course_name: course.name,
-              progress: `${Math.floor(Math.random() * 25 + 75)}%`,
-              activities: SAMPLE_DATA.activities.map(activity => ({
-                type: activity,
-                score: `${Math.floor(Math.random() * 20 + 80)}/100`,
-                status: Math.random() > 0.3 ? 'completed' : 'in-progress'
-              }))
-            };
-          }
-        });
-      });
-
-      // Generate courses data
-      const coursesData = {};
-      SAMPLE_DATA.courses.forEach(course => {
-        const enrolledStudents = SAMPLE_DATA.students.filter((_, index) => 
-          studentsData[SAMPLE_DATA.students[index].id]?.subjects[course.id]
-        ).map(student => student.name);
-
-        coursesData[course.id] = {
-          course_id: course.id,
-          course_name: course.name,
-          course_code: course.code,
-          students: enrolledStudents.length,
-          overallProgress: `${Math.floor(Math.random() * 25 + 75)}%`,
-          activities: SAMPLE_DATA.activities.map(activity => ({
-            assessment_id: `A${Math.random().toString(36).substr(2, 9)}`,
-            name: activity,
-            participants: Math.floor(Math.random() * 20 + 30),
-            average: `${Math.floor(Math.random() * 20 + 75)}%`
-          })),
-          enrolled: enrolledStudents
-        };
-      });
-
-      setDashboardData({
-        overall: {
-          students: SAMPLE_DATA.students.length,
-          courses: SAMPLE_DATA.courses.length,
-          completions: '61%'
-        },
-        recentActivity: [
-          { notification_id: 1, type: 'Lynn Johnson Joined', time: '10:00 PM' },
-          { notification_id: 2, type: 'Chemistry Added', time: '9/04/2025' },
-          { notification_id: 3, type: 'Quiz1 Added', time: '9/02/2025' },
-          { notification_id: 4, type: 'Physics Added', time: '9/01/2025' },
-          { notification_id: 5, type: 'Activity1 Completed', time: '8/30/2025' },
-          { notification_id: 6, type: 'Oliver Jones Joined', time: '8/28/2025' },
-          { notification_id: 7, type: 'Exam1 Scheduled', time: '8/25/2025' },
-          { notification_id: 8, type: 'Lab1 Added', time: '8/20/2025' },
-          { notification_id: 9, type: 'Lucas Miller Joined', time: '8/15/2025' },
-          { notification_id: 10, type: 'English Added', time: '8/10/2025' }
-        ],
-        historyRecords: [
-          { record_id: 1, type: 'Lynn Johnson Joined', time: '10:00 PM' },
-          { record_id: 2, type: 'Chemistry Added', time: '9/04/2025' },
-          { record_id: 3, type: 'Quiz1 Added', time: '9/02/2025' },
-          { record_id: 4, type: 'Physics Added', time: '9/01/2025' },
-          { record_id: 5, type: 'Activity1 Completed', time: '8/30/2025' },
-          { record_id: 6, type: 'Oliver Jones Joined', time: '8/28/2025' },
-          { record_id: 7, type: 'Exam1 Scheduled', time: '8/25/2025' },
-          { record_id: 8, type: 'Lab1 Added', time: '8/20/2025' },
-          { record_id: 9, type: 'Lucas Miller Joined', time: '8/15/2025' },
-          { record_id: 10, type: 'English Added', time: '8/10/2025' }
-        ],
-        students: studentsData,
-        courses: coursesData
-      });
-
-      setLoading(false);
+    const initializeData = async () => {
+      try {
+        setLoading(true);
+        const data = await getAdminDashboardData();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error loading admin dashboard data:', error);
+        alert('Failed to load dashboard data. Please refresh the page.');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setLoading(true);
-    // Simulate API call delay
-    setTimeout(initializeData, 1000);
+    initializeData();
+  }, []);
+
+  // Auto-refresh data every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const data = await getAdminDashboardData();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error refreshing dashboard data:', error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   // Render loading state
@@ -233,6 +235,7 @@ function AdminDashboard() {
           onToggleCourse={toggleCourse}
           onToggleSubject={toggleSubject}
           onEditProfile={handleEditProfile}
+          onAccountStatusChange={handleAccountStatusChange}
         />
         
         <RightSidebar
@@ -248,6 +251,47 @@ function AdminDashboard() {
         studentData={editingStudent}
         isAdmin={!editingStudent} // If no student provided, it's admin profile
         onSaveChanges={handleSaveProfileChanges}
+      />
+
+      {/* Account Status Change Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showAccountStatusModal}
+        onClose={cancelAccountStatusChange}
+        onConfirm={confirmAccountStatusChange}
+        type={pendingAccountChange?.isActive ? "complete" : "warning"}
+        title={pendingAccountChange?.isActive ? "Unfreeze Account" : "Freeze Account"}
+        message={`Are you sure you want to ${pendingAccountChange?.isActive ? 'unfreeze' : 'freeze'} the account for ${pendingAccountChange?.studentName || 'this user'}?`}
+        confirmText={pendingAccountChange?.isActive ? "Unfreeze Account" : "Freeze Account"}
+        cancelText="Cancel"
+        showWarning={true}
+        warningItems={[
+          pendingAccountChange?.isActive 
+            ? "The user will be able to log in normally"
+            : "The user will not be able to log in",
+          pendingAccountChange?.isActive 
+            ? "All account features will be restored"
+            : "Account access will be restricted until unfrozen"
+        ]}
+        customIcon={pendingAccountChange?.isActive ? <span className="text-green-600 text-lg">🔓</span> : <span className="text-red-600 text-lg">🔒</span>}
+        customHeaderColor={pendingAccountChange?.isActive ? "bg-green-600" : "bg-red-600"}
+        customConfirmColor={pendingAccountChange?.isActive ? "bg-green-600" : "bg-red-600"}
+        customConfirmHoverColor={pendingAccountChange?.isActive ? "hover:bg-green-700" : "hover:bg-red-700"}
+      />
+
+      {/* Success Modal */}
+      <ConfirmationModal
+        isOpen={showSuccessModal}
+        onClose={closeSuccessModal}
+        onConfirm={closeSuccessModal}
+        type="info"
+        title="Success"
+        message={successMessage}
+        confirmText="OK"
+        cancelText="Close"
+        customIcon={<span className="text-green-600 text-lg">✅</span>}
+        customHeaderColor="bg-green-600"
+        customConfirmColor="bg-green-600"
+        customConfirmHoverColor="hover:bg-green-700"
       />
     </div>
   );

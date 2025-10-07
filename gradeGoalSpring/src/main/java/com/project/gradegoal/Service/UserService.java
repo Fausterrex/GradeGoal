@@ -247,6 +247,17 @@ public class UserService {
         return false;
     }
 
+    public User updateUserAccountStatus(Long userId, Boolean isActive) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("User with ID " + userId + " not found");
+        }
+
+        User user = userOpt.get();
+        user.setIsActive(isActive);
+        return userRepository.save(user);
+    }
+
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }

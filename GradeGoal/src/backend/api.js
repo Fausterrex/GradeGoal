@@ -106,6 +106,22 @@ export {
 } from './aiAnalysisAPI.js';
 
 // ========================================
+// ADMIN API
+// ========================================
+export {
+  getAllUsers,
+  getUserById,
+  updateUserProfileAdmin,
+  updateUserAccountStatus,
+  deleteUserAccount,
+  getAllCourses,
+  getAdminDashboardData,
+  getAssessmentsByCategoryId,
+  sendNotificationToUser,
+  notifyAccountStatusChange
+} from './adminAPI.js';
+
+// ========================================
 // LEGACY GOAL FUNCTIONS (for backward compatibility)
 // ========================================
 

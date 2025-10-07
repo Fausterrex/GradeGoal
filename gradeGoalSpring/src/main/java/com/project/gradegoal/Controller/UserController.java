@@ -266,8 +266,42 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch user");
+        }
+    }
+
+    // ========================================
+    // ADMIN ENDPOINTS
+    // ========================================
+
+    @PutMapping("/{userId}/status")
+    public ResponseEntity<?> updateUserAccountStatus(@PathVariable Long userId, @RequestBody Map<String, Boolean> request) {
+        try {
+            Boolean isActive = request.get("isActive");
+            if (isActive == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("isActive field is required");
+            }
+            
+            User updatedUser = userService.updateUserAccountStatus(userId, isActive);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update account status");
+        }
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+        try {
+            boolean deleted = userService.deleteUser(userId);
+            if (deleted) {
+                return ResponseEntity.ok("User deleted successfully");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete user");
         }
     }
 

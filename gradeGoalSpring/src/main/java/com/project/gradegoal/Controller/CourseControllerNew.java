@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -64,6 +66,50 @@ public class CourseControllerNew {
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    // ========================================
+    // ADMIN ENDPOINTS
+    // ========================================
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Course>> getAllCourses() {
+        try {
+            List<Course> courses = courseService.getAllCourses();
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<?> getCourseStatistics() {
+        try {
+            // Create basic course statistics
+            List<Course> allCourses = courseService.getAllCourses();
+            long totalCourses = allCourses.size();
+            long activeCourses = allCourses.stream()
+                .filter(course -> course.getIsActive() != null && course.getIsActive())
+                .count();
+            long archivedCourses = totalCourses - activeCourses;
+            
+            // Calculate average completion rate
+            double averageCompletion = allCourses.stream()
+                .filter(course -> course.getCalculatedCourseGrade() != null)
+                .mapToDouble(course -> course.getCalculatedCourseGrade().doubleValue())
+                .average()
+                .orElse(0.0);
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalCourses", totalCourses);
+            stats.put("activeCourses", activeCourses);
+            stats.put("archivedCourses", archivedCourses);
+            stats.put("averageCompletion", Math.round(averageCompletion * 100.0) / 100.0);
+            
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to fetch course statistics");
         }
     }
 

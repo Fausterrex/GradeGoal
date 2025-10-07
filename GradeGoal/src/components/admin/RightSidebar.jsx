@@ -29,47 +29,13 @@ const RightSidebar = ({ dashboardData, onLogout }) => {
           </button>
         </div>
 
-        {/* Statistics */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-800 mb-4">Statistics</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Student Progress</span>
-                <span>78%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '78%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Course Engagement</span>
-                <span>92%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Assignment Completion</span>
-                <span>85%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* History/Records */}
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h3 className="font-semibold text-gray-800 mb-2">History/Records</h3>
           <div className="max-h-64 overflow-y-auto space-y-2.5">
-            {dashboardData.historyRecords.map((record) => (
+            {dashboardData.historyRecords.map((record, index) => (
               <div
-                key={record.record_id}
+                key={record.record_id || `record-${index}`}
                 className="p-3 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-200"
               >
                 <div className="text-gray-800 font-medium">{record.type}</div>

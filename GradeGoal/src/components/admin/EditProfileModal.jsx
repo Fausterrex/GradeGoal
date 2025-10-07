@@ -39,27 +39,32 @@ const EditProfileModal = ({ isOpen, onClose, studentData, isAdmin = false, onSav
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create updated data object
-    const updatedData = {
-      ...formData,
-      name: `${formData.firstName} ${formData.lastName}`,
-      user_id: formData.userId,
-      email: formData.email,
-      joinDate: formData.joinDate,
-      lastLogin: formData.lastLogin
-    };
+    try {
+      // Create updated data object
+      const updatedData = {
+        ...formData,
+        name: `${formData.firstName} ${formData.lastName}`,
+        user_id: formData.userId,
+        email: formData.email,
+        joinDate: formData.joinDate,
+        lastLogin: formData.lastLogin
+      };
 
-    // Call the onSaveChanges prop to update the parent state
-    if (onSaveChanges) {
-      onSaveChanges(updatedData, isAdmin ? null : studentData?.user_id);
+      // Call the onSaveChanges prop to update the parent state
+      if (onSaveChanges) {
+        await onSaveChanges(updatedData, isAdmin ? null : studentData?.user_id);
+      }
+
+      // Show success message
+      alert('Profile changes saved successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile changes. Please try again.');
     }
-
-    // Show success message
-    alert('Profile changes saved successfully! Changes will be visible during this session.');
-    onClose();
   };
 
   if (!isOpen) return null;

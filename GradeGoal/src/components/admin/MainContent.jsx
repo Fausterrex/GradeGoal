@@ -8,7 +8,8 @@ const MainContent = ({
   onToggleStudent, 
   onToggleCourse, 
   onToggleSubject,
-  onEditProfile 
+  onEditProfile,
+  onAccountStatusChange 
 }) => {
   return (
     <main className="flex-1 min-w-0">
@@ -22,6 +23,7 @@ const MainContent = ({
             onToggleStudent={onToggleStudent}
             onToggleSubject={onToggleSubject}
             onEditProfile={onEditProfile}
+            onAccountStatusChange={onAccountStatusChange}
           />
         )}
         {activeSection === 'courses' && (
@@ -83,7 +85,8 @@ const StudentsView = ({
   expandedSubjects, 
   onToggleStudent, 
   onToggleSubject,
-  onEditProfile 
+  onEditProfile,
+  onAccountStatusChange 
 }) => (
   <div className="space-y-4">
     <h3 className="font-semibold text-gray-800">Students</h3>
@@ -98,6 +101,7 @@ const StudentsView = ({
           onToggleStudent={onToggleStudent}
           onToggleSubject={onToggleSubject}
           onEditProfile={onEditProfile}
+          onAccountStatusChange={onAccountStatusChange}
         />
       ))}
     </div>
@@ -111,7 +115,8 @@ const StudentCard = ({
   expandedSubjects, 
   onToggleStudent, 
   onToggleSubject,
-  onEditProfile 
+  onEditProfile,
+  onAccountStatusChange 
 }) => (
   <div className="flex flex-col">
     <div
@@ -145,12 +150,13 @@ const StudentCard = ({
         expandedSubjects={expandedSubjects}
         onToggleSubject={onToggleSubject}
         onEditProfile={onEditProfile}
+        onAccountStatusChange={onAccountStatusChange}
       />
     )}
   </div>
 );
 
-const StudentDetails = ({ studentData, studentId, expandedSubjects, onToggleSubject, onEditProfile }) => {
+const StudentDetails = ({ studentData, studentId, expandedSubjects, onToggleSubject, onEditProfile, onAccountStatusChange }) => {
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
@@ -190,7 +196,12 @@ const StudentDetails = ({ studentData, studentId, expandedSubjects, onToggleSubj
       </div>
 
       {activeTab === 'profile' && (
-        <ProfileTab studentData={studentData} onEditProfile={onEditProfile} />
+        <ProfileTab 
+          studentData={studentData} 
+          studentId={studentId}
+          onEditProfile={onEditProfile} 
+          onAccountStatusChange={onAccountStatusChange}
+        />
       )}
       
       {activeTab === 'courses' && (
@@ -209,7 +220,7 @@ const StudentDetails = ({ studentData, studentId, expandedSubjects, onToggleSubj
   );
 };
 
-const ProfileTab = ({ studentData, onEditProfile }) => (
+const ProfileTab = ({ studentData, studentId, onEditProfile, onAccountStatusChange }) => (
   <div className="space-y-6">
     {/* Header with Edit Button */}
     <div className="flex justify-between items-start">
@@ -267,10 +278,24 @@ const ProfileTab = ({ studentData, onEditProfile }) => (
         <button className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium">
           Change Password
         </button>
-        <button className="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition-colors font-medium">
-          Freeze Account
+        <button 
+          onClick={() => onAccountStatusChange(studentId, !studentData.isActive)}
+          className={`flex-1 py-3 px-4 rounded-lg transition-colors font-medium ${
+            studentData.isActive 
+              ? 'bg-red-500 text-white hover:bg-red-600' 
+              : 'bg-green-500 text-white hover:bg-green-600'
+          }`}
+        >
+          {studentData.isActive ? 'Freeze Account' : 'Unfreeze Account'}
         </button>
       </div>
+      {studentData.isActive === false && (
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800 text-sm">
+            ⚠️ This account is currently frozen. The user will be notified when they try to log in.
+          </p>
+        </div>
+      )}
     </div>
   </div>
 );

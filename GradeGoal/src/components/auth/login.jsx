@@ -70,8 +70,15 @@ function Login() {
       const firebaseUser = cred.user;
       const userDataFromDB = await loginUser(firebaseUser.email);
 
-      // Get user profile to determine role
+      // Get user profile to determine role and check account status
       const userProfile = await getUserProfile(firebaseUser.email);
+
+      // Check if account is frozen
+      if (userProfile && userProfile.isActive === false) {
+        setError("Your account has been frozen by an administrator. Please contact support for assistance.");
+        setLoading(false);
+        return;
+      }
 
       const userData = {
         userId: userProfile?.userId || null, // Include userId
@@ -82,17 +89,19 @@ function Login() {
           ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
           : userDataFromDB?.displayName || firebaseUser.email,
         role: userProfile?.role || 'USER',
+        isActive: userProfile?.isActive !== false, // Default to true if not specified
       };
 
       updateCurrentUserWithData(userData);
       setSuccess("Logged in successfully!");
       
-      // Update login streak after successful login
+      // Update login streak after successful login (optional)
       if (userData.userId) {
         try {
           await updateUserLoginStreak(userData.userId);
-          } catch (error) {
+        } catch (error) {
           // Don't fail the login if streak update fails
+          console.warn('Failed to update login streak:', error);
         }
       }
       

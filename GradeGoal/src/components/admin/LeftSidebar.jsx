@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logo from "../../drawables/logo.png";
+import logo from "../../drawables/logo.svg";
 const LeftSidebar = ({ activeSection, onSectionChange, onLogout }) => {
   return (
     <aside className="lg:w-80 flex-shrink-0">
@@ -9,7 +9,7 @@ const LeftSidebar = ({ activeSection, onSectionChange, onLogout }) => {
           <img
             src={logo}
             alt="Logo"
-            className="w-40 h-40 rounded-full mx-auto mt-2 mb-3 object-cover"
+            className="w-40 h-40 rounded-xl mx-auto mt-2 mb-3 object-cover"
           />
           <h3 className="text-lg font-semibold text-gray-800">GradeGoal</h3>
           <p className="text-gray-600 text-sm">Admin</p>
