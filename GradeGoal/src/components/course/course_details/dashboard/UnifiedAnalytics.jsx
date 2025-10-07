@@ -25,7 +25,6 @@ function UnifiedAnalytics({
     const pendingAssessments = allGrades.filter(grade =>
       !grade.score || grade.score === null || grade.score === undefined || grade.score === ""
     );
-
     // Upcoming deadlines (only for assessments without scores)
     const upcomingDeadlines = allGrades.filter(grade => {
       if (!grade.date || grade.score) return false; // Exclude if no date or already has a score
@@ -75,7 +74,6 @@ function UnifiedAnalytics({
       </div>
     </div>
   );
-
 
   return (
     <div className="space-y-6">
@@ -233,9 +231,9 @@ function UnifiedAnalytics({
             )}
           </div>
         </div>
-      )}
-    </div>
+        )}
+      </div>
   );
-}
+};
 
 export default UnifiedAnalytics;

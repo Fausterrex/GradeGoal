@@ -6,7 +6,7 @@
 // modify their account details and security settings.
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import {
   getUserProfile,
   updateUserProfile,
@@ -27,7 +27,6 @@ import {
   EmailAuthProvider,
   getAuth,
 } from "firebase/auth";
-
 const ProfileEdit = ({ isOpen, onClose }) => {
   const { currentUser, updateCurrentUserWithData } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -190,7 +189,6 @@ const ProfileEdit = ({ isOpen, onClose }) => {
       const credential = EmailAuthProvider.credential(
         firebaseUser.email,
         passwordData.currentPassword
-      );
       await reauthenticateWithCredential(firebaseUser, credential);
 
       // Update password in Firebase Auth
@@ -208,15 +206,12 @@ const ProfileEdit = ({ isOpen, onClose }) => {
       if (error.code === "auth/wrong-password") {
         setError(
           "The current password you entered is incorrect. Please check your password and try again."
-        );
       } else if (error.code === "auth/weak-password") {
         setError(
           "The new password is too weak. Please choose a stronger password."
-        );
       } else if (error.code === "auth/requires-recent-login") {
         setError(
           "For security reasons, please log out and log back in before changing your password."
-        );
       } else {
         setError(error.message || "Failed to update password");
       }
@@ -507,7 +502,6 @@ const ProfileEdit = ({ isOpen, onClose }) => {
         </div>
       </div>
     </div>
-  );
 };
 
 export default ProfileEdit;

@@ -11,9 +11,6 @@ import UnifiedGradeBreakdown from "./UnifiedGradeBreakdown";
 import UserProgress from "./UserProgress";
 import GoalProgress from "./GoalProgress";
 import AIAnalysisIndicator from "../../../ai/components/AIAnalysisIndicator";
-
-
-
 function Dashboard({
   course,
   grades,

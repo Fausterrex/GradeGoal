@@ -4,14 +4,12 @@
 // This component displays academic goal cards with enhanced analytics
 // Features: Grade trend analysis, predictive insights, trend-based recommendations
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Target, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
-import { calculateGoalProgress } from './goalProgress';
-// Removed AnalyticsService import
-import { getProgressStatusInfo, getProgressBarColor } from './goalProgress';
-import { useAuth } from '../../../context/AuthContext';
-import { getUserProfile } from '../../../backend/api';
-
+import React, { useState, useEffect, useMemo } from "react";
+import { Calendar, Target, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { calculateGoalProgress } from "./goalProgress";
+// Removed AnalyticsService import import { getProgressStatusInfo, getProgressBarColor } from "./goalProgress";
+import { useAuth } from "../../context/AuthContext";
+import { getUserProfile } from "../../../backend/api";
 const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete }) => {
   const { currentUser } = useAuth();
   const [analytics, setAnalytics] = useState(null);
@@ -82,7 +80,6 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
             progress.isAchieved,
             progress.currentValue >= progress.targetValue * 0.8,
             progress.isOnTrack
-          )
         };
         
         setProgressData(enhancedProgress);
@@ -106,7 +103,6 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
         <div className="h-2 bg-gray-200 rounded w-full mb-2"></div>
         <div className="h-2 bg-gray-200 rounded w-2/3"></div>
       </div>
-    );
   }
 
   const statusInfo = getProgressStatusInfo(progressData.status);
@@ -297,7 +293,6 @@ const EnhancedGoalCard = ({ goal, courses, grades, allGoals, onEdit, onDelete })
         </div>
       </div>
     </div>
-  );
 };
 
 export default EnhancedGoalCard;

@@ -8,8 +8,6 @@
  * Analyze user's performance patterns across different assessment types
  */
 export const analyzePerformancePatterns = (grades, categories) => {
-  console.log('📊 [PerformanceAnalysis] Analyzing performance patterns...');
-  
   const patterns = {
     overall: {
       averageScore: 0,
@@ -97,17 +95,6 @@ export const analyzePerformancePatterns = (grades, categories) => {
     patterns.overall.trend = calculateTrend(allScores);
   }
 
-  console.log('📊 [PerformanceAnalysis] Patterns analyzed:', patterns);
-  console.log('📊 [PerformanceAnalysis] Category breakdown:', Object.keys(patterns.byCategory).map(catId => ({
-    categoryId: catId,
-    categoryName: patterns.byCategory[catId].categoryName,
-    isEmpty: patterns.byCategory[catId].isEmpty,
-    hasMidtermAssessments: patterns.byCategory[catId].hasMidtermAssessments,
-    hasFinalTermAssessments: patterns.byCategory[catId].hasFinalTermAssessments,
-    midtermCount: patterns.byCategory[catId].midtermCount,
-    finalTermCount: patterns.byCategory[catId].finalTermCount,
-    totalAssessments: patterns.byCategory[catId].totalAssessments
-  })));
   return patterns;
 };
 
@@ -115,8 +102,6 @@ export const analyzePerformancePatterns = (grades, categories) => {
  * Generate realistic predictions for empty categories based on performance patterns
  */
 export const generateRealisticPredictions = (patterns, categories, targetGPA) => {
-  console.log('🎯 [RealisticPredictions] Generating predictions based on patterns...');
-  
   const predictions = {
     upcomingAssessments: [],
     predictedScores: {},
@@ -153,7 +138,6 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
   const existingCategories = categories.filter(cat => 
     patterns.byCategory[cat.id]?.isEmpty === false
   );
-
   let baselineScore = 0;
   let baselineCount = 0;
 
@@ -182,7 +166,6 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
         patterns.overall.trend,
         category.name || category.categoryName
       );
-      
       categoryPredictions.push({
         assessmentName: `${category.name || category.categoryName} ${i}`,
         predictedScore: predictedScore.score,
@@ -233,15 +216,6 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
   
   predictions.reasoning = reasoning;
 
-  console.log('🎯 [RealisticPredictions] Generated predictions:', predictions);
-  console.log('🎯 [RealisticPredictions] Empty categories found:', emptyCategories.map(cat => ({
-    categoryId: cat.id,
-    categoryName: cat.name || cat.categoryName,
-    isEmpty: patterns.byCategory[cat.id]?.isEmpty,
-    hasMidtermAssessments: patterns.byCategory[cat.id]?.hasMidtermAssessments,
-    hasFinalTermAssessments: patterns.byCategory[cat.id]?.hasFinalTermAssessments,
-    totalAssessments: patterns.byCategory[cat.id]?.totalAssessments
-  })));
   return predictions;
 };
 

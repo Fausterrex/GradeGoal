@@ -4,7 +4,6 @@
 // Modal for adding and editing assessments
 
 import React from "react";
-
 function AssessmentModal({
   isOpen,
   editingGrade,

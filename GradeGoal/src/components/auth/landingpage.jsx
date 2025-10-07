@@ -16,7 +16,6 @@ import notificationIcon from "../../drawables/notif.png";
 import analyticsIcon from "../../drawables/dashboard.png";
 import predictiveIcon from "../../drawables/predict.png";
 import gradeIcon from "../../drawables/track.png";
-
 export default function LandingPage() {
   // Interactive cards data for the hero section
   const cards = [

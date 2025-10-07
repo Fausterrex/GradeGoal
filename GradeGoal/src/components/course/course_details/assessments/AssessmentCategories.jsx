@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from "react";
 import AssessmentCategory from "./AssessmentCategory";
 import { calculateCategoryGrade } from "../../../../backend/api";
-
 function AssessmentCategories({
   categories,
   grades,
@@ -29,38 +28,28 @@ function AssessmentCategories({
     const loadCategoryAverages = async () => {
       if (!categories || categories.length === 0) return;
       
-      console.log('🔍 [AssessmentCategories] Loading category averages for term:', activeSemesterTerm);
-      console.log('🔍 [AssessmentCategories] Categories:', categories);
-      
       const averages = {};
       for (const category of categories) {
         try {
-          console.log(`🔍 [AssessmentCategories] Calculating grade for category ${category.id} (${category.name})`);
           // Use database calculation for category grade with active semester term
           const result = await calculateCategoryGrade(category.id, activeSemesterTerm);
-          console.log(`🔍 [AssessmentCategories] Result for category ${category.id}:`, result);
           if (result.success) {
             averages[category.id] = parseFloat(result.categoryGrade);
-            console.log(`✅ [AssessmentCategories] Set average for category ${category.id}: ${averages[category.id]}`);
           } else {
-            console.log(`❌ [AssessmentCategories] Database calculation failed for category ${category.id}, using fallback`);
             // Fallback to provided function if database calculation fails
             const average = await getCategoryAverage(category.id);
             averages[category.id] = average;
           }
         } catch (error) {
-          console.error(`❌ [AssessmentCategories] Error calculating grade for category ${category.id}:`, error);
           // Fallback to provided function
           try {
             const average = await getCategoryAverage(category.id);
             averages[category.id] = average;
           } catch (fallbackError) {
-            console.error(`❌ [AssessmentCategories] Fallback also failed for category ${category.id}:`, fallbackError);
             averages[category.id] = null;
           }
         }
       }
-      console.log('🔍 [AssessmentCategories] Final averages:', averages);
       setCategoryAverages(averages);
     };
 
@@ -114,8 +103,8 @@ function AssessmentCategories({
           />
         );
       })}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
 export default AssessmentCategories;

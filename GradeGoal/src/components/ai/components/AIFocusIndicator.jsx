@@ -3,9 +3,8 @@
 // ========================================
 // Shows AI focus indicators for assessment categories
 
-import React, { useState } from 'react';
-import { AlertTriangle, Clock, CheckCircle, Lightbulb, ChevronDown, ChevronUp, Target, TrendingUp, AlertCircle } from 'lucide-react';
-
+import React, { useState } from "react";
+import { AlertTriangle, Clock, CheckCircle, Lightbulb, ChevronDown, ChevronUp, Target, TrendingUp, AlertCircle } from "lucide-react";
 const AIFocusIndicator = ({ categoryName, focusData, isVisible = true }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   

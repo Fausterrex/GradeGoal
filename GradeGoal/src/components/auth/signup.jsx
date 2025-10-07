@@ -5,10 +5,9 @@
 // It validates user input, creates new user accounts, and manages registration state.
 
 import React, { useRef, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../../backend/api";
-
 export default function Signup() {
   // Form references and state
   const emailRef = useRef();

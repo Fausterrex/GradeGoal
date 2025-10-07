@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import logo from '../../drawables/logo.png';
-
+import { useState } from "react";
+import logo from "../../drawables/logo.png";
 const LeftSidebar = ({ activeSection, onSectionChange, onLogout }) => {
   return (
     <aside className="lg:w-80 flex-shrink-0">

@@ -4,8 +4,7 @@
 // Centralized service for calculating course progress across all components
 // This ensures consistency and eliminates duplicate calculation logic
 
-import { hasValidScore } from '../components/course/course_details/utils/gradeEntryCalculations';
-
+import { hasValidScore } from "../course/course_details/utils/gradeEntryCalculations";
 /**
  * Calculate overall course progress based on semester term completion
  * This is the single source of truth for progress calculation
@@ -77,8 +76,6 @@ const calculateMidtermProgress = (categories, grades) => {
     const midtermGrades = (grades[category.id] || []).filter(grade => 
       grade.semesterTerm === 'MIDTERM'
     );
-    
-    // Each category should have at least 1 assessment for a complete midterm
     const expectedInCategory = Math.max(midtermGrades.length, 1);
     totalExpectedAssessments += expectedInCategory;
     
@@ -114,8 +111,6 @@ const calculateFinalTermProgress = (categories, grades) => {
     const finalTermGrades = (grades[category.id] || []).filter(grade => 
       grade.semesterTerm === 'FINAL_TERM'
     );
-    
-    // Each category should have at least 1 assessment for a complete final term
     const expectedInCategory = Math.max(finalTermGrades.length, 1);
     totalExpectedAssessments += expectedInCategory;
     

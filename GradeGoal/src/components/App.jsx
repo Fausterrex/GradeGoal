@@ -9,16 +9,15 @@ import Signup from "./auth/signup";
 import Login from "./auth/login";
 import ForgotPassword from "./auth/forgotpassword";
 import Landingpage from "./auth/landingpage";
-import { AuthProvider, useAuth } from "../context/AuthContext";
-import { AchievementProvider, useAchievementNotifications } from "../context/AchievementContext";
-import { YearLevelProvider } from "../context/YearLevelContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AchievementProvider, useAchievementNotifications } from "./context/AchievementContext";
+import { YearLevelProvider } from "./context/YearLevelContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
 import Header from "./auth/Header";
 import AdminDashboard from "./admin/AdminDashboard";
-import AchievementNotificationModal from "./common/AchievementNotificationModal";
-
+import AchievementNotificationModal from "./modals/AchievementNotificationModal";
 // Achievement Modal Manager Component
 function AchievementModalManager() {
   const { currentNotification, isModalOpen, closeNotification } = useAchievementNotifications();
@@ -308,9 +307,9 @@ function App() {
             </div>
           </YearLevelProvider>
         </AchievementProvider>
-      </AuthProvider>
-    </Router>
-  );
-}
+        </AuthProvider>
+      </Router>
+    );
+  }
 
 export default App;

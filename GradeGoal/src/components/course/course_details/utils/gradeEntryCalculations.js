@@ -11,7 +11,6 @@ import {
   calculateGPAFromPercentage,
   calculateAndSaveCourseGrade,
 } from "../../../../backend/api";
-
 /**
  * Calculate and save course grade and GPA to database
  * This function handles the complete calculation and storage process

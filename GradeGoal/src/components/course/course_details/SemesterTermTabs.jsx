@@ -4,7 +4,6 @@
 // Component that displays Midterm and Final Term tabs
 
 import React from "react";
-
 function SemesterTermTabs({ 
   activeTerm, 
   onTermChange, 

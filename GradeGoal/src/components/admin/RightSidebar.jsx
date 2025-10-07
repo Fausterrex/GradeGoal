@@ -1,5 +1,4 @@
-import { useState } from 'react';
-
+import { useState } from "react";
 const RightSidebar = ({ dashboardData, onLogout }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 

@@ -4,7 +4,6 @@
 // Modal for adding scores to assessments
 
 import React from "react";
-
 function CourseDetailsAddScoreModal({
   isOpen,
   selectedGrade,

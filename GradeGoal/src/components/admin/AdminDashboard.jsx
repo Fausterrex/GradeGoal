@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import LeftSidebar from './LeftSidebar';
-import MainContent from './MainContent';
-import RightSidebar from './RightSidebar';
-import EditProfileModal from './EditProfileModal';
-
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import LeftSidebar from "./LeftSidebar";
+import MainContent from "./MainContent";
+import RightSidebar from "./RightSidebar";
+import EditProfileModal from "./EditProfileModal";
 // Sample data arrays
 const SAMPLE_DATA = {
   students: [

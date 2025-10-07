@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useYearLevel } from '../../context/YearLevelContext';
-import { usePushNotifications } from '../../services/usePushNotifications';
-import { useNavigate } from 'react-router-dom';
-import { Settings, Bell, Mail, User, Save, CheckCircle, AlertCircle, Edit, Lock, LogOut, Camera, Eye, EyeOff } from 'lucide-react';
-import { getUserProfile, updateUserPreferences, updateUserProfile, updateUserPassword } from '../../backend/api';
-
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
+import { usePushNotifications } from "../services/usePushNotifications";
+import { useNavigate } from "react-router-dom";
+import { Settings, Bell, Mail, User, Save, CheckCircle, AlertCircle, Edit, Lock, LogOut, Camera, Eye, EyeOff } from "lucide-react";
+import { getUserProfile, updateUserPreferences, updateUserProfile, updateUserPassword } from "../../backend/api";
 /**
  * User Settings Component
  * 
@@ -133,14 +132,11 @@ const UserSettings = () => {
 
   const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
-    console.log('🔧 [UserSettings] Profile input change:', { name, value, currentProfileData: profileData });
-    
     setProfileData(prev => {
       const newData = {
         ...prev,
         [name]: value
       };
-      console.log('🔧 [UserSettings] Updated profile data:', newData);
       return newData;
     });
 
@@ -249,10 +245,6 @@ const UserSettings = () => {
     setError(null);
     setSaveStatus(null);
 
-    console.log('💾 [UserSettings] Save Settings button clicked');
-    console.log('💾 [UserSettings] Current profile data:', profileData);
-    console.log('💾 [UserSettings] Academic year level being saved:', profileData.currentYearLevel);
-
     try {
       // Save notification preferences
       await updateUserPreferences(currentUser.email, {
@@ -263,17 +255,7 @@ const UserSettings = () => {
            // Always save profile changes - this ensures year level changes are always saved
            const hasProfileChanges = true; // Always save since year level can change without other edits
            
-           console.log('💾 [UserSettings] Profile data being saved:', profileData);
-           
            if (hasProfileChanges) {
-        
-        console.log('💾 [UserSettings] Calling updateUserProfile with:', {
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          username: profileData.username,
-          profilePictureUrl: profileData.profilePictureUrl,
-          currentYearLevel: profileData.currentYearLevel
-        });
         
         await updateUserProfile(currentUser.email, {
           firstName: profileData.firstName,
@@ -283,10 +265,7 @@ const UserSettings = () => {
           currentYearLevel: profileData.currentYearLevel
         });
         
-        console.log('💾 [UserSettings] updateUserProfile completed successfully');
-
         // Sync year level view with updated user profile
-        console.log('🎓 [UserSettings] Syncing year level view with user currentYearLevel');
         await syncWithUserYearLevel();
 
         // Update current user context
@@ -316,10 +295,7 @@ const UserSettings = () => {
       }
 
       // Reload user preferences to sync with database after all saves
-      console.log('💾 [UserSettings] Reloading user preferences...');
       await loadUserPreferences();
-      console.log('💾 [UserSettings] User preferences reloaded');
-
       // Save password changes if editing
       if (isEditingPassword) {
         if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -632,11 +608,6 @@ const UserSettings = () => {
                   name="currentYearLevel"
                   value={profileData.currentYearLevel}
                   onChange={(e) => {
-                    console.log('🎓 [UserSettings] Year level dropdown changed:', {
-                      previousValue: profileData.currentYearLevel,
-                      newValue: e.target.value,
-                      event: e
-                    });
                     handleProfileInputChange(e);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

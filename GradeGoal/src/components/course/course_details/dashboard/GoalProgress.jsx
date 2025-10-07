@@ -8,8 +8,7 @@ import { convertToGPA } from "../../academic_goal/gpaConversionUtils";
 import AIAchievementProbability from "../../../ai/components/AIAchievementProbability";
 import { RefreshCw } from "lucide-react";
 import { getAchievementProbability, subscribeToAIAnalysis, loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
-import { useAuth } from "../../../../context/AuthContext";
-
+import { useAuth } from "../../../context/AuthContext";
 function GoalProgress({
   currentGrade,
   targetGrade,
@@ -37,8 +36,7 @@ function GoalProgress({
           await loadAIAnalysisForCourse(userProfile.userId, course.id);
         }
       } catch (error) {
-        console.error('❌ [GoalProgress] Error loading AI analysis:', error);
-      }
+        }
     };
 
     loadAIAnalysis();

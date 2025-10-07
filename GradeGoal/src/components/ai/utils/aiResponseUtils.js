@@ -3,23 +3,18 @@
 // ========================================
 // Utility functions for AI response parsing, processing, and prompt building
 
-import { calculateCurrentGrade, calculateGPAFromPercentage } from './achievementProbabilityUtils.js';
+import { calculateCurrentGrade, calculateGPAFromPercentage } from "./achievementProbabilityUtils.js";
 import { 
   analyzePerformancePatterns, 
   generateRealisticPredictions, 
   generateConsistencyRecommendations 
-} from './performanceAnalysisUtils.js';
-
+} from "./performanceAnalysisUtils.js";
 /**
  * Build comprehensive prompt for real AI analysis
  */
 export const buildRealAnalysisPrompt = (courseData, goalData, priorityLevel, isShorter = false) => {
   const { course, grades, categories, currentGPA, progress, activeSemesterTerm } = courseData;
   const { targetValue, goalType } = goalData;
-
-  console.log('🔍 [buildRealAnalysisPrompt] Course data:', courseData);
-  console.log('🔍 [buildRealAnalysisPrompt] Active semester term:', activeSemesterTerm);
-  console.log('🔍 [buildRealAnalysisPrompt] Grades:', grades);
 
   // Calculate current performance metrics
   const currentGrade = calculateCurrentGrade(grades, categories);
@@ -263,8 +258,6 @@ const calculateRemainingWeight = (categories) => {
  * Parse real AI response into structured data
  */
 export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
-  console.log('🔍 [parseRealAIResponse] Raw AI response:', aiResponse);
-  
   try {
     // Try to extract JSON from the response - handle markdown code blocks
     let jsonStr = aiResponse;
@@ -274,23 +267,17 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       const codeBlockMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
       if (codeBlockMatch) {
         jsonStr = codeBlockMatch[1].trim();
-        console.log('🔍 [parseRealAIResponse] Extracted from markdown code block');
-      }
+        }
     } else {
       // Fallback to regex extraction
       const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
         jsonStr = jsonMatch[0];
-        console.log('🔍 [parseRealAIResponse] Extracted JSON via regex');
-      }
+        }
     }
-    
-    console.log('🔍 [parseRealAIResponse] JSON string length:', jsonStr.length);
-    console.log('🔍 [parseRealAIResponse] JSON preview:', jsonStr.substring(0, 200) + '...');
     
     // Check if we have valid JSON structure
     if (!jsonStr.startsWith('{') || !jsonStr.includes('"predictedFinalGrade"')) {
-      console.warn('⚠️ [parseRealAIResponse] Invalid JSON structure, using fallback');
       return getFallbackRecommendations(courseData, goalData);
     }
       
@@ -313,9 +300,6 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         // First, try to parse as-is to see if it works
         JSON.parse(fixedJsonStr);
       } catch (parseError) {
-        console.log('🔧 [parseRealAIResponse] Detected JSON issues, attempting to fix...');
-        console.log('🔧 [parseRealAIResponse] Parse error:', parseError.message);
-        
         // Fix control characters (newlines, tabs, etc.) in string values
         fixedJsonStr = fixedJsonStr.replace(/"([^"]*[\r\n\t][^"]*)"/g, (match, content) => {
           // Escape control characters
@@ -343,8 +327,6 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       // Fix truncated JSON by completing incomplete structures
       // Check if JSON ends abruptly and try to complete it
       if (!fixedJsonStr.trim().endsWith('}')) {
-        console.log('🔧 [parseRealAIResponse] Detected truncated JSON, attempting to complete...');
-        
         // Count opening and closing braces to see what's missing
         const openBraces = (fixedJsonStr.match(/\{/g) || []).length;
         const closeBraces = (fixedJsonStr.match(/\}/g) || []).length;
@@ -361,21 +343,13 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         }
         
         fixedJsonStr += completion;
-        console.log('🔧 [parseRealAIResponse] Completed truncated JSON');
-      }
-      
-      console.log('🔧 [parseRealAIResponse] Attempting to fix JSON...');
+        }
       
       const parsed = JSON.parse(fixedJsonStr);
-      console.log('✅ [parseRealAIResponse] Successfully parsed AI response after fixes');
       return parsed;
     } catch (error) {
-      console.warn('❌ [parseRealAIResponse] Failed to parse AI response as JSON:', error);
-      
       // Try to extract just the essential parts using regex
       try {
-        console.log('🔧 [parseRealAIResponse] Attempting to extract essential parts...');
-        
         // Extract key sections using regex patterns
         const predictedFinalGradeMatch = jsonStr.match(/"predictedFinalGrade":\s*\{[^}]*\}/);
         const recommendationsMatch = jsonStr.match(/"topPriorityRecommendations":\s*\[[^\]]*\]/);
@@ -390,23 +364,18 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
           }`;
           
           const parsedResponse = JSON.parse(minimalJson);
-          console.log('✅ [parseRealAIResponse] Successfully parsed with minimal JSON approach');
           return parsedResponse;
         }
       } catch (minimalError) {
-        console.log('🔧 [parseRealAIResponse] Minimal JSON approach failed:', minimalError.message);
-      }
+        }
       
       console.warn('Using fallback parsing');
     }
   } catch (error) {
-    console.warn('❌ [parseRealAIResponse] Failed to parse AI response as JSON:', error);
     console.warn('Using fallback parsing');
   }
 
   // Generate intelligent fallback recommendations with realistic predictions
-  console.log('🔄 [Fallback] Generating intelligent fallback recommendations');
-  
   const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
   const currentGPA = parseFloat(courseData.currentGPA) || 0;
   
@@ -438,7 +407,6 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       const completedGrades = categoryGrades.filter(grade => 
         grade.score !== null && grade.score !== undefined && grade.score > 0
       );
-      
       // Calculate percentage for each completed grade if not available
       const completedGradesWithPercentage = completedGrades.map(grade => {
         let percentage = grade.percentage;
@@ -451,11 +419,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       const averageGrade = completedGradesWithPercentage.length > 0 ? 
         completedGradesWithPercentage.reduce((sum, grade) => sum + (grade.calculatedPercentage || 0), 0) / completedGradesWithPercentage.length : 0;
       
-      console.log(`🔍 [Fallback Parsing] Category: ${categoryName}`, {
-        hasGrades,
-        categoryGrades: categoryGrades.length,
-        completedGrades: completedGrades.length,
-        averageGrade: averageGrade.toFixed(1),
+      console.log({
         grades: categoryGrades.map(g => ({ 
           name: g.assessmentName, 
           percentage: g.percentage, 
@@ -523,8 +487,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
           }
         }
         
-        console.log(`🔍 [Fallback Parsing] Priority Assignment for ${categoryName}:`, {
-          averageGrade: averageGrade.toFixed(1),
+        console.log({
           completedCount,
           totalCount,
           needsAttention,

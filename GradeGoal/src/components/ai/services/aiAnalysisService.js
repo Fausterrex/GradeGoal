@@ -3,9 +3,8 @@
 // ========================================
 // Service to manage AI analysis data across components
 
-import { getAIRecommendations } from './geminiService';
-import { saveAIAnalysisData, loadAIAnalysisFromDatabase } from './aiDatabaseService';
-
+import { getAIRecommendations } from "./geminiService";
+import { saveAIAnalysisData, loadAIAnalysisFromDatabase } from "./aiDatabaseService";
 // Store for AI analysis data
 let aiAnalysisData = null;
 let aiAnalysisListeners = [];
@@ -76,7 +75,6 @@ export const getFocusIndicatorForCategory = (categoryName) => {
         emptyCat => emptyCat.categoryName.toLowerCase() === categoryKey || 
                    emptyCat.categoryName.toLowerCase() === pluralKey
       );
-      
       if (emptyCategoryIndicator) {
         // Convert empty category format to standard focus indicator format
         return {
@@ -169,7 +167,6 @@ export const getAchievementProbabilityFromData = (analysisData) => {
     
     return null;
   } catch (error) {
-    console.error('🎯 [getAchievementProbabilityFromData] Error parsing achievement probability:', error);
     return null;
   }
 };
@@ -208,7 +205,6 @@ export const loadAIAnalysisForCourse = async (userId, courseId, forceRefresh = f
     clearAIAnalysisData();
     return null;
   } catch (error) {
-    console.error('❌ [loadAIAnalysisForCourse] Error loading AI analysis:', error);
     return null;
   }
 };

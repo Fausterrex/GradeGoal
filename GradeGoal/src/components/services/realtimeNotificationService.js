@@ -1,6 +1,5 @@
-import axios from 'axios';
-import pushNotificationService from './pushNotificationService';
-
+import axios from "axios";
+import pushNotificationService from "./pushNotificationService";
 const API_BASE_URL = 'http://localhost:8080/api/realtime-notifications';
 const PUSH_API_BASE_URL = 'http://localhost:8080/api/push-notifications';
 
@@ -187,8 +186,6 @@ class RealtimeNotificationService {
    * @returns {boolean} - True if course is completed
    */
   static isCourseCompleted(assessments) {
-    console.log('🔍 [isCourseCompleted] Checking', assessments.length, 'assessments');
-    
     const result = assessments.every(assessment => {
       // Check different possible score properties
       const hasScore = assessment.score !== null && assessment.score !== undefined && assessment.score > 0;
@@ -199,21 +196,9 @@ class RealtimeNotificationService {
       // An assessment is completed if it has any valid score
       const isCompleted = hasScore || hasPointsEarned || hasValidGradeScore;
       
-      console.log('🔍 [isCourseCompleted] Assessment:', assessment.assessmentName || 'Unknown', {
-        hasScore,
-        hasPointsEarned,
-        hasGrades,
-        hasValidGradeScore,
-        isCompleted,
-        score: assessment.score,
-        pointsEarned: assessment.pointsEarned,
-        gradesCount: assessment.grades ? assessment.grades.length : 0
-      });
-      
       return isCompleted;
     });
     
-    console.log('🔍 [isCourseCompleted] Final result:', result);
     return result;
   }
 

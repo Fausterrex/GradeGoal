@@ -4,8 +4,7 @@
 // Global context for managing achievement notifications across the entire app
 // Features: Queue system for multiple achievements, level up notifications, global state
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-
+import React, { createContext, useContext, useState, useCallback } from "react";
 const AchievementContext = createContext();
 
 export const useAchievementNotifications = () => {

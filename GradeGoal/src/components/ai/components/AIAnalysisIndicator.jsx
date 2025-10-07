@@ -4,19 +4,18 @@
 // Component that shows AI analysis status and provides analysis/re-analysis buttons
 // Detects changes in assessments and category weights to determine if re-analysis is needed
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { generateAIRecommendations } from '../services/geminiService';
-import { checkAIAnalysisExists } from '../../../backend/api';
-import { setAIAnalysisData } from '../services/aiAnalysisService';
+import React, { useState, useEffect, useMemo } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { generateAIRecommendations } from "../services/geminiService";
+import { checkAIAnalysisExists } from "../../../backend/api";
+import { setAIAnalysisData } from "../services/aiAnalysisService";
 import { 
   FaRobot, 
   FaSync, 
   FaSpinner, 
   FaExclamationTriangle,
   FaBrain
-} from 'react-icons/fa';
-
+} from "react-icons/fa";
 const AIAnalysisIndicator = ({ 
   course, 
   grades, 
@@ -118,27 +117,18 @@ const AIAnalysisIndicator = ({
       // Include all available grades for comprehensive AI analysis
       const filteredGrades = {};
       if (grades) {
-        console.log('🔍 [AIAnalysisIndicator] Original grades:', grades);
-        console.log('🔍 [AIAnalysisIndicator] Active semester term:', activeSemesterTerm);
-        console.log('🔍 [AIAnalysisIndicator] Analyzing ALL available data for comprehensive analysis');
-        
         Object.keys(grades).forEach(categoryId => {
           const categoryGrades = grades[categoryId] || [];
           // Analyze ALL available grades, not just MIDTERM
           filteredGrades[categoryId] = categoryGrades;
-          console.log(`🔍 [AIAnalysisIndicator] Category ${categoryId}: ${categoryGrades.length} total grades`);
-        });
+          });
         
-        console.log('🔍 [AIAnalysisIndicator] All available grades:', filteredGrades);
-      }
+        }
 
       // Get the latest course GPA directly from the database
       const { getCourseById } = await import('../../../backend/api');
       const latestCourseData = await getCourseById(course.id);
       const latestGPA = latestCourseData?.courseGpa || currentGrade || 0;
-      
-      console.log('🔍 [AIAnalysisIndicator] Latest course GPA from database:', latestGPA);
-      console.log('🔍 [AIAnalysisIndicator] Current grade prop:', currentGrade);
       
       // Prepare course data for AI analysis
       const courseData = {
@@ -170,7 +160,6 @@ const AIAnalysisIndicator = ({
         goalData, 
         'HIGH'
       );
-      
       if (analysisResult) {
         // Store the analysis data
         setAIAnalysisData(analysisResult);
@@ -187,11 +176,9 @@ const AIAnalysisIndicator = ({
           onAnalysisComplete(analysisResult);
         }
         
-        console.log('✅ AI analysis completed successfully');
-      }
+        }
     } catch (error) {
-      console.error('❌ Error during AI analysis:', error);
-    } finally {
+      } finally {
       setIsAnalyzing(false);
     }
   };
@@ -235,7 +222,6 @@ const AIAnalysisIndicator = ({
       course.semester === targetGrade.semester && 
       course.academicYear === targetGrade.academicYear
     );
-    
     totalAssessments = semesterCourses.length;
     hasEnoughAssessments = semesterCourses.length >= 2; // Need at least 2 courses
   } else {
@@ -253,7 +239,6 @@ const AIAnalysisIndicator = ({
     (typeof targetGrade === 'object' && targetGrade.targetValue && targetGrade.targetValue > 0) ||
     (typeof targetGrade === 'number' && targetGrade > 0)
   );
-
   // Don't show indicator if no changes detected and analysis exists
   if (!showIndicator) {
     return null;

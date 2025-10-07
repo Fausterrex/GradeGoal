@@ -4,7 +4,6 @@
 // This component handles filtering goals by type (All, Course Grade, Semester GPA, etc.)
 
 import React, { useState, useEffect, useRef } from "react";
-
 const GoalFilter = ({ 
   activeFilters, 
   onFilterChange, 

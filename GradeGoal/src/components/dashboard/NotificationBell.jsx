@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaBell, FaTimes, FaTrophy, FaCheckCircle } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
-
+import React, { useState, useEffect, useRef } from "react";
+import { FaBell, FaTimes, FaTrophy, FaCheckCircle } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
 const NotificationBell = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -57,7 +56,6 @@ const NotificationBell = ({ userId }) => {
         `${API_BASE_URL}/api/achievements/notifications/${notificationId}/read`,
         { method: 'PUT' }
       );
-      
       if (response.ok) {
         setNotifications(notifications.map(n => 
           n.notificationId === notificationId ? { ...n, isRead: true } : n
@@ -76,7 +74,6 @@ const NotificationBell = ({ userId }) => {
         `${API_BASE_URL}/api/achievements/notifications/${userId}/mark-all-read`,
         { method: 'PUT' }
       );
-      
       if (response.ok) {
         setNotifications(notifications.map(n => ({ ...n, isRead: true })));
         setUnreadCount(0);
@@ -343,10 +340,10 @@ const NotificationBell = ({ userId }) => {
              )}
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
-  );
-};
+        </AnimatePresence>
+      </div>
+    );
+  };
 
 export default NotificationBell;
 

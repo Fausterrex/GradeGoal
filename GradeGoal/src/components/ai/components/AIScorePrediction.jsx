@@ -3,9 +3,8 @@
 // ========================================
 // Shows AI score predictions for individual assessments
 
-import React, { useState } from 'react';
-import { Target, TrendingUp, Info, X, Calculator, Award } from 'lucide-react';
-
+import React, { useState } from "react";
+import { Target, TrendingUp, Info, X, Calculator, Award } from "lucide-react";
 // GPA conversion function that matches the database CalculateGPA() function
 const calculateGPAFromPercentage = (percentage) => {
   if (percentage >= 97) return 4.00;
@@ -106,8 +105,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     const category = categories.find(cat => 
       cat.id === assessment.categoryId
     );
-    
-    
     if (!category) return null;
     
     const categoryWeight = category.weight || 0;
@@ -277,7 +274,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     const category = categories.find(cat => 
       cat.id === assessment.categoryId
     );
-    
     if (!category) return null;
     
     const categoryWeight = category.weight || 0;
@@ -386,17 +382,6 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
     
     const perfectGPA = calculateGPAFromPercentage(perfectWeightedAverage);
     const perfectImprovement = perfectGPA - currentGPAValue;
-    
-    console.log('🔍 [PerfectScoreImpact] Debug:', {
-      categoryName: category.name || category.categoryName,
-      categoryWeight: categoryWeight,
-      currentWeightedAverage: currentWeightedAverage,
-      perfectWeightedAverage: perfectWeightedAverage,
-      currentGPA: currentGPAValue,
-      perfectGPA: perfectGPA,
-      perfectImprovement: perfectImprovement,
-      totalWeight: perfectTotalWeight
-    });
     
     return {
       currentGPA: currentGPAValue,

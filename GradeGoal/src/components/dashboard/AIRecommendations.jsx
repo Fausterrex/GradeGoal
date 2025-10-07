@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Lightbulb, 
   Target, 
@@ -10,15 +10,14 @@ import {
   Star,
   ArrowRight,
   RefreshCw
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { 
   getAIAnalysis, 
   checkAIAnalysisExists,
   getAcademicGoalsByUserId,
   getUserProfile
-} from '../../backend/api';
-
+} from "../../backend/api";
 const AIRecommendations = ({ courses }) => {
   const { currentUser } = useAuth();
   const [recommendations, setRecommendations] = useState([]);
@@ -377,9 +376,9 @@ const AIRecommendations = ({ courses }) => {
             Last updated: {lastUpdated.toLocaleString()}
           </p>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 export default AIRecommendations;

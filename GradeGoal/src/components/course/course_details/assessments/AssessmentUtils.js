@@ -57,7 +57,6 @@ export const generateAssessmentName = (categoryId, categories, grades, customNam
   const categoryGrades = Object.values(grades).flat().filter(grade => 
     grade.categoryId === categoryId
   );
-  
   // Extract prefix from category name (e.g., "Quizzes" -> "Quiz")
   const categoryName = category.name.toLowerCase();
   let prefix = categoryName;

@@ -255,7 +255,6 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
       goal.goalType,
       goal.targetDate
     );
-
     // Status is already determined above in the course completion logic
     // No need to override it here
 
@@ -305,7 +304,6 @@ const calculateCourseGradeProgress = async (goal, courses, grades) => {
       try {
         courseGrade = await getCachedCourseGrade(course.id);
       } catch (error) {
-        console.warn('⚠️ GoalProgress - Database calculation failed, falling back to JavaScript:', error);
         // Fallback to JavaScript calculation
         const gradeResult = { success: false, courseGrade: 0 }; // Removed calculation
         if (gradeResult.success) {
@@ -350,7 +348,6 @@ const calculateSemesterGPAProgress = async (goal, courses, grades, userStats, go
       course.semester === goal.semester &&
       course.academicYear === goal.academicYear
     );
-
     // If no courses found with specific semester/year, try fallback logic
     if (currentSemesterCourses.length === 0) {
       // If goal has specific semester, only fallback to FIRST semester if goal is for FIRST semester
@@ -414,7 +411,6 @@ const calculateCumulativeGPAProgress = async (goal, courses, grades, userStats) 
       course.semester && 
       course.academicYear
     );
-
     if (allCourses.length === 0) {
       return 0;
     }

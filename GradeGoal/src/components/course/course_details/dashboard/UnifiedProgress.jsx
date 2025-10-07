@@ -5,8 +5,7 @@
 
 import React, { useMemo, useState } from "react";
 import { percentageToGPA } from "../../academic_goal/gpaConversionUtils";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 function UnifiedProgress({ 
   currentGrade, 
   course, 
@@ -114,9 +113,6 @@ function UnifiedProgress({
      // Convert grouped data to weekly format
      const weeklyData = [];
      const sortedWeekKeys = Object.keys(weeklyGroups).sort();
-     
-     console.log('📊 Weekly groups:', weeklyGroups);
-     console.log('📊 Sorted week keys:', sortedWeekKeys);
      
      sortedWeekKeys.forEach((weekKey, index) => {
        const group = weeklyGroups[weekKey];
@@ -259,8 +255,6 @@ function UnifiedProgress({
   // Enhanced chart component matching EnhancedGradeTrends styling
   const TrajectoryChart = ({ data, title }) => {
     // Debug: Log the data being passed to the chart
-    console.log('📊 TrajectoryChart data:', data);
-    
     if (!data || data.length === 0) {
       return (
         <div className="bg-gray-50 rounded-2xl shadow-lg p-8 border border-gray-200">
@@ -511,8 +505,8 @@ function UnifiedProgress({
                        </div>
                     </div>
                   </div>
-                 );
-               })}
+                );
+              })}
              </div>
              
              {/* Pagination Navigation */}

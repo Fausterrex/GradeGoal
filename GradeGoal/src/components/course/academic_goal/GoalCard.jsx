@@ -11,9 +11,8 @@ import AIAnalysisIndicator from "../../ai/components/AIAnalysisIndicator";
 import AIAchievementProbability from "../../ai/components/AIAchievementProbability";
 import { getAssessmentCategoriesByCourseId, checkAIAnalysisExists } from "../../../backend/api";
 import { getAchievementProbability, getAchievementProbabilityFromData, loadAIAnalysisForCourse } from "../../ai/services/aiAnalysisService";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { getUserProfile } from "../../../backend/api";
-
 const GoalCard = ({
   goal,
   courses,
@@ -95,10 +94,6 @@ const GoalCard = ({
         const analysisCourseId = goal.goalType === 'SEMESTER_GPA' ? 0 : goal.courseId;
         
         if (!analysisCourseId && goal.goalType !== 'SEMESTER_GPA') {
-          console.log('🎯 [GoalCard] Skipping AI analysis check for goal without courseId:', {
-            goalType: goal.goalType,
-            courseId: goal.courseId
-          });
           setHasExistingAnalysis(false);
           return;
         }
@@ -126,12 +121,10 @@ const GoalCard = ({
             } else {
             }
           } catch (error) {
-            console.error('🎯 [GoalCard] Error loading analysis data:', error);
-          }
+            }
         }
       } catch (error) {
-        console.error('🎯 [GoalCard] Error loading existing AI analysis:', error);
-      }
+        }
     };
     
     loadExistingAIAnalysis();
@@ -566,7 +559,7 @@ const GoalCard = ({
                     </div>
                   </div>
                 );
-                })()}
+              })()}
               
               <AIAnalysisIndicator
                 course={
@@ -583,18 +576,14 @@ const GoalCard = ({
                 courses={courses}
                 onAnalysisComplete={async (recommendations) => {
                   // Handle the AI analysis completion
-                  console.log('🎯 [GoalCard] AI Analysis completed, fetching achievement probability...');
-                  
                   // Get AI achievement probability after analysis completion
                   try {
                     const probability = getAchievementProbability();
                     if (probability) {
-                      console.log('🎯 [GoalCard] Setting AI achievement probability:', probability);
                       setAiAchievementProbability(probability);
                     }
                   } catch (error) {
-                    console.error('🎯 [GoalCard] Error fetching achievement probability:', error);
-                  }
+                    }
                 }}
               />
             </div>

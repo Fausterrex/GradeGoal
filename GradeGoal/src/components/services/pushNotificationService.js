@@ -1,7 +1,6 @@
-import { messaging } from '../backend/firebase';
-import { getToken, onMessage } from 'firebase/messaging';
-import axios from 'axios';
-
+import { messaging } from "../../backend/firebase";
+import { getToken, onMessage } from "firebase/messaging";
+import axios from "axios";
 const API_BASE_URL = 'http://localhost:8080/api/push-notifications';
 
 /**

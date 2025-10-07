@@ -7,7 +7,6 @@ import React from "react";
 import { calculateGPAFromPercentage } from "../../../../backend/api";
 import AIScorePrediction from "../../../ai/components/AIScorePrediction";
 import { getScorePredictionForAssessment, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
-
 // Simple grade color function to replace the deleted one
 const getGradeColor = (percentage) => {
   if (percentage >= 90) return "text-green-600";
@@ -17,7 +16,6 @@ const getGradeColor = (percentage) => {
   return "text-red-600";
 };
 import { getStatusColor, determineAssessmentStatus } from "./AssessmentUtils";
-
 function AssessmentCard({
   grade,
   course,

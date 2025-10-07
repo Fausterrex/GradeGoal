@@ -5,7 +5,6 @@
 // Supports different types: edit, delete, archive, warning, info, etc.
 
 import React from "react";
-
 function ConfirmationModal({
   isOpen,
   onClose,

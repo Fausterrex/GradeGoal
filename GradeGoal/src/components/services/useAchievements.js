@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
-import { checkAchievements } from '../backend/api';
-import { useAchievementNotifications } from '../context/AchievementContext';
-
+import { useState, useCallback } from "react";
+import { checkAchievements } from "../../backend/api";
+import { useAchievementNotifications } from "../context/AchievementContext";
 /**
  * Custom hook for achievement checking and management
  * Automatically checks for new achievements after user actions

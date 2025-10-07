@@ -9,7 +9,6 @@ import AIFocusIndicator from "../../../ai/components/AIFocusIndicator";
 import { generateAIRecommendations } from "../../../ai/services/geminiService";
 import { convertToGPA } from "../../academic_goal/gpaConversionUtils";
 import { getFocusIndicatorForCategory, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
-
 // Simple grade color function to replace the deleted one
 const getGradeColor = (percentage) => {
   if (percentage >= 90) return "text-green-600";
@@ -226,6 +225,6 @@ function AssessmentCategory({
       </div>
     </div>
   );
-}
+};
 
 export default AssessmentCategory;

@@ -6,8 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { getAllAchievementsWithProgress } from "../../backend/api";
-import { useAuth } from "../../context/AuthContext";
-
+import { useAuth } from "../context/AuthContext";
 function PointsSystemModal({ isOpen, onClose }) {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("points"); // points, achievements

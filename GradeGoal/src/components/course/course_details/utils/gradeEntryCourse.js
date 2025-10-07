@@ -5,9 +5,8 @@
 // Functions: Course data management, navigation, state updates
 
 import { getAcademicGoalsByCourse } from "../../../../backend/api";
-import { getCourseColorScheme } from "../../../../utils/courseColors";
+import { getCourseColorScheme } from "../../../utils/courseColors";
 import { assessmentHasScore } from "./gradeEntryAssessments";
-
 /**
  * Get course color scheme
  */
@@ -28,7 +27,6 @@ export const loadCourseTargetGrade = async (userId, courseId) => {
         goal.goalType === "COURSE_GRADE" &&
         goal.courseId === courseId
     );
-    
     return {
       success: true,
       targetGrade: courseGradeGoal ? courseGradeGoal.targetValue : null
@@ -56,7 +54,6 @@ export const calculateCourseProgressByTerm = (categories, grades, activeSemester
     const categoryGrades = (grades[category.id] || []).filter(grade => 
       grade.semesterTerm === activeSemesterTerm
     );
-    
     // Each category should have at least 1 assessment for a complete course
     // If category has assessments, count them; if empty, expect at least 1
     const expectedInCategory = Math.max(categoryGrades.length, 1);

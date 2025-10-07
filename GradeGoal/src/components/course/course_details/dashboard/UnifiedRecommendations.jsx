@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { getAIRecommendations } from "../../../ai/services/geminiService";
 import { loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
-import { useAuth } from "../../../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import AIPredictions from "../../../ai/components/AIPredictions";
 import { 
   Target, 
@@ -16,8 +16,7 @@ import {
   Brain,
   Calendar,
   BarChart3
-} from 'lucide-react';
-
+} from "lucide-react";
 function UnifiedRecommendations({ 
   course, 
   grades, 
@@ -125,13 +124,10 @@ function UnifiedRecommendations({
               : rec
           )
         );
-        console.log('✅ Recommendation marked as read successfully');
       } else {
-        console.error('❌ Failed to mark recommendation as read:', response.error);
       }
     } catch (err) {
-      console.error('❌ Error marking recommendation as read:', err);
-    }
+      }
   };
 
   // Show loading state

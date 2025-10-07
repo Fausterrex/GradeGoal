@@ -4,9 +4,8 @@
 // Displays a welcome message and instructions for new users
 // Clean design with minimal icons for better user experience
 
-import React, { useState } from 'react';
-import { X, CheckCircle } from 'lucide-react';
-
+import React, { useState } from "react";
+import { X, CheckCircle } from "lucide-react";
 function WelcomeModal({ isOpen, onClose, userName }) {
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -191,6 +190,6 @@ function WelcomeModal({ isOpen, onClose, userName }) {
       </div>
     </>
   );
-}
+};
 
 export default WelcomeModal;

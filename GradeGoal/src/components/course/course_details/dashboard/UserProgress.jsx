@@ -5,8 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getUserProgressWithRank, getRecentAchievements, getUserLoginStreak } from "../../../../backend/api";
-import PointsSystemModal from "../../../common/PointsSystemModal";
-
+import PointsSystemModal from "../../../modals/PointsSystemModal";
 function UserProgress({ userProgress, course, userId }) {
   const [progressData, setProgressData] = useState(null);
   const [recentAchievements, setRecentAchievements] = useState([]);
@@ -29,15 +28,9 @@ function UserProgress({ userProgress, course, userId }) {
           try {
             streakResponse = await getUserLoginStreak(userId);
           } catch (streakError) {
-            console.warn('⚠️ [UserProgress] Failed to fetch streak data:', streakError.message);
             // Continue without streak data
           }
           
-          console.log('🎯 [UserProgress] Fetched data:', {
-            progressResponse,
-            achievementsResponse,
-            streakResponse
-          });
           setProgressData(progressResponse);
           setRecentAchievements(achievementsResponse);
           setStreakData(streakResponse);
@@ -178,13 +171,6 @@ function UserProgress({ userProgress, course, userId }) {
                 <div className="text-xl font-bold text-gray-900">
                   {(() => {
                     const streakDays = streakData?.streakDays || currentProgress.streakDays || 0;
-                    console.log('🔥 [UserProgress] Streak display:', { 
-                      streakData, 
-                      currentProgressStreak: currentProgress.streakDays, 
-                      finalStreakDays: streakDays,
-                      hasStreakData: !!streakData,
-                      hasCurrentProgressStreak: currentProgress.streakDays !== undefined
-                    });
                     return streakDays;
                   })()}
                 </div>

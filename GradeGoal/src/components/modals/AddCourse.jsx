@@ -5,7 +5,7 @@
 // Features: Course form, validation, color selection, academic year/semester dropdowns
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 // Define grading scales locally since we removed the import
 const GRADING_SCALES = {
   PERCENTAGE: "percentage",
@@ -21,9 +21,8 @@ import {
   deleteAssessmentCategory,
   updateAssessmentCategory,
 } from "../../backend/api";
-import { getAllColors } from "../../utils/courseColors";
-import ConfirmationModal from "../common/ConfirmationModal";
-
+import { getAllColors } from "../utils/courseColors";
+import ConfirmationModal from "../modals/ConfirmationModal";
 function AddCourse({
   isOpen,
   onClose,
@@ -162,7 +161,6 @@ function AddCourse({
           const categories = await getAssessmentCategoriesByCourseId(
             editingCourse.id
           );
-
           const transformedCategories = categories.map((cat) => ({
             id: cat.id || cat.categoryId,
             name: cat.name || cat.categoryName || "",
@@ -491,7 +489,6 @@ function AddCourse({
             newCourse.categories,
             existingCategories
           );
-
           const updatedCourse = await getCourseById(editingCourse.id);
           if (updatedCourse) {
             setNewCourse((prev) => ({
@@ -1073,12 +1070,10 @@ function AddCourse({
                   course.isActive !== false &&
                   course.id !== editingCourse?.id // Exclude current course if editing
                 );
-                
                 if (existingCoursesInPeriod.length > 0) {
                   const differentScaleCourses = existingCoursesInPeriod.filter(course => 
                     (course.gpaScale || "4.0") !== newCourse.gpaScale
                   );
-                  
                   if (differentScaleCourses.length > 0) {
                     return (
                       <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -1414,9 +1409,8 @@ function AddCourse({
         showTip={confirmationModal.showTip}
         tipMessage={confirmationModal.tipMessage}
       />
-
     </div>
   );
-}
+};
 
 export default AddCourse;

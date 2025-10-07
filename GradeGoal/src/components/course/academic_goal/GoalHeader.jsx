@@ -5,7 +5,6 @@
 
 import React from "react";
 import { FaPlus, FaSync } from "react-icons/fa";
-
 const GoalHeader = ({ onAddGoal, onRefresh, isCompact = false }) => {
   return (
     <div className="flex items-center justify-between mb-6">

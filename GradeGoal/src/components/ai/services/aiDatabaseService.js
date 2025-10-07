@@ -1,12 +1,9 @@
-import { saveAIAnalysis, getAIRecommendationsForCourse, markRecommendationAsRead, dismissRecommendation } from '../../../backend/api';
-
+import { saveAIAnalysis, getAIRecommendationsForCourse, markRecommendationAsRead, dismissRecommendation } from "../../../backend/api";
 /**
  * Save AI analysis data to recommendations table
  */
 export const saveAIAnalysisData = async (userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS') => {
   try {
-    console.log('💾 [saveAIAnalysisData] Saving analysis to recommendations table for user:', userId, 'course:', courseId);
-    
     const response = await saveAIAnalysis(
       userId,
       courseId,
@@ -15,17 +12,13 @@ export const saveAIAnalysisData = async (userId, courseId, analysisData, analysi
       'gemini-2.0-flash-exp',
       0.85
     );
-    
     if (response.success) {
       const action = response.isUpdate ? 'updated' : 'saved';
-      console.log(`✅ [saveAIAnalysisData] Successfully ${action} analysis to recommendations table`);
       return { success: true, isUpdate: response.isUpdate };
     } else {
-      console.error('❌ [saveAIAnalysisData] Failed to save analysis:', response.error);
       return { success: false, error: response.error };
     }
   } catch (error) {
-    console.error('❌ [saveAIAnalysisData] Error saving analysis to recommendations table:', error);
     return { success: false, error: error.message };
   }
 };
@@ -35,8 +28,6 @@ export const saveAIAnalysisData = async (userId, courseId, analysisData, analysi
  */
 export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
   try {
-    console.log('📖 [loadAIAnalysisFromDatabase] Loading AI recommendations for user:', userId, 'course:', courseId);
-    
     const response = await getAIRecommendationsForCourse(userId, courseId);
     
     if (response.success && response.recommendations && response.recommendations.length > 0) {
@@ -59,14 +50,11 @@ export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
         isDismissed: latestRecommendation.isDismissed
       };
       
-      console.log('✅ [loadAIAnalysisFromDatabase] Successfully loaded AI recommendation');
       return analysisData;
     }
     
-    console.log('ℹ️ [loadAIAnalysisFromDatabase] No AI recommendations found');
     return null;
   } catch (error) {
-    console.error('❌ [loadAIAnalysisFromDatabase] Error loading AI recommendations:', error);
     return null;
   }
 };
@@ -76,19 +64,14 @@ export const loadAIAnalysisFromDatabase = async (userId, courseId) => {
  */
 export const markAIRecommendationAsRead = async (recommendationId) => {
   try {
-    console.log('📖 [markAIRecommendationAsRead] Marking recommendation as read:', recommendationId);
-    
     const response = await markRecommendationAsRead(recommendationId);
     
     if (response.success) {
-      console.log('✅ [markAIRecommendationAsRead] Successfully marked as read');
       return true;
     } else {
-      console.error('❌ [markAIRecommendationAsRead] Failed to mark as read:', response.error);
       return false;
     }
   } catch (error) {
-    console.error('❌ [markAIRecommendationAsRead] Error marking as read:', error);
     return false;
   }
 };
@@ -98,19 +81,14 @@ export const markAIRecommendationAsRead = async (recommendationId) => {
  */
 export const dismissAIRecommendation = async (recommendationId) => {
   try {
-    console.log('❌ [dismissAIRecommendation] Dismissing recommendation:', recommendationId);
-    
     const response = await dismissRecommendation(recommendationId);
     
     if (response.success) {
-      console.log('✅ [dismissAIRecommendation] Successfully dismissed');
       return true;
     } else {
-      console.error('❌ [dismissAIRecommendation] Failed to dismiss:', response.error);
       return false;
     }
   } catch (error) {
-    console.error('❌ [dismissAIRecommendation] Error dismissing:', error);
     return false;
   }
 };

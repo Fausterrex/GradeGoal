@@ -14,17 +14,14 @@ import {
   ResponsiveContainer,
   LineChart,
 } from "recharts";
-// Removed GradeService import
-import { getCourseColorScheme } from "../../utils/courseColors";
-// Removed grade calculations import
-// Removed all GPA calculation imports
+// Removed GradeService import import { getCourseColorScheme } from "../utils/courseColors";
+// Removed grade calculations import // Removed all GPA calculation imports
 import {
   getAcademicGoalsByUserId,
   getUserProfile,
 } from "../../backend/api";
-import { useAuth } from "../../context/AuthContext";
-import { useYearLevel } from "../../context/YearLevelContext";
-
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
 // Utility function to convert GPA to percentage
 const gpaToPercentage = (gpa, scale = 4.0) => {
   return Math.round((gpa / scale) * 100);
@@ -93,8 +90,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           const analyticsData = await analyticsResponse.json();
           allAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];
         } else {
-          console.log('❌ [EnhancedGradeTrends] Failed to load individual analytics:', analyticsResponse.status);
-        }
+          }
       } else {
         // Semester/Cumulative mode: load analytics for all courses (filtered by year level)
         const activeCourses = courses.filter(course => course.isActive !== false);
@@ -112,14 +108,11 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             if (analyticsResponse.ok) {
               const analyticsData = await analyticsResponse.json();
               const courseAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];
-              console.log(`📈 [EnhancedGradeTrends] Analytics for ${course.name}:`, courseAnalytics.length);
               return courseAnalytics;
             } else {
-              console.log(`❌ [EnhancedGradeTrends] Failed to load analytics for ${course.name}:`, analyticsResponse.status);
               return [];
             }
           } catch (error) {
-            console.error(`❌ [EnhancedGradeTrends] Error loading analytics for ${course.name}:`, error);
             return [];
           }
         });
@@ -129,7 +122,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
       }
       setUserAnalytics(allAnalytics);
     } catch (error) {
-      console.error("❌ [EnhancedGradeTrends] Error loading user analytics:", error);
       setUserAnalytics([]);
     }
   }, [viewMode, selectedCourse?.id, currentSemester, courses]);
@@ -288,9 +280,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
   // Generate weekly grade data using userAnalytics (same logic as UnifiedProgress)
   const weeklyData = useMemo(() => {
     // Only log when there's a significant change to reduce console noise
-    if (userAnalytics?.length === 0) {
-    }
-
     if (courses.length === 0) {
       return [];
     }
@@ -307,7 +296,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
 
     // Add safety check to ensure userAnalytics is an array
     if (!Array.isArray(userAnalytics)) {
-      console.warn('❌ [EnhancedGradeTrends] userAnalytics is not an array:', userAnalytics);
       return [];
     }
 
@@ -419,9 +407,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
     });
 
     // Only log successful calculations with data
-    if (weeklyData.length > 0) {
-    }
-
     return weeklyData;
   }, [
     courses.length,
@@ -463,8 +448,8 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
           </p>
           </div>
         );
-    }
-    return null;
+      }
+      return null;
   };
 
   return (
@@ -527,7 +512,6 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               const semesterCourses = courses.filter(
                 (course) => course.isActive !== false && course.semester === currentSemester
               );
-              
               // Check if current selected course is in the current semester
               const isSelectedCourseInCurrentSemester = selectedCourse && 
                 selectedCourse.semester === currentSemester;
@@ -535,14 +519,12 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               if (!selectedCourse || !isSelectedCourseInCurrentSemester) {
                 // Auto-select first course from current semester
                 if (semesterCourses.length > 0) {
-                  console.log('🎯 [EnhancedGradeTrends] Auto-selecting first course from current semester:', semesterCourses[0].name);
                   setSelectedCourse(semesterCourses[0]);
                 } else {
                   setSelectedCourse(null);
                 }
               } else {
-                console.log('🎯 [EnhancedGradeTrends] Keeping current course selection:', selectedCourse.name);
-              }
+                }
             }}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
               viewMode === "individual"
@@ -1019,9 +1001,9 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             )}
           </div>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 export default EnhancedGradeTrends;

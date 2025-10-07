@@ -28,11 +28,10 @@ import {
   getAssessmentCategoriesByCourseId,
   checkAIAnalysisExists
 } from "../../backend/api";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "../course/academic_goal/goalProgress";
 import { convertToGPA } from "../course/academic_goal/gpaConversionUtils";
 import { getAchievementProbability, getAchievementProbabilityFromData, loadAIAnalysisForCourse } from "../ai/services/aiAnalysisService";
-
 const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   const { currentUser } = useAuth();
   
@@ -122,7 +121,6 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
         (progress.progressPercentage < 50 && isWithinDays(goal.targetDate, 14)) ||
         (progress.achievementProbability < 25)
       );
-      
       if (isAtRisk) {
         atRisk.push({ ...goal, progress });
       }
@@ -632,10 +630,10 @@ const GoalCard = ({ goal, courses, gpaData }) => {
             <span>{getAchievementTimeline(goal)}</span>
           </div>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 // Helper function to format target value
 const formatTargetValue = (goal) => {

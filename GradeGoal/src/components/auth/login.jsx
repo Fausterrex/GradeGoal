@@ -6,12 +6,11 @@
 // manages authentication state, and redirects users after successful login.
 
 import React, { useRef, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, facebookProvider } from "../../backend/firebase";
 import { loginUser, googleSignIn, facebookSignIn, getUserProfile, getUserProfileByUsername, updateUserLoginStreak } from "../../backend/api";
-
 function Login() {
   const emailOrUsernameRef = useRef();
   const passwordRef = useRef();
@@ -92,9 +91,7 @@ function Login() {
       if (userData.userId) {
         try {
           await updateUserLoginStreak(userData.userId);
-          console.log('✅ Login streak updated successfully');
-        } catch (error) {
-          console.error('❌ Failed to update login streak:', error);
+          } catch (error) {
           // Don't fail the login if streak update fails
         }
       }
@@ -169,9 +166,8 @@ function Login() {
       if (userData.userId) {
         try {
           await updateUserLoginStreak(userData.userId);
-          console.log('✅ Login streak updated successfully (Google)');
         } catch (error) {
-          console.error('❌ Failed to update login streak (Google):', error);
+
           // Don't fail the login if streak update fails
         }
       }
@@ -233,9 +229,8 @@ function Login() {
       if (userData.userId) {
         try {
           await updateUserLoginStreak(userData.userId);
-          console.log('✅ Login streak updated successfully (Facebook)');
         } catch (error) {
-          console.error('❌ Failed to update login streak (Facebook):', error);
+
           // Don't fail the login if streak update fails
         }
       }

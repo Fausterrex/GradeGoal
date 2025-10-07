@@ -3,7 +3,7 @@
 // ========================================
 // Displays realistic AI predictions for upcoming assessments based on performance patterns
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { 
   Brain, 
   TrendingUp, 
@@ -14,8 +14,7 @@ import {
   Calendar,
   Star,
   Zap
-} from 'lucide-react';
-
+} from "lucide-react";
 const AIPredictions = ({ 
   course, 
   grades, 
@@ -30,15 +29,9 @@ const AIPredictions = ({
 
   // Extract predictions from AI analysis data
   useEffect(() => {
-    console.log('🔍 [AIPredictions] Received aiAnalysisData:', aiAnalysisData);
-    
     if (aiAnalysisData && aiAnalysisData.realisticPredictions) {
-      console.log('🔍 [AIPredictions] Found realisticPredictions:', aiAnalysisData.realisticPredictions);
       setPredictions(aiAnalysisData.realisticPredictions);
     } else if (aiAnalysisData && aiAnalysisData.scorePredictions) {
-      console.log('🔍 [AIPredictions] Found scorePredictions, converting...');
-      console.log('🔍 [AIPredictions] scorePredictions data:', aiAnalysisData.scorePredictions);
-      
       // Convert legacy format to new format
       const convertedPredictions = {
         upcomingAssessments: [],
@@ -49,8 +42,6 @@ const AIPredictions = ({
 
       Object.keys(aiAnalysisData.scorePredictions).forEach(categoryName => {
         const categoryData = aiAnalysisData.scorePredictions[categoryName];
-        console.log(`🔍 [AIPredictions] Processing category ${categoryName}:`, categoryData);
-        
         if (categoryData.predictedScores && Array.isArray(categoryData.predictedScores)) {
           // Handle "unknown" category name by trying to find the actual category
           let actualCategoryName = categoryName;
@@ -70,8 +61,6 @@ const AIPredictions = ({
           });
         } else if (categoryData.neededScore || categoryData.recommendedScore) {
           // Handle the case where we have neededScore/recommendedScore instead of predictedScores
-          console.log(`🔍 [AIPredictions] Found neededScore/recommendedScore for ${categoryName}, creating prediction`);
-          
           // Parse the needed score to understand what it means
           const neededScoreStr = categoryData.neededScore || categoryData.recommendedScore || '15/15';
           const confidence = categoryData.confidence || 'MEDIUM';
@@ -128,15 +117,8 @@ const AIPredictions = ({
         }
       });
 
-      console.log('🔍 [AIPredictions] Converted predictions:', convertedPredictions);
       setPredictions(convertedPredictions);
     } else if (aiAnalysisData && (aiAnalysisData.upcomingAssessments || aiAnalysisData.predictedScores)) {
-      console.log('🔍 [AIPredictions] Found direct predictions structure');
-      console.log('🔍 [AIPredictions] Direct predictions data:', {
-        upcomingAssessments: aiAnalysisData.upcomingAssessments,
-        predictedScores: aiAnalysisData.predictedScores
-      });
-      
       // Handle case where predictions are directly in aiAnalysisData
       const directPredictions = {
         upcomingAssessments: aiAnalysisData.upcomingAssessments || [],
@@ -144,10 +126,8 @@ const AIPredictions = ({
         confidence: aiAnalysisData.confidence || 'MEDIUM',
         reasoning: aiAnalysisData.reasoning || 'Based on performance patterns analysis'
       };
-      console.log('🔍 [AIPredictions] Direct predictions:', directPredictions);
       setPredictions(directPredictions);
     } else {
-      console.log('🔍 [AIPredictions] No predictions found in aiAnalysisData');
       setPredictions(null);
     }
   }, [aiAnalysisData]);

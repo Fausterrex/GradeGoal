@@ -5,8 +5,8 @@
 // Features: Navigation, course management, grade entry, goal setting, data management
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { useYearLevel } from "../../context/YearLevelContext";
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
 import { useNavigate } from "react-router-dom";
 import CourseManager from "../course/CourseManager";
 import GradeEntry from "../course/course_details/GradeEntry";
@@ -14,9 +14,9 @@ import GoalSetting from "../course/academic_goal/GoalSetting";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
 import SideCourseList from "./SideCourseList";
-import MyCalendar from "../calendar/Calendar";
+import MyCalendar from "./Calendar";
 import Report from "./Report";
-import WelcomeModal from "../common/WelcomeModal";
+import WelcomeModal from "../modals/WelcomeModal";
 import {
   getGradesByCourseId,
   getCoursesByUid,
@@ -27,7 +27,7 @@ import {
   hasSeenWelcomeModal,
   markWelcomeModalAsShown,
   shouldShowWelcomeModal
-} from "../../utils/firstTimeUserUtils";
+} from "../utils/firstTimeUserUtils";
 import {
   FaTachometerAlt,
   FaBook,
@@ -36,11 +36,11 @@ import {
   FaCalendarAlt,
   FaCog,
 } from "react-icons/fa";
-import { getCourseColorScheme } from "../../utils/courseColors";
-import { calculateCourseProgress } from "../../services/progressCalculationService";
-import RealtimeNotificationService from "../../services/realtimeNotificationService";
-import { usePushNotifications } from "../../services/usePushNotifications";
-import UserSettings from "../settings/UserSettings";
+import { getCourseColorScheme } from "../utils/courseColors";
+import { calculateCourseProgress } from "../services/progressCalculationService";
+import RealtimeNotificationService from "../services/realtimeNotificationService";
+import { usePushNotifications } from "../services/usePushNotifications";
+import UserSettings from "./UserSettings";
 const slideInAnimation = `
   @keyframes slideIn {
     from {
@@ -175,8 +175,6 @@ function MainDashboard({ initialTab = "overview" }) {
             const categories = await getAssessmentCategoriesByCourseId(
               course.id || course.courseId
             );
-
-            // Transform backend course data to frontend format
             const transformedCourse = {
               ...course,
               id: course.id || course.courseId,
@@ -262,6 +260,8 @@ function MainDashboard({ initialTab = "overview" }) {
                 )
               )
             );
+
+
 
             // Always try to get course grade, even if no grades yet
             try {
@@ -390,8 +390,6 @@ function MainDashboard({ initialTab = "overview" }) {
                   )
                 )
               );
-
-              // Always try to get course grade, even if no grades yet
               try {
                 // Try to get course grade from the course data first
                 if (course.courseGpa && course.courseGpa > 0) {
@@ -477,9 +475,7 @@ function MainDashboard({ initialTab = "overview" }) {
   );
 
   useEffect(() => {
-    if (selectedCourse && currentUser) {
-    }
-  }, [selectedCourse, currentUser]);
+    }, [selectedCourse, currentUser]);
 
   const refreshGrades = async () => {
     if (courses.length > 0) {
@@ -514,6 +510,10 @@ function MainDashboard({ initialTab = "overview" }) {
     if (initialTab === "courses") {
       setIsCourseManagerExpanded(true);
       setIsOpeningOverlay(true);
+      // Reset opening animation after a brief delay
+      setTimeout(() => {
+        setIsOpeningOverlay(false);
+      }, 50);
     }
 
     if (initialTab === "grades") {
@@ -551,10 +551,7 @@ function MainDashboard({ initialTab = "overview" }) {
           );
           
           if (course && !selectedCourse) {
-            console.log('🎯 [MainDashboard] Setting selected course from URL:', course.name, 'ID:', course.id);
             setSelectedCourse(course);
-          } else if (!course) {
-            console.log('⚠️ [MainDashboard] Course not found for ID:', courseId, 'Available courses:', courses.map(c => ({ id: c.id, name: c.name })));
           }
         }
       }
@@ -580,6 +577,10 @@ function MainDashboard({ initialTab = "overview" }) {
              setTimeout(() => {
                setIsCourseManagerExpanded(true);
                setIsOpeningOverlay(true);
+               // Reset opening animation after a brief delay
+               setTimeout(() => {
+                 setIsOpeningOverlay(false);
+               }, 50);
              }, 0);
            } else {
              // Clear selected course when navigating to goals, reports, calendar, or settings
@@ -612,13 +613,11 @@ function MainDashboard({ initialTab = "overview" }) {
             );
             
             if (course) {
-              console.log('🎯 [MainDashboard] handlePopState: Setting selected course:', course.name, 'ID:', course.id);
               setPreviousRoute(window.location.pathname); // Store current route before navigation
               setSelectedCourse(course);
               setActiveTab("grades");
               setIsCourseManagerExpanded(true);
             } else {
-              console.log('⚠️ [MainDashboard] handlePopState: Course not found for ID:', courseId, 'Available courses:', courses.map(c => ({ id: c.id, name: c.name })));
             }
           }
         }
@@ -728,13 +727,13 @@ function MainDashboard({ initialTab = "overview" }) {
                 hasGrades = course.categories.some(category => 
                   category.assessments && category.assessments.some(assessment =>
                     assessment.grades && assessment.grades.length > 0 &&
-                    assessment.grades.some(grade => 
-                      grade.percentageScore !== null && grade.percentageScore !== undefined
-                    )
+                  assessment.grades.some(grade => 
+                    grade.percentageScore !== null && grade.percentageScore !== undefined
                   )
-                );
-
-                // Always try to get course grade, even if no grades yet
+                )
+              );
+              
+              // Always try to get course grade, even if no grades yet
                 try {
                   // Try to get course grade from the course data first
                   if (course.courseGpa && course.courseGpa > 0) {
@@ -805,8 +804,7 @@ function MainDashboard({ initialTab = "overview" }) {
             // Update the courses state with recalculated progress
             setCourses(updatedCourses);
           }).catch(error => {
-            console.error('🔄 [MainDashboard] handleGradeUpdate Error recalculating course progress:', error);
-          });
+            });
 
           // Don't return anything - let the async update handle the state change
           return prevCourses;
@@ -887,6 +885,10 @@ function MainDashboard({ initialTab = "overview" }) {
       setIsCourseManagerExpanded(true);
       // Clear selected course to ensure full screen mode
       setSelectedCourse(null);
+      // Reset opening animation after a brief delay
+      setTimeout(() => {
+        setIsOpeningOverlay(false);
+      }, 50);
       // Refresh course data when opening course manager to ensure up-to-date progress
       if (currentUser?.email) {
         loadCoursesAndGrades();
@@ -1335,8 +1337,6 @@ function MainDashboard({ initialTab = "overview" }) {
                               course.name,
                               course.colorIndex || 0
                             );
-
-                            // Calculate course progress and grade
                             let totalProgress = course.progress || 0;
                             let courseGrade = course.currentGrade || "Ongoing";
                             let hasGrades = course.hasGrades || false;

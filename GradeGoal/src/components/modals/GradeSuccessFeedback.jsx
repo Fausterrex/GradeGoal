@@ -5,9 +5,8 @@
 // Features: Grade summary, course information, action buttons
 
 import React from "react";
-import { getCourseColorScheme } from "../../utils/courseColors";
-import { calculateCourseProgress } from "../../services/progressCalculationService";
-
+import { getCourseColorScheme } from "../utils/courseColors";
+import { calculateCourseProgress } from "../services/progressCalculationService";
 function GradeSuccessFeedback({
   gradeData,
   course,

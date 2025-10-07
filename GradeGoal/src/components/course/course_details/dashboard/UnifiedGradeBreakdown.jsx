@@ -6,7 +6,6 @@
 import React, { useMemo } from "react";
 import { calculateCategoryAverage, calculateGPAForPercentage, calculateAssessmentPercentage, hasValidScore } from "../utils/gradeEntryCalculations";
 import { percentageToGPA } from "../../academic_goal/gpaConversionUtils";
-
 function UnifiedGradeBreakdown({
   categories,
   grades,

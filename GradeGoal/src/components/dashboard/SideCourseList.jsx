@@ -5,8 +5,7 @@
 // Features: Course selection, archived courses toggle, course progress display
 
 import React, { useState } from "react";
-import { getCourseColorScheme } from "../../utils/courseColors";
-
+import { getCourseColorScheme } from "../utils/courseColors";
 const SideCourseList = ({
   courses = [],
   selectedCourse,
@@ -130,7 +129,6 @@ const SideCourseList = ({
                 course.name,
                 course.colorIndex || 0
               );
-
               // Calculate course progress
               let totalProgress = course.progress || 0;
 

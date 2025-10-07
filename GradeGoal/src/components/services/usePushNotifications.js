@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import pushNotificationService from '../services/pushNotificationService';
-
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import pushNotificationService from "../services/pushNotificationService";
 /**
  * Custom hook for managing push notifications
  * 
@@ -45,22 +44,12 @@ export const usePushNotifications = () => {
               const hasPermission = Notification.permission === 'granted';
               const shouldBeEnabled = user.pushNotificationsEnabled && browserSupported && hasPermission;
               
-              console.log('🔔 Push Notification Sync:', {
-                databaseEnabled: user.pushNotificationsEnabled,
-                browserSupported,
-                hasPermission,
-                shouldBeEnabled,
-                permissionStatus: Notification.permission
-              });
-              
               // Show as enabled if database says enabled AND browser supports it AND has permission
               setIsEnabled(shouldBeEnabled);
               
               // If database says enabled but browser doesn't have permission, 
               // we might need to re-request permission
-              if (user.pushNotificationsEnabled && browserSupported && !hasPermission) {
               }
-            }
           }
         } catch (error) {
           console.error('Failed to sync push notification state with database:', error);

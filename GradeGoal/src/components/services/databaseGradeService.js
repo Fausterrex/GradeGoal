@@ -4,8 +4,7 @@
 // Service for interfacing with database grade calculation functions
 // This service calls MySQL stored procedures and functions for grade calculations
 
-import axios from 'axios';
-
+import axios from "axios";
 // Base API URL - adjust according to your Spring Boot backend URL
 const API_BASE_URL = 'http://localhost:8080/api';
 

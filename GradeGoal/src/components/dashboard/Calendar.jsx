@@ -3,9 +3,9 @@ import React, { useEffect, useState } from "react";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar"; 
 import moment from "moment";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
-import { useYearLevel } from "../../context/YearLevelContext";
-import CustomEventModal from "./CustomEventModal";
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
+import CustomEventModal from "../modals/CustomEventModal";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Minimal CSS overrides for react-big-calendar positioning
@@ -197,10 +197,6 @@ const MyCalendar = () => {
       const allEvents = [...assessmentEvents, ...customEvents];
       
       // Filter events by year level (assessment events have course info, custom events show for all)
-      console.log('🎓 [Calendar] Filtering events by year level:', {
-        selectedYearLevel,
-        totalEvents: allEvents.length
-      });
       
       const filteredEvents = allEvents.filter(event => {
         // Custom events are shown for all year levels
@@ -213,10 +209,6 @@ const MyCalendar = () => {
         return true;
       });
       
-      console.log('🎓 [Calendar] Filtered events:', {
-        originalCount: allEvents.length,
-        filteredCount: filteredEvents.length
-      });
       
       setEvents(filteredEvents);
     })
@@ -232,7 +224,6 @@ const MyCalendar = () => {
   // Reload calendar data when year level changes
   useEffect(() => {
     if (currentUser?.userId && !loading) {
-      console.log('🎓 [Calendar] Year level changed, reloading calendar data:', selectedYearLevel);
       // Trigger the same data loading logic
       setIsLoading(true);
 
@@ -293,10 +284,6 @@ const MyCalendar = () => {
         // Combine and filter all events
         const allEvents = [...assessmentEvents, ...customEvents];
         
-        console.log('🎓 [Calendar] Year level change - filtering events:', {
-          selectedYearLevel,
-          totalEvents: allEvents.length
-        });
         
         const filteredEvents = allEvents.filter(event => {
           // Custom events are shown for all year levels

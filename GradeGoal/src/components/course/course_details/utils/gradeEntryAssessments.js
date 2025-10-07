@@ -5,7 +5,6 @@
 // Functions: Assessment validation, score handling, modal management
 
 import { generateAssessmentName } from "../assessments/AssessmentUtils";
-
 /**
  * Validate score input
  */
@@ -64,7 +63,7 @@ export const prepareAssessmentData = (gradeData, categoryId, categories, grades)
     grades, 
     gradeData.name
   );
-  
+
   return {
     name: assessmentName,
     maxScore: parseFloat(gradeData.maxScore),

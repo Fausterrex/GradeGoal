@@ -18,8 +18,7 @@ import {
   Star
 } from "lucide-react";
 import { getUserProfile, getAcademicGoalsByUserId, getGradesByCourseId, getAssessmentCategoriesByCourseId, getAIAnalysis, logUserActivities } from "../../backend/api";
-import { useAuth } from "../../context/AuthContext";
-
+import { useAuth } from "../context/AuthContext";
 const RecentActivities = ({ courses }) => {
   const { currentUser } = useAuth();
   
@@ -827,9 +826,9 @@ const RecentActivities = ({ courses }) => {
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 export default RecentActivities;

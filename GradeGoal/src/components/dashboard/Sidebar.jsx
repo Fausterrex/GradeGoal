@@ -13,7 +13,7 @@ import {
   FaCalendarAlt,
   FaCog,
 } from "react-icons/fa";
-import { useYearLevel } from "../../context/YearLevelContext";
+import { useYearLevel } from "../context/YearLevelContext";
 const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
   const { selectedYearLevel, changeYearLevel, getYearLevelLabel } = useYearLevel();
   // Navigation items configuration
@@ -53,7 +53,6 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
           <select
             value={selectedYearLevel}
             onChange={(e) => {
-              console.log('🎓 [Sidebar] Year level changed:', e.target.value);
               changeYearLevel(e.target.value);
             }}
             className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50"

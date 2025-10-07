@@ -4,7 +4,6 @@
 // Displays success messages for various operations
 
 import React from "react";
-
 function SuccessMessage({ successMessage }) {
   if (!successMessage) return null;
 

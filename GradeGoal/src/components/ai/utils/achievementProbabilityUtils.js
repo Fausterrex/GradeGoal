@@ -3,8 +3,7 @@
 // ========================================
 // Utility functions for calculating achievement probability and related metrics
 
-import DatabaseGradeService from '../../../services/databaseGradeService.js';
-
+import DatabaseGradeService from "../../services/databaseGradeService.js";
 /**
  * Calculate maximum possible grade with perfect future scores
  */
@@ -191,15 +190,7 @@ export const calculateRemainingWeight = (categories) => {
  * Calculate realistic achievement probability based on assessment scenarios
  */
 export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, categories, grades) => {
-  console.log('🎯 [RealisticProbability] Starting calculation:', {
-    currentGPA,
-    targetGPA,
-    categoriesCount: categories?.length,
-    gradesCount: grades?.length
-  });
-
   if (!categories || !grades || categories.length === 0) {
-    console.log('🎯 [RealisticProbability] Missing data, returning 0%');
     return 0;
   }
 
@@ -213,8 +204,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
 
   // Calculate current weighted average
   const currentGrade = calculateCurrentGrade(gradesArray, categories);
-  console.log('🎯 [RealisticProbability] Current grade:', currentGrade);
-
   // Find remaining assessments (ungraded or 0% scores) and empty categories
   const remainingAssessments = [];
   categories.forEach(category => {
@@ -246,8 +235,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       });
     }
   });
-
-  console.log('🎯 [RealisticProbability] Remaining assessments:', remainingAssessments.length);
 
   // Check if target is already achieved or achievable with future potential
   // Consider both remaining assessments AND future potential (empty categories, final term)
@@ -288,21 +275,18 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
   const totalPotential = emptyCategoryPotential + finalTermPotential + remainingAssessmentPotential;
   
   if (currentGPA >= targetGPA) {
-    console.log('🎯 [RealisticProbability] Target already achieved');
     return {
       probability: 100,
       bestPossibleGPA: currentGPA,
       confidence: "HIGH"
     };
   } else if ((currentGPA + totalPotential) >= targetGPA) {
-    console.log('🎯 [RealisticProbability] Target achievable with future potential:', currentGPA + totalPotential);
     return {
       probability: hasEmptyCategories ? 85 : 75, // Higher probability if empty categories exist
       bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
       confidence: hasEmptyCategories ? "HIGH" : "MEDIUM"
     };
   } else {
-    console.log('🎯 [RealisticProbability] Target not achievable even with future potential');
     return {
       probability: 0,
       bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
@@ -329,9 +313,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
 
     categories.forEach(category => {
       const categoryGrades = gradesArray.filter(g => g.categoryId === category.id);
-      
-      console.log(`🎯 [RealisticProbability] Processing category: ${category.categoryName || category.name} (weight: ${category.weight}%)`);
-      
       if (categoryGrades.length > 0) {
         // Calculate current average for graded assessments
         const gradedAssessments = categoryGrades.filter(g => {
@@ -367,8 +348,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
             const scenarioPerformance = 100 * scenario.multiplier;
             finalCategoryAverage = (currentAverage * gradedWeight) + (scenarioPerformance * remainingWeight);
             
-            console.log(`🎯 [RealisticProbability] ${scenario.name} - ${category.categoryName || category.name}:`, {
-              currentAverage: currentAverage.toFixed(1),
+            console.log({
               gradedWeight: gradedWeight.toFixed(2),
               remainingWeight: remainingWeight.toFixed(2),
               scenarioPerformance: scenarioPerformance.toFixed(1),
@@ -378,8 +358,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
             });
           } else {
             finalCategoryAverage = currentAverage;
-            console.log(`🎯 [RealisticProbability] ${scenario.name} - ${category.categoryName || category.name}:`, {
-              currentAverage: currentAverage.toFixed(1),
+            console.log({
               finalCategoryAverage: finalCategoryAverage.toFixed(1),
               gradedCount: gradedAssessments.length,
               ungradedCount: 0
@@ -394,7 +373,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
           totalWeightedScore += (scenarioPerformance * category.weight / 100);
           totalWeight += category.weight;
           
-          console.log(`🎯 [RealisticProbability] ${scenario.name} - ${category.categoryName || category.name} (EMPTY):`, {
+          console.log({
             scenarioPerformance: scenarioPerformance.toFixed(1),
             categoryWeight: category.weight,
             contribution: (scenarioPerformance * category.weight / 100).toFixed(1),
@@ -412,8 +391,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
     const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const finalGPA = calculateGPAFromPercentage(finalGrade);
 
-    console.log(`🎯 [RealisticProbability] ${scenario.name} scenario:`, {
-      finalGrade: finalGrade.toFixed(1),
+    console.log({
       finalGPA: finalGPA.toFixed(2),
       meetsTarget: finalGPA >= targetGPA,
       totalWeightedScore: totalWeightedScore.toFixed(1),
@@ -543,12 +521,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
     const finalGrade = totalWeight > 0 ? (totalWeightedScore / totalWeight) : 0;
     const bestPossibleGPA = calculateGPAFromPercentage(finalGrade);
 
-    console.log('🎯 [RealisticProbability] Best achievable scenario found:', {
-      scenarioName: bestScenario.name,
-      multiplier: bestScenario.multiplier,
-      probability: 100,
-      bestPossibleGPA: bestPossibleGPA.toFixed(2)
-    });
     return { probability: 100, bestPossibleGPA };
   }
 
@@ -664,9 +636,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
     probability = Math.min(100, probability + bonusProbability);
   }
 
-  console.log('🎯 [RealisticProbability] Best scenario analysis:', {
-    bestScenarioName,
-    bestFinalGPA: bestFinalGPA.toFixed(2),
+  console.log({
     targetGPA,
     gap: gap.toFixed(2),
     baseProbability: probability,
@@ -686,8 +656,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
  * Post-process AI response to fix incorrect probability calculations
  */
 export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
-  console.log('🎯 [PostProcess] Starting AI response correction...');
-
   const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
   // Use the course GPA directly from the database (already calculated and stored)
   const currentGPA = parseFloat(courseData.currentGPA) || 0;
@@ -723,16 +691,6 @@ export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
     correctProbability = realisticResult.probability;
     bestPossibleGPA = realisticResult.bestPossibleGPA;
   }
-
-  console.log('🎯 [PostProcess] Probability Analysis:', {
-    currentGrade,
-    currentGPA,
-    targetGPA,
-    gpaGap,
-    maxAchievableGrade,
-    maxAchievableGPA,
-    correctProbability
-  });
 
   parsedAnalysis.targetGoalProbability = {
     probability: `${correctProbability}%`,

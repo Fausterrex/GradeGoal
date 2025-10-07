@@ -4,7 +4,6 @@
 // Displays warning for archived courses
 
 import React from "react";
-
 function CourseDetailsArchivedWarning() {
   return (
     <div className="max-w-[1000px] mx-auto mb-8 p-6 bg-yellow-50 border border-yellow-200 rounded-2xl shadow-lg">

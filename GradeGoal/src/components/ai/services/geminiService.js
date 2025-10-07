@@ -4,20 +4,18 @@
 // Service for integrating with Google Gemini AI API
 // Provides intelligent academic recommendations and predictions
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { setAIAnalysisData } from './aiAnalysisService';
-import { saveAIAnalysisData } from './aiDatabaseService';
-import DatabaseGradeService from '../../../services/databaseGradeService.js';
-
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { setAIAnalysisData } from "./aiAnalysisService";
+import { saveAIAnalysisData } from "./aiDatabaseService";
+import DatabaseGradeService from "../../services/databaseGradeService.js";
 // Import utility modules
 import { 
   calculateCurrentGrade, 
   calculateGPAFromPercentage, 
   postProcessAIResponse
-} from '../utils/achievementProbabilityUtils.js';
-import { getFallbackRecommendations } from '../utils/aiPredictionUtils.js';
-import { buildRealAnalysisPrompt, parseRealAIResponse } from '../utils/aiResponseUtils.js';
-
+} from "../utils/achievementProbabilityUtils.js";
+import { getFallbackRecommendations } from "../utils/aiPredictionUtils.js";
+import { buildRealAnalysisPrompt, parseRealAIResponse } from "../utils/aiResponseUtils.js";
 // Initialize Google Generative AI
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -115,15 +113,13 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
       try {
         // Use static import instead of dynamic import
         currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
-        console.log('✅ Database GPA calculation successful (fallback):', currentGPAValue);
       } catch (error) {
         console.warn('Failed to get database GPA, using fallback:', error);
         // Fallback to local calculation if database call fails
         currentGPAValue = calculateGPAFromPercentage(currentGrade);
       }
     } else {
-      console.log('✅ Using database course GPA directly:', currentGPAValue);
-    }
+      }
     
     console.log('Current course grade calculation:', {
       currentGrade: currentGrade,
@@ -183,7 +179,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Debug: Calculate input token usage
     const promptLength = prompt.length;
     const promptTokens = Math.ceil(promptLength / 4); // Rough estimate: 4 chars per token
-    console.log(`🔍 [Token Debug] Input prompt:`);
     console.log(`   Prompt length: ${promptLength} characters`);
     console.log(`   Approximate input tokens: ${promptTokens}`);
     console.log(`   Max output tokens: ${model.generationConfig.maxOutputTokens}`);
@@ -202,7 +197,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
         // Debug: Calculate approximate token usage
         const responseLength = aiResponse.length;
         const approximateTokens = Math.ceil(responseLength / 4); // Rough estimate: 4 chars per token
-        console.log(`🔍 [Token Debug] Attempt ${attempt}:`);
         console.log(`   Response length: ${responseLength} characters`);
         console.log(`   Approximate tokens: ${approximateTokens}`);
         console.log(`   Max tokens set: ${model.generationConfig.maxOutputTokens}`);
@@ -223,24 +217,17 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
           // Response ends abruptly without proper JSON structure
           (cleanResponse.includes('{') && !cleanResponse.includes('"predictedFinalGrade"'))
         );
-        
         if (isTruncated) {
-          console.warn(`⚠️ [Gemini API] Response appears truncated on attempt ${attempt}`);
           console.warn(`Response length: ${aiResponse.length} characters`);
           console.warn(`Response ends with: "${aiResponse.slice(-50)}"`);
           console.warn(`Truncation reasons: cleanEndsWith('}')=${cleanResponse.endsWith('}')}, braceCount=${(cleanResponse.match(/\{/g) || []).length}/${(cleanResponse.match(/\}/g) || []).length}, hasPredictedFinalGrade=${cleanResponse.includes('"predictedFinalGrade"')}`);
           console.warn(`Clean response ends with: "${cleanResponse.slice(-30)}"`);
           
           // If this is the last attempt, we'll try to fix it in parsing
-          if (attempt === maxRetries) {
-            console.warn(`⚠️ [Gemini API] Using truncated response with enhanced parsing`);
-          } else {
+        } else {
             // Retry with a shorter prompt if we have attempts left
-            console.log(`🔄 [Gemini API] Retrying with shorter prompt...`);
             // Use a shorter prompt for retry attempts
             const shorterPrompt = buildRealAnalysisPrompt(courseData, goalData, priorityLevel, true); // Pass true for shorter version
-            console.log(`🔍 [Token Debug] Shorter prompt length: ${shorterPrompt.length} characters`);
-            console.log(`🔍 [Token Debug] Shorter prompt tokens: ~${Math.ceil(shorterPrompt.length / 4)}`);
             
             const retryResult = await model.generateContent(shorterPrompt);
             aiResponse = retryResult.response.text();
@@ -248,55 +235,44 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
             // Debug shorter response
             const shorterResponseLength = aiResponse.length;
             const shorterApproximateTokens = Math.ceil(shorterResponseLength / 4);
-            console.log(`🔍 [Token Debug] Shorter response:`);
-            console.log(`   Response length: ${shorterResponseLength} characters`);
-            console.log(`   Approximate tokens: ${shorterApproximateTokens}`);
-            console.log(`   Token usage: ${((shorterApproximateTokens / model.generationConfig.maxOutputTokens) * 100).toFixed(1)}%`);
             
             // Check if the shorter prompt worked
             if (aiResponse.trim().endsWith('}')) {
-              console.log(`✅ [Gemini API] Shorter prompt successful on attempt ${attempt + 1}`);
               break;
             }
             continue;
           }
-        }
         
-        console.log(`✅ [Gemini API] Success on attempt ${attempt}`);
-        break; // Success, exit retry loop
       } catch (error) {
         lastError = error;
-        console.warn(`❌ [Gemini API] Attempt ${attempt} failed:`, error.name, error.message);
         
         // Handle package-specific errors
         if (error.name === 'QuotaExceededError' || error.message?.includes('429')) {
-          console.warn(`🚫 Gemini API rate limit exceeded. Please wait before making more requests.`);
           break; // Don't retry rate limit errors
         } else if (error.name === 'ServiceUnavailableError' || error.message?.includes('503')) {
-          console.warn(`🚫 Gemini API service temporarily unavailable (attempt ${attempt}/${maxRetries})`);
           if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
-            console.log(`⏳ Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue; // Retry
           } else {
-            console.log('⏳ Max retries reached, falling back to enhanced local AI analysis...');
+            // Max retries reached, falling back to enhanced local AI analysis
           }
         } else if (error.name === 'PermissionDeniedError' || error.message?.includes('403')) {
-          console.warn(`🚫 Gemini API permission denied. Please check your API key.`);
           break; // Don't retry permission errors
         } else {
-          console.warn(`Gemini API error: ${error.name || 'Unknown'} - ${error.message || 'No message'}`);
+          // Other errors
           if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000;
-            console.log(`⏳ Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue; // Retry
           } else {
-            console.log('⏳ Max retries reached, falling back to local AI analysis...');
+            // Max retries reached, falling back to local AI analysis
           }
         }
       }
+      
+      // Success, exit retry loop
+      break;
     }
     
     // If all retries failed, use fallback
@@ -310,15 +286,6 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
     // Final token usage summary
     const finalResponseLength = aiResponse.length;
     const finalTokens = Math.ceil(finalResponseLength / 4);
-    console.log(`🔍 [Token Debug] Final Summary:`);
-    console.log(`   Input tokens: ~${promptTokens}`);
-    console.log(`   Output tokens: ~${finalTokens}`);
-    console.log(`   Total tokens used: ~${promptTokens + finalTokens}`);
-    console.log(`   Max output tokens: ${model.generationConfig.maxOutputTokens}`);
-    console.log(`   Output efficiency: ${((finalTokens / model.generationConfig.maxOutputTokens) * 100).toFixed(1)}%`);
-    if (finalTokens >= model.generationConfig.maxOutputTokens * 0.9) {
-      console.warn(`⚠️ [Token Debug] High token usage detected! Consider increasing maxOutputTokens or reducing prompt size.`);
-    }
     
     // Post-process to fix incorrect probability calculations
     const correctedAnalysis = postProcessAIResponse(parsedAnalysis, courseData, goalData);
@@ -361,12 +328,9 @@ export const generateAIRecommendations = async (courseData, goalData, priorityLe
       );
       if (saveResult.success) {
         const action = saveResult.isUpdate ? 'updated' : 'saved';
-        console.log(`✅ [generateAIRecommendations] Successfully ${action} analysis to database`);
-      } else {
-        console.warn('⚠️ [generateAIRecommendations] Failed to save AI analysis to database:', saveResult.error);
-      }
+        } else {
+        }
     } catch (error) {
-      console.warn('⚠️ [generateAIRecommendations] Failed to save AI analysis to database:', error);
       // Continue with cached result even if database save fails
     }
 
@@ -423,7 +387,6 @@ export const getAIRecommendations = async (userId, courseId = null) => {
           ? JSON.parse(dbAnalysis.analysisData) 
           : dbAnalysis.analysisData;
       } catch (parseError) {
-        console.error('❌ [getAIRecommendations] Error parsing analysis data:', parseError);
         return [];
       }
       
@@ -528,7 +491,6 @@ export const getAIRecommendations = async (userId, courseId = null) => {
     
     return [];
   } catch (error) {
-    console.error('❌ [getAIRecommendations] Error fetching AI recommendations:', error);
     return [];
   }
 };

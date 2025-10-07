@@ -3,9 +3,8 @@
 // ========================================
 // Utility functions for AI predictions, recommendations, and analysis
 
-import { calculateCurrentGrade, calculateGPAFromPercentage } from './achievementProbabilityUtils.js';
-import DatabaseGradeService from '../../../services/databaseGradeService.js';
-
+import { calculateCurrentGrade, calculateGPAFromPercentage } from "./achievementProbabilityUtils.js";
+import DatabaseGradeService from "../../services/databaseGradeService.js";
 /**
  * Enhanced fallback recommendations when AI fails
  */
@@ -15,96 +14,49 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
 
   // Calculate current course grade from actual grades for debugging
   const currentGrade = calculateCurrentGrade(grades, categories);
-  console.log('🎯 [Enhanced Fallback] Current Grade Calculation:', {
-    currentGrade: currentGrade,
-    gradesCount: Array.isArray(grades) ? grades.length : Object.keys(grades).length,
+  
+  console.log({
+    gradesCount: grades.length ? grades.length : Object.keys(grades).length,
     categoriesCount: categories?.length || 0
   });
   
   // Use the course GPA directly from the database (already calculated and stored)
   let currentGPAValue = parseFloat(currentGPA) || 0;
-  console.log('🎯 [Enhanced Fallback] Initial GPA Values:', {
-    courseGPA: currentGPA,
-    parsedGPA: currentGPAValue,
-    calculatedGrade: currentGrade
-  });
-  
   // Only recalculate if database course GPA is missing or invalid
   if (currentGPAValue <= 0 && currentGrade > 0) {
     try {
       // Use static import instead of dynamic import
       currentGPAValue = await DatabaseGradeService.calculateGPA(currentGrade);
-      console.log('🎯 [Enhanced Fallback] Database GPA calculation successful (fallback):', {
-        inputGrade: currentGrade,
-        outputGPA: currentGPAValue
-      });
     } catch (error) {
-      console.warn('🎯 [Enhanced Fallback] Database GPA failed, using fallback:', error);
       // Fallback to local calculation if database call fails
       currentGPAValue = calculateGPAFromPercentage(currentGrade);
-      console.log('🎯 [Enhanced Fallback] Fallback GPA calculation:', {
-        inputGrade: currentGrade,
-        outputGPA: currentGPAValue
-      });
-    }
+      }
   } else {
-    console.log('🎯 [Enhanced Fallback] Using database course GPA directly:', currentGPAValue);
-  }
+    }
   
   // Handle different goal types - convert target value appropriately
   let targetGPA, gpaGap;
-  
-  console.log('🎯 [Enhanced Fallback] Goal Type Analysis:', {
-    goalType: goalType,
-    targetValue: targetValue,
-    targetValueType: typeof targetValue
-  });
   
   if (goalType === 'COURSE_GRADE') {
     // Target is a percentage (e.g., 100), convert to GPA for comparison
     const targetPercentage = parseFloat(targetValue) || 100;
     targetGPA = calculateGPAFromPercentage(targetPercentage);
     gpaGap = targetGPA - currentGPAValue;
-    console.log('🎯 [Enhanced Fallback] COURSE_GRADE Conversion:', {
-      targetPercentage: targetPercentage,
-      convertedTargetGPA: targetGPA,
-      gpaGap: gpaGap
-    });
-  } else {
+    } else {
     // Target is already a GPA (e.g., 4.0)
     targetGPA = parseFloat(targetValue) || 4.0;
     gpaGap = targetGPA - currentGPAValue;
-    console.log('🎯 [Enhanced Fallback] GPA Target (Direct):', {
-      targetGPA: targetGPA,
-      gpaGap: gpaGap
-    });
   }
   
-  console.log('🎯 [Enhanced Fallback] Input Data Analysis:', {
-    currentGPA: currentGPAValue,
-    currentGrade: currentGrade,
-    targetGPA: targetGPA,
-    goalType: goalType,
-    gap: gpaGap,
-    progress: progress,
-    gradesCount: Array.isArray(grades) ? grades.length : Object.keys(grades).length,
+  console.log({
+    gradesCount: grades.length ? grades.length : Object.keys(grades).length,
     categoriesCount: categories?.length || 0
-  });
-  
-  console.log('🎯 [Enhanced Fallback] GPA Gap Analysis:', {
-    gpaGap: gpaGap,
-    gapCategory: gpaGap <= 0 ? 'ACHIEVED' : 
-                 gpaGap <= 0.3 ? 'EXCELLENT' :
-                 gpaGap <= 0.5 ? 'GOOD' :
-                 gpaGap <= 1.0 ? 'MODERATE' : 'CHALLENGING'
   });
   
   // Calculate realistic probability based on GPA gap
   let probability = 50; // Default
   let confidence = "MEDIUM";
   let status = "Needs improvement";
-  
-  console.log('🎯 [Enhanced Fallback] Probability Calculation Steps:');
   
   // Use realistic assessment-based probability calculation
   const { calculateRealisticAchievementProbability } = await import('./achievementProbabilityUtils.js');
@@ -131,19 +83,6 @@ export const getFallbackRecommendations = async (courseData, goalData) => {
     confidence = "LOW";
     status = "Very difficult to achieve";
   }
-  
-  console.log('🎯 [Enhanced Fallback] Realistic probability result:', {
-    probability: `${probability}%`,
-    confidence,
-    status
-  });
-  
-  console.log('🎯 [Enhanced Fallback] Final Probability Result:', {
-    probability: `${probability}%`,
-    confidence: confidence,
-    status: status,
-    calculation: `Based on GPA gap of ${gpaGap.toFixed(2)}`
-  });
 
   // Generate intelligent focus indicators based on actual course data
   const focusIndicators = generateIntelligentFocusIndicators(categories, grades, gpaGap);
@@ -314,9 +253,7 @@ const generateIntelligentRecommendations = (categories, gpaGap, currentGrade) =>
     let recommendation = "";
     
     if (weight >= 40) { // High weight categories
-      recommendation = gpaGap > 0.5 
-        ? `Focus intensively on ${categoryName} - they're worth ${weight}% of your grade and critical for reaching your target.`
-        : `Maintain strong performance in ${categoryName} - they're worth ${weight}% of your grade.`;
+      recommendation = gpaGap > 0.5 ? `Focus intensively on ${categoryName} - they're worth ${weight}% of your grade and critical for reaching your target.` : `Maintain strong performance in ${categoryName} - they're worth ${weight}% of your grade.`;
     } else if (weight >= 30) { // Medium weight categories
       recommendation = gpaGap > 0.3
         ? `Consistent performance in ${categoryName} is important (${weight}% of grade).`

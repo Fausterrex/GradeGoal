@@ -11,7 +11,6 @@ import {
   getConversionDisplay, 
   getAvailableCoursesForModal
 } from "./goalModalUtils";
-
 const GoalModal = ({
   isOpen,
   onClose,
@@ -79,7 +78,6 @@ const GoalModal = ({
         goal.academicYear === newAcademicYear &&
         goal.goalId !== editingGoal?.goalId
       );
-      
       // If the selected semester already has a goal for the new academic year, reset semester
       if (hasExistingGoal) {
         setFormData(prev => ({
@@ -206,19 +204,16 @@ const GoalModal = ({
     formData.targetValue, 
     courses
   );
-
   const availableCourses = getAvailableCoursesForModal(
     formData.goalType, 
     courses, 
     existingGoals, 
     editingGoal?.goalId
   );
-
   // Check for existing goals to disable certain options
   const hasExistingCumulativeGoal = existingGoals.some(goal => 
     goal.goalType === 'CUMMULATIVE_GPA' && goal.goalId !== editingGoal?.goalId
   );
-  
   const hasExistingSemesterGoal = (semester, academicYear) => {
     return existingGoals.some(goal => 
       goal.goalType === 'SEMESTER_GPA' && 

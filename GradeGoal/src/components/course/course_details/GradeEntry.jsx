@@ -4,24 +4,22 @@
 // Main component that orchestrates all the course detail components
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useAchievements } from "../../../services/useAchievements";
-import AddCourse from "../AddCourse";
-import GradeSuccessFeedback from "../GradeSuccessFeedback";
-import ConfirmationModal from "../../common/ConfirmationModal";
-
+import { useAchievements } from "../../services/useAchievements";
+import AddCourse from "../../modals/AddCourse";
+import GradeSuccessFeedback from "../../modals/GradeSuccessFeedback";
+import ConfirmationModal from "../../modals/ConfirmationModal";
 // Import the new components
 import MainHeader from "./MainHeader";
 import SuccessMessage from "./SuccessMessage";
 import ArchivedWarning from "./ArchivedWarning";
 import AssessmentCategories from "./assessments/AssessmentCategories";
-import AssessmentModal from "./assessments/AssessmentModal";
-import AddScoreModal from "./assessments/AddScoreModal";
-import EditScoreModal from "./assessments/EditScoreModal";
+import AssessmentModal from "../../modals/AssessmentModal";
+import AddScoreModal from "../../modals/AddScoreModal";
+import EditScoreModal from "../../modals/EditScoreModal";
 import Dashboard from "./dashboard/Dashboard";
 import SemesterTermTabs from "./SemesterTermTabs";
-
 // Import utility functions
 import { 
   calculateAndStoreCourseGrade,
@@ -50,8 +48,8 @@ import {
   assessmentHasScore,
 } from "./utils/gradeEntryAssessments";
 import { generateAssessmentName } from "./assessments/AssessmentUtils";
-import RealtimeNotificationService from "../../../services/realtimeNotificationService";
-import { calculateCourseProgress } from "../../../services/progressCalculationService";
+import RealtimeNotificationService from "../../services/realtimeNotificationService";
+import { calculateCourseProgress } from "../../services/progressCalculationService";
 import {
   getCourseColors,
   loadCourseTargetGrade,
@@ -75,7 +73,6 @@ import {
   createViewToggleHandler,
   createSuccessFeedbackHandlers,
 } from "./utils/gradeEntryHandlers";
-
 function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClearSelectedCourse, onCloseCourseManager, onCourseDataRefresh }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -226,6 +223,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         categories,
         grades
       );
+
       setNewGrade(prev => ({ ...prev, name: generatedName }));
     }
   }, [newGrade.categoryId, categories, grades]);
@@ -380,7 +378,6 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         const analyticsData = await analyticsResponse.json();
         setUserAnalytics(analyticsData);
       } else {
-        console.log('⚠️ [GradeEntry] Analytics API failed, using empty array');
         // Fallback to empty array
         setUserAnalytics([]);
       }
@@ -396,17 +393,14 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   // CALCULATION FUNCTIONS
   // ========================================
   const getCategoryAverage = async (categoryId) => {
-    console.log(`🔍 [GradeEntry] getCategoryAverage called for category ${categoryId} with term ${activeSemesterTerm}`);
     try {
       // Use the same API call as AssessmentCategories but with term parameter
       const result = await calculateCategoryGrade(categoryId, activeSemesterTerm);
-      console.log(`🔍 [GradeEntry] getCategoryAverage result:`, result);
       if (result.success) {
         return parseFloat(result.categoryGrade);
       }
       return null;
     } catch (error) {
-      console.error(`❌ [GradeEntry] getCategoryAverage error:`, error);
       return null;
     }
   };
@@ -490,7 +484,6 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     setEditScoreExtraCreditPoints,
     setShowEditScore
   );
-
 
   // Create handler using utility function
   const handleAddAssessment = createAddAssessmentHandler(setNewGrade, setShowAddGrade);
@@ -776,6 +769,6 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
       />
     </div>
   );
-}
+};
 
 export default GradeEntry;

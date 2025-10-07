@@ -26,8 +26,7 @@ import {
 import {
   calculateAndStoreCourseGrade,
 } from "./gradeEntryCalculations";
-import RealtimeNotificationService from "../../../../services/realtimeNotificationService";
-
+import RealtimeNotificationService from "../../../services/realtimeNotificationService";
 /**
  * Handle score submission for adding new scores to assessments
  */
@@ -78,9 +77,9 @@ export const createScoreSubmitHandler = (
         scoreExtraCreditPoints, 
         currentUserId
       );
-      
-            // Save grade with calculation using utility function
-            const saveResult = await saveGradeWithCalculation(gradeData, currentUserId);
+
+      // Save grade with calculation using utility function
+      const saveResult = await saveGradeWithCalculation(gradeData, currentUserId);
             
             if (!saveResult.success) {
               throw new Error(saveResult.error || 'Failed to save grade');
@@ -111,6 +110,7 @@ export const createScoreSubmitHandler = (
                     score,
                     selectedGrade.maxScore
                   );
+
                   console.log('Grade alert notification sent for low score');
                 } catch (error) {
                   console.error('Failed to send grade alert notification:', error);
@@ -120,9 +120,7 @@ export const createScoreSubmitHandler = (
 
             // Course completion notifications are now handled by the backend
             // when a course is manually marked as complete via the Course Manager
-            console.log('📝 Course completion notifications are handled by the backend when manually marking courses as complete');
-
-      // Update grades state using utility function with complete extra credit data
+            // Update grades state using utility function with complete extra credit data
       const completeGradeUpdate = {
         score: score,
         isExtraCredit: scoreExtraCredit,
@@ -160,7 +158,7 @@ export const createScoreSubmitHandler = (
         scoreExtraCredit, 
         scoreExtraCreditPoints
       );
-      
+
       setLastSavedGrade(savedGradeData);
       setShowSuccessFeedback(true);
 
@@ -249,6 +247,7 @@ export const createEditScoreSubmitHandler = (
                     score,
                     selectedGrade.maxScore
                   );
+
                   console.log('Grade alert notification sent for low score (edit)');
                 } catch (error) {
                   console.error('Failed to send grade alert notification:', error);
@@ -499,29 +498,22 @@ export const createDeleteAssessmentHandler = (
               
               if (!response.ok) {
                 const errorText = await response.text();
-                console.error("❌ Database calculation service update failed:", errorText);
-              } else {
+                } else {
                 const result = await response.json();
-                console.log("✅ Course grades updated after assessment deletion:", result);
-                
                 // Fetch updated course data to refresh the frontend
                 try {
                   const courseResponse = await fetch(`/api/courses/${course.id}`);
                   if (courseResponse.ok) {
                     const updatedCourse = await courseResponse.json();
-                    console.log("✅ Updated course data fetched:", updatedCourse);
-                    
                     // Update the course data in the parent component
                     if (onGradeUpdate) {
                       onGradeUpdate(updatedCourse);
                     }
                   }
                 } catch (courseError) {
-                  console.error("⚠️ Failed to fetch updated course data:", courseError);
-                }
+                  }
               }
             } catch (error) {
-              console.error("⚠️ Failed to update course grades after deletion:", error);
               // Don't fail the entire operation if course grade calculation fails
             }
           }
@@ -645,6 +637,7 @@ export const createCourseUpdateHandler = (
     const updatedCourse = updatedCourses.find(
       (c) => c.courseId === course.courseId
     );
+
     if (updatedCourse && onGradeUpdate) {
       onGradeUpdate(updatedCourse);
     }

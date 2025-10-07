@@ -4,7 +4,6 @@
 // Modal for editing existing scores
 
 import React from "react";
-
 function EditScoreModal({
   isOpen,
   selectedGrade,

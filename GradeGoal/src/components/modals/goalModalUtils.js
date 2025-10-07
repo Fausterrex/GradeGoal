@@ -2,12 +2,11 @@
 // GOAL MODAL UTILITY FUNCTIONS
 // ========================================
 
-import { percentageToGPA, gpaToPercentage, detectValueFormat } from './gpaConversionUtils';
+import { percentageToGPA, gpaToPercentage, detectValueFormat } from "../course/academic_goal/gpaConversionUtils";
 // This file contains utility functions specific to goal modal operations
 
 // Removed grade calculation imports
-import { hasExistingGoal, getAvailableCourses } from "./goalUtils";
-
+import { hasExistingGoal, getAvailableCourses } from "../course/academic_goal/goalUtils";
 /**
  * Validate goal form data
  */
@@ -60,7 +59,6 @@ export const validateGoalForm = (formData, courses, existingGoals, editingGoal) 
       goal.academicYear === formData.academicYear &&
       goal.goalId !== editingGoal?.goalId
     );
-    
     if (existingSemesterGoal) {
       const semesterName = formData.semester === 'FIRST' ? '1st' : 
                           formData.semester === 'SECOND' ? '2nd' : 
@@ -75,7 +73,6 @@ export const validateGoalForm = (formData, courses, existingGoals, editingGoal) 
       goal.goalType === 'CUMMULATIVE_GPA' && 
       goal.goalId !== editingGoal?.goalId
     );
-    
     if (existingCumulativeGoal) {
       errors.push('A cumulative GPA goal already exists');
     }

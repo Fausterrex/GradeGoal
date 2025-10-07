@@ -5,8 +5,8 @@
 // Features: Course grid, archive/restore, edit/delete actions, add course modal
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { useYearLevel } from "../../context/YearLevelContext";
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
 // Removed GradeService import
 import {
   deleteCourse as deleteCourseApi,
@@ -14,11 +14,10 @@ import {
   unarchiveCourse as unarchiveCourseApi,
 } from "../../backend/api";
 import axios from "axios";
-import { getCourseColorScheme } from "../../utils/courseColors";
+import { getCourseColorScheme } from "../utils/courseColors";
 // Removed grade calculations import
-import AddCourse from "./AddCourse";
-import ConfirmationModal from "../common/ConfirmationModal";
-
+import AddCourse from "../modals/AddCourse";
+import ConfirmationModal from "../modals/ConfirmationModal";
 function CourseManager({
   onCourseUpdate,
   onCourseSelect = () => {},
@@ -136,11 +135,7 @@ function CourseManager({
         try {
           const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/complete`);
           if (response.status === 200) {
-            console.log('✅ Course marked as complete successfully');
-            
             // Course completion notifications are now handled by the backend
-            console.log('🎓 Course marked as complete - notifications will be sent by the backend');
-            
             // Update the local course state and refresh the course list
             const updatedCourses = courses.map(course => 
               course.id === courseId 
@@ -150,8 +145,7 @@ function CourseManager({
             onCourseUpdate(updatedCourses);
           }
         } catch (error) {
-          console.error('❌ Failed to mark course as complete:', error);
-        }
+          }
         setConfirmationModal({ ...confirmationModal, isOpen: false });
       },
       onClose: () => {
@@ -179,7 +173,6 @@ function CourseManager({
         try {
           const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/uncomplete`);
           if (response.status === 200) {
-            console.log('✅ Course marked as incomplete successfully');
             // Update the local course state and refresh the course list
             const updatedCourses = courses.map(course => 
               course.id === courseId 
@@ -189,8 +182,7 @@ function CourseManager({
             onCourseUpdate(updatedCourses);
           }
         } catch (error) {
-          console.error('❌ Failed to mark course as incomplete:', error);
-        }
+          }
         setConfirmationModal({ ...confirmationModal, isOpen: false });
       },
       onClose: () => {
@@ -264,7 +256,6 @@ function CourseManager({
           const updatedCourses = courses.map(c =>
             c.id === course.id ? { ...c, isActive: false } : c
           );
-
           // Update parent immediately so the course disappears from main section
           updateParentCourses(updatedCourses);
 
@@ -283,7 +274,6 @@ function CourseManager({
     const isArchived = archivedCourses.some(
       (archivedCourse) => archivedCourse.id === course.id
     );
-
     if (isArchived) {
       // For archived courses, we need to pass both the course and archived status
       const courseWithArchiveStatus = { ...course, isActive: false };
@@ -308,18 +298,15 @@ function CourseManager({
         setArchivedCourses((prev) =>
           prev.filter((course) => course.id !== courseId)
         );
-
         // Remove from archived courses locally for immediate UI feedback
         setArchivedCourses((prev) =>
           prev.filter((course) => course.id !== courseId)
         );
-
         // Also update the local courses state to mark this course as active
         // This ensures it appears in the main courses section again
         const updatedCourses = courses.map((course) =>
           course.id === courseId ? { ...course, isActive: true } : course
         );
-
         // Update parent immediately so the course appears in main section without refresh
         updateParentCourses(updatedCourses);
 
@@ -1281,6 +1268,6 @@ function CourseManager({
       />
     </div>
   );
-}
+};
 
 export default CourseManager;

@@ -22,7 +22,6 @@ import {
   checkGradeAlerts,
   checkAchievements,
 } from "../../../../backend/api";
-
 /**
  * Load all grades for a course and organize by category
  */

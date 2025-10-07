@@ -3,9 +3,8 @@
 // ========================================
 // Shows AI-calculated achievement probability
 
-import React from 'react';
-import { Target, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
-
+import React from "react";
+import { Target, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
 const AIAchievementProbability = ({ probability, confidence, factors = [], bestPossibleGPA, isVisible = true, isCompact = false, currentGPA, targetGPA, courseProgress = 0 }) => {
   if (!isVisible || !probability) return null;
 
@@ -156,9 +155,9 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
             ))}
           </ul>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
-export default AIAchievementProbability;
+  export default AIAchievementProbability;

@@ -6,14 +6,13 @@
 
 import React, { useState, useEffect } from "react";
 import { getUserProfile } from "../../../backend/api";
-import ConfirmationModal from "../../common/ConfirmationModal";
+import ConfirmationModal from "../../modals/ConfirmationModal";
 import GoalHeader from "./GoalHeader";
 import GoalFilter from "./GoalFilter";
 import GoalCard from "./GoalCard";
-import GoalModal from "./GoalModal";
-import RealtimeNotificationService from "../../../services/realtimeNotificationService";
-import { useYearLevel } from "../../../context/YearLevelContext";
-
+import GoalModal from "../../modals/GoalModal";
+import RealtimeNotificationService from "../../services/realtimeNotificationService";
+import { useYearLevel } from "../../context/YearLevelContext";
 const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }) => {
   const { filterDataByYearLevel, selectedYearLevel } = useYearLevel();
   
@@ -149,10 +148,8 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
               goal.targetValue,
               goal.goalType
             );
-            
             // Only update database if just achieved (not already marked as achieved in database)
             if (isAchieved && !goal.isAchieved) {
-              console.log('🎉 Goal achieved! Updating database...');
               try {
                 // Update goal in database with proper fields
                 const updateData = {
@@ -161,8 +158,6 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
                   achievedDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
                   status: 'completed'
                 };
-                
-                console.log('📝 Updating goal in database:', updateData);
                 
                 const response = await fetch(`http://localhost:8080/api/academic-goals/${goal.goalId}`, {
                   method: 'PUT',
@@ -173,15 +168,10 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
                 if (response.ok) {
                   const updatedGoal = await response.json();
                   setGoals(prev => prev.map(g => g.goalId === goal.goalId ? updatedGoal : g));
-                  console.log('✅ Goal database updated for:', goal.goalTitle);
-                } else {
-                  console.error('❌ Failed to update goal in database:', response.status, response.statusText);
-                }
+                  } else {
+                  }
               } catch (error) {
-                console.error('❌ Failed to update goal in database:', error);
-              }
-            } else if (isAchieved && goal.isAchieved) {
-            } else {
+                }
             }
           } else {
           }
@@ -357,11 +347,11 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
   // ========================================
 
   if (isLoading) {
-  return (
+    return (
       <div className="flex items-center justify-center p-8">
         <div className="text-gray-600">Loading goals...</div>
-                          </div>
-                        );
+      </div>
+    );
   }
 
   return (

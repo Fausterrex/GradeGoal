@@ -5,11 +5,10 @@
 // It sends password reset emails to users who have forgotten their passwords.
 
 import React, { useRef, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../backend/firebase";
-
 function ForgotPassword() {
   // Form references and state
   const emailRef = useRef();

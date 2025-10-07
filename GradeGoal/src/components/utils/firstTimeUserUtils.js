@@ -3,8 +3,7 @@
 // ========================================
 // Utility functions to detect if a user is logging in for the first time
 
-import { getCoursesByUid, getUserProfile } from '../backend/api';
-
+import { getCoursesByUid, getUserProfile } from "../../backend/api";
 /**
  * Check if a user is a first-time user
  * @param {string} email - User email

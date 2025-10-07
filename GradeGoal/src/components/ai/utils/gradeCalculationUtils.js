@@ -3,8 +3,7 @@
 // ========================================
 // Utility functions for grade and GPA calculations
 
-import DatabaseGradeService from '../../../services/databaseGradeService.js';
-
+import DatabaseGradeService from "../../services/databaseGradeService.js";
 /**
  * Calculate GPA from percentage (matching database CalculateGPA function)
  */
@@ -94,7 +93,6 @@ export const calculateGPAWithFallback = async (percentage) => {
   try {
     // Use database service for accurate GPA calculation
     const gpa = await DatabaseGradeService.calculateGPA(percentage);
-    console.log('✅ Database GPA calculation successful:', gpa);
     return gpa;
   } catch (error) {
     console.warn('Failed to get database GPA, using fallback:', error);

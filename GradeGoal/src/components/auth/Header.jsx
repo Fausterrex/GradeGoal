@@ -7,7 +7,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Logo from "../../drawables/logo.svg";
-
 export default function Header() {
   return (
     <header className="bg-white border-b border-gray-200 py-2 fixed top-0 left-0 right-0 z-50 m-0 p-0">

@@ -22,10 +22,9 @@ import RecentActivities from "./RecentActivities";
 import AIRecommendations from "./AIRecommendations";
 import NotificationBell from "./NotificationBell";
 import { getAcademicGoalsByCourse, getUserProfile, getUserLoginStreak } from "../../backend/api";
-import { useAuth } from "../../context/AuthContext";
-import { useYearLevel } from "../../context/YearLevelContext";
+import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
 import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
-
 const Dashboard = ({ courses, grades, overallGPA }) => {
   const { currentUser } = useAuth();
   const { showCumulativeData } = useYearLevel();
@@ -67,11 +66,13 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
             userProfile.userId,
             course.id || course.courseId
           );
+
           const courseGradeGoal = goals.find(
             (goal) =>
               goal.goalType === "COURSE_GRADE" &&
               goal.courseId === (course.id || course.courseId)
           );
+
           if (courseGradeGoal) {
             // Convert percentage to GPA for display
             const targetGPA = percentageToGPA(courseGradeGoal.targetValue);
@@ -388,7 +389,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
                     (course) => course.status !== "ARCHIVED"
                   ).length
                 }
-                )
+
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
@@ -404,7 +405,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
                     (course) => course.status === "ARCHIVED"
                   ).length
                 }
-                )
+
               </button>
               <button
                 onClick={() => setActiveTab("all")}

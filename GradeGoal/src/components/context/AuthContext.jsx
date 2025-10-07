@@ -13,8 +13,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
 } from "firebase/auth";
-import { auth } from "../backend/firebase";
-
+import { auth } from "../../backend/firebase";
 const AuthContext = React.createContext();
 
 // Hook to access authentication context
@@ -125,7 +124,7 @@ export function AuthProvider({ children }) {
 
       try {
         // Fetch user profile from database to get firstName, lastName, and role
-        const { getUserProfile } = await import('../backend/api');
+        const { getUserProfile } = await import('../../backend/api');
         const userProfile = await getUserProfile(user.email);
         
         // Merge Firebase user data with database profile data
@@ -150,11 +149,9 @@ export function AuthProvider({ children }) {
         // Update login streak for automatic login (page refresh, etc.)
         if (enhancedUser.userId) {
           try {
-            const { updateUserLoginStreak } = await import('../backend/api');
+            const { updateUserLoginStreak } = await import('../../backend/api');
             await updateUserLoginStreak(enhancedUser.userId);
-            console.log('✅ Login streak updated automatically');
-          } catch (error) {
-            console.error('❌ Failed to update login streak automatically:', error);
+            } catch (error) {
             // Don't fail the authentication if streak update fails
           }
         }
