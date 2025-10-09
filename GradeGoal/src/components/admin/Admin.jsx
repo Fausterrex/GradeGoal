@@ -1,16 +1,50 @@
 import React, { useState, useRef, useEffect } from "react";
-import logo from "./assets/logoGG.png";
-import dummyProfile from "./assets/dummyProfile.webp";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import logo from "../../drawables/logoGG.png";
+import dummyProfile from "../../drawables/dummyprofile.webp";
 import { Activity, Users, Brain, Trophy, LogOut } from "lucide-react";
-import Overview from "../admin2/tabs/Overview";
-import UserManagement from "../admin2/tabs/UserManagement";
-import AIPrediction from "../admin2/tabs/AIPrediction";
-import Gamification from "../admin2/tabs/Overview"
+import Overview from "./tabs/Overview";
+import UserManagement from "./tabs/UserManagement";
+import AIPrediction from "./tabs/AIPrediction";
+import Gamification from "./tabs/Gamification"
 
 function Admin() {
+  const { currentUser, logout, userRole, loading } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#D4C5F5]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if user is not authenticated or not admin
+  if (!currentUser || userRole !== 'ADMIN') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#D4C5F5]">
+        <div className="text-center bg-white p-8 rounded-xl shadow-lg">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You don't have permission to access the admin dashboard.</p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -22,10 +56,14 @@ function Admin() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    // TODO: connect this with your auth logout function
-    console.log("Logging out...");
-    alert("You have been logged out.");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to log out:', error);
+      alert('Failed to log out. Please try again.');
+    }
   };
 
   const tabs = [
@@ -58,7 +96,10 @@ function Admin() {
             onClick={() => setShowMenu(!showMenu)}
             className="flex items-center mr-20 py-2 px-5 bg-[#fffdfd5d] gap-4 rounded shadow-2xl hover:bg-[#ffffff90] transition"
           >
-            <p className="text-black font-bold text-xl">ADMIN</p>
+            <div className="text-right">
+              <p className="text-black font-bold text-xl">ADMIN</p>
+              <p className="text-black text-sm">{currentUser?.displayName || currentUser?.email || 'Admin User'}</p>
+            </div>
             <div className="h-12 w-12 rounded-full border-2 border-purple-800 overflow-hidden">
               <img
                 src={dummyProfile}

@@ -17,7 +17,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
 import Header from "./auth/Header";
-import AdminDashboard from "./admin/AdminDashboard";
+import Admin from "./admin/Admin";
 import AchievementNotificationModal from "./modals/AchievementNotificationModal";
 // Achievement Modal Manager Component
 function AchievementModalManager() {
@@ -96,7 +96,7 @@ function AppRoutes() {
                     element={
                       <div className="flex flex-col h-screen w-full">
                         <PrivateRoute
-                          component={AdminDashboard}
+                          component={Admin}
                           requiredRole="ADMIN"
                         />
                       </div>
@@ -107,7 +107,7 @@ function AppRoutes() {
                     element={
                       <div className="flex flex-col h-screen w-full">
                         <PrivateRoute
-                          component={AdminDashboard}
+                          component={Admin}
                           requiredRole="ADMIN"
                         />
                       </div>
@@ -219,6 +219,21 @@ function AppRoutes() {
                   />
                 </>
               )}
+
+              {/* ========================================
+                  ADMIN ROUTE
+                  ======================================== */}
+              <Route
+                path="/admin"
+                element={
+                  <div className="flex flex-col h-screen w-full">
+                    <PrivateRoute
+                      component={Admin}
+                      requiredRole="ADMIN"
+                    />
+                  </div>
+                }
+              />
 
               {/* ========================================
                   AUTHENTICATION ROUTES

@@ -18,7 +18,7 @@ const Gamification = () => {
       color: "bg-blue-400",
     },
     {
-      title: "Dean’s List",
+      title: "Dean's List",
       desc: "Achieve a semester GPA of 3.5+. (RARE)",
       progress: 4800,
       total: 12487,
