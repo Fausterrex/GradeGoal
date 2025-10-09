@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
-import { useSemester } from "../context/SemesterContext";
 // Removed GradeService import
 import {
   deleteCourse as deleteCourseApi,
@@ -20,7 +19,6 @@ import { getCourseColorScheme } from "../utils/courseColors";
 import AddCourse from "../modals/AddCourse";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import AIPredictionRatingModal from "../modals/AIPredictionRatingModal";
-import SemesterTransitionModal from "../modals/SemesterTransitionModal";
 function CourseManager({
   onCourseUpdate,
   onCourseSelect = () => {},
@@ -30,7 +28,6 @@ function CourseManager({
 }) {
   const { currentUser } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
-  const { selectedSemester, detectSemesterProgression, changeSemester, filterDataBySemester } = useSemester();
 
 
   // ========================================
@@ -74,13 +71,6 @@ function CourseManager({
     isOpen: false,
     courseId: null,
     courseName: "",
-    isLoading: false
-  });
-
-  // State for semester transition modal
-  const [semesterTransitionModal, setSemesterTransitionModal] = useState({
-    isOpen: false,
-    progressionData: null,
     isLoading: false
   });
 
@@ -188,53 +178,12 @@ function CourseManager({
         
         // Close the rating modal
         setRatingModal({ isOpen: false, courseId: null, courseName: "", isLoading: false });
-        
-        // Check for semester progression after course completion
-        checkSemesterProgression();
       }
     } catch (error) {
       console.error('Error completing course with rating:', error);
       alert('Failed to complete course. Please try again.');
     } finally {
       setRatingModal(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  // Check for semester progression
-  const checkSemesterProgression = () => {
-    const progressionData = detectSemesterProgression(courses);
-    if (progressionData) {
-      setSemesterTransitionModal({
-        isOpen: true,
-        progressionData: progressionData,
-        isLoading: false
-      });
-    }
-  };
-
-  // Handle semester transition
-  const handleSemesterTransition = async (proceed) => {
-    if (proceed) {
-      setSemesterTransitionModal(prev => ({ ...prev, isLoading: true }));
-      
-      try {
-        // Update to next semester
-        const { toSemester } = semesterTransitionModal.progressionData;
-        changeSemester(toSemester);
-        
-        // Here you could also update the user's current semester in the database
-        // await updateUserCurrentSemester(currentUser.email, toSemester);
-        
-        console.log(`Transitioned to ${toSemester} semester`);
-      } catch (error) {
-        console.error('Error transitioning semester:', error);
-        alert('Failed to transition semester. Please try again.');
-      } finally {
-        setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false });
-      }
-    } else {
-      // User chose to stay in current semester
-      setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false });
     }
   };
 
@@ -1383,18 +1332,6 @@ function CourseManager({
         onSubmit={handleRatingSubmit}
         courseName={ratingModal.courseName}
         isLoading={ratingModal.isLoading}
-      />
-
-      {/* ========================================
-          SEMESTER TRANSITION MODAL
-          ======================================== */}
-      <SemesterTransitionModal
-        isOpen={semesterTransitionModal.isOpen}
-        onClose={() => setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false })}
-        onProceed={() => handleSemesterTransition(true)}
-        onStay={() => handleSemesterTransition(false)}
-        progressionData={semesterTransitionModal.progressionData}
-        isLoading={semesterTransitionModal.isLoading}
       />
     </div>
   );

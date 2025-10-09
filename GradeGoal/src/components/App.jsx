@@ -7,12 +7,12 @@
 import React from "react";
 import Signup from "./auth/signup";
 import Login from "./auth/login";
+import AdminLogin from "./auth/AdminLogin";
 import ForgotPassword from "./auth/forgotpassword";
 import Landingpage from "./auth/landingpage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AchievementProvider, useAchievementNotifications } from "./context/AchievementContext";
 import { YearLevelProvider } from "./context/YearLevelContext";
-import { SemesterProvider } from "./context/SemesterContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
@@ -221,21 +221,6 @@ function AppRoutes() {
               )}
 
               {/* ========================================
-                  ADMIN ROUTE
-                  ======================================== */}
-              <Route
-                path="/admin"
-                element={
-                  <div className="flex flex-col h-screen w-full">
-                    <PrivateRoute
-                      component={Admin}
-                      requiredRole="ADMIN"
-                    />
-                  </div>
-                }
-              />
-
-              {/* ========================================
                   AUTHENTICATION ROUTES
                   ======================================== */}
               <Route
@@ -259,6 +244,10 @@ function AppRoutes() {
                     </div>
                   </div>
                 }
+              />
+              <Route
+                path="/admin/login"
+                element={<AdminLogin />}
               />
               <Route
                 path="/forgot-password"
@@ -302,7 +291,6 @@ function App() {
             ======================================== */}
         <AchievementProvider>
           <YearLevelProvider>
-            <SemesterProvider>
             {/* ========================================
                 MAIN APP CONTAINER
                 ======================================== */}
@@ -322,7 +310,6 @@ function App() {
                 ======================================== */}
             <AchievementModalManager />
             </div>
-            </SemesterProvider>
           </YearLevelProvider>
         </AchievementProvider>
         </AuthProvider>

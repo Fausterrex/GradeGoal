@@ -415,6 +415,26 @@ public class CourseControllerNew {
         }
     }
 
+    @GetMapping("/ai-ratings")
+    public ResponseEntity<List<Course>> getCoursesWithAIRatings() {
+        try {
+            List<Course> courses = courseService.getAllCourses();
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/ai-prediction-stats")
+    public ResponseEntity<Map<String, Object>> getAIPredictionStats() {
+        try {
+            Map<String, Object> stats = courseService.getAIPredictionStatistics();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @PutMapping("/{courseId}/archive")
     public ResponseEntity<Course> archiveCourse(@PathVariable Long courseId) {
         try {
