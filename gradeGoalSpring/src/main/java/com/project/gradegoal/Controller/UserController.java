@@ -1,6 +1,7 @@
 package com.project.gradegoal.Controller;
 
 import com.project.gradegoal.Entity.User;
+import com.project.gradegoal.Repository.UserRepository;
 import com.project.gradegoal.Service.UserService;
 import com.project.gradegoal.Service.LoginStreakService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.web.bind.annotation.*;
+
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
@@ -21,6 +24,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
@@ -28,12 +33,12 @@ public class UserController {
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password cannot be null or empty");
             }
-            
+
             User createdUser = userService.createUser(
-                request.getEmail(),
-                request.getPassword(),
-                request.getFirstName(),
-                request.getLastName()
+                    request.getEmail(),
+                    request.getPassword(),
+                    request.getFirstName(),
+                    request.getLastName()
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (IllegalArgumentException e) {
@@ -47,15 +52,40 @@ public class UserController {
     public ResponseEntity<?> loginUser(@RequestBody UserLoginRequest request) {
         try {
             User user = userService.authenticateUser(request.getEmail(), request.getPassword());
+
             if (user != null) {
+                // ✅ Check if the account is frozen
+                if (user.getIsActive() != null && !user.getIsActive()) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body("This account has been frozen by an administrator.");
+                }
+
+                // ✅ Continue normal login if account is active
                 return ResponseEntity.ok(user);
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
             }
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed");
         }
     }
+
+    @PutMapping("/freeze/{id}")
+    public ResponseEntity<?> freezeUserAccount(@PathVariable Long id, @RequestParam boolean freeze) {
+        return userRepository.findById(id).map(user -> {
+            user.setIsActive(!freeze); // if freeze=true → set false (frozen)
+            userRepository.save(user);
+
+            String status = freeze ? "frozen" : "unfrozen";
+            return ResponseEntity.ok(Map.of(
+                    "message", "User account has been " + status,
+                    "userId", user.getUserId(),
+                    "isActive", user.getIsActive()
+            ));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
 
     @GetMapping("/{userId}")
     public ResponseEntity<?> getUserById(@PathVariable Long userId) {
@@ -84,7 +114,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch user");
         }
     }
-    
+
     @GetMapping("/{userId}/streak")
     public ResponseEntity<?> getUserLoginStreak(@PathVariable Long userId) {
         try {
@@ -137,23 +167,23 @@ public class UserController {
     public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
         try {
             System.out.println("Profile update request for userId: " + userId);
-            System.out.println("Request data: firstName=" + request.getFirstName() + 
-                             ", lastName=" + request.getLastName() + 
-                             ", username=" + request.getUsername() +
-                             ", profilePictureUrl=" + request.getProfilePictureUrl());
-            
+            System.out.println("Request data: firstName=" + request.getFirstName() +
+                    ", lastName=" + request.getLastName() +
+                    ", username=" + request.getUsername() +
+                    ", profilePictureUrl=" + request.getProfilePictureUrl());
+
             User user;
             // Use comprehensive update method that includes year level and username
             System.out.println("Updating profile with all fields including year level: " + request.getCurrentYearLevel());
             user = userService.updateProfileComplete(
-                userId,
-                request.getFirstName(),
-                request.getLastName(),
-                request.getUsername(),
-                request.getProfilePictureUrl(),
-                request.getCurrentYearLevel()
+                    userId,
+                    request.getFirstName(),
+                    request.getLastName(),
+                    request.getUsername(),
+                    request.getProfilePictureUrl(),
+                    request.getCurrentYearLevel()
             );
-            
+
             System.out.println("Updated user profilePictureUrl: " + user.getProfilePictureUrl());
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
@@ -170,9 +200,9 @@ public class UserController {
     public ResponseEntity<?> updatePassword(@PathVariable Long userId, @RequestBody PasswordUpdateRequest request) {
         try {
             boolean success = userService.updatePassword(
-                userId,
-                request.getCurrentPassword(),
-                request.getNewPassword()
+                    userId,
+                    request.getCurrentPassword(),
+                    request.getNewPassword()
             );
             if (success) {
                 return ResponseEntity.ok("Password updated successfully");
@@ -188,9 +218,9 @@ public class UserController {
     public ResponseEntity<?> updateNotificationPreferences(@PathVariable Long userId, @RequestBody NotificationPreferencesRequest request) {
         try {
             User user = userService.updateNotificationPreferences(
-                userId,
-                request.getEmailNotificationsEnabled(),
-                request.getPushNotificationsEnabled()
+                    userId,
+                    request.getEmailNotificationsEnabled(),
+                    request.getPushNotificationsEnabled()
             );
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
@@ -232,10 +262,10 @@ public class UserController {
             } else {
 
                 User newUser = userService.createGoogleUser(
-                    request.getEmail(),
-                    request.getFirstName(),
-                    request.getLastName(),
-                    request.getProfilePictureUrl()
+                        request.getEmail(),
+                        request.getFirstName(),
+                        request.getLastName(),
+                        request.getProfilePictureUrl()
                 );
                 return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
             }
@@ -281,7 +311,7 @@ public class UserController {
             if (isActive == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("isActive field is required");
             }
-            
+
             User updatedUser = userService.updateUserAccountStatus(userId, isActive);
             return ResponseEntity.ok(updatedUser);
         } catch (IllegalArgumentException e) {
@@ -305,30 +335,89 @@ public class UserController {
         }
     }
 
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<?> updateUserProfile(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+
+        return userRepository.findById(id).map(user -> {
+            if (updates.containsKey("firstName")) {
+                user.setFirstName((String) updates.get("firstName"));
+            }
+            if (updates.containsKey("lastName")) {
+                user.setLastName((String) updates.get("lastName"));
+            }
+            if (updates.containsKey("profilePictureUrl")) {
+                user.setProfilePictureUrl((String) updates.get("profilePictureUrl"));
+            }
+            if (updates.containsKey("currentYearLevel")) {
+                user.setCurrentYearLevel((String) updates.get("currentYearLevel"));
+            }
+
+            userRepository.save(user);
+            return ResponseEntity.ok(user);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+
     public static class UserRegistrationRequest {
         private String email;
         private String password;
         private String firstName;
         private String lastName;
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public String getFirstName() { return firstName; }
-        public void setFirstName(String firstName) { this.firstName = firstName; }
-        public String getLastName() { return lastName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
     }
 
     public static class UserLoginRequest {
         private String email;
         private String password;
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
 
     public static class ProfileUpdateRequest {
@@ -338,36 +427,87 @@ public class UserController {
         private String profilePictureUrl;
         private String currentYearLevel;
 
-        public String getFirstName() { return firstName; }
-        public void setFirstName(String firstName) { this.firstName = firstName; }
-        public String getLastName() { return lastName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getProfilePictureUrl() { return profilePictureUrl; }
-        public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
-        public String getCurrentYearLevel() { return currentYearLevel; }
-        public void setCurrentYearLevel(String currentYearLevel) { this.currentYearLevel = currentYearLevel; }
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getProfilePictureUrl() {
+            return profilePictureUrl;
+        }
+
+        public void setProfilePictureUrl(String profilePictureUrl) {
+            this.profilePictureUrl = profilePictureUrl;
+        }
+
+        public String getCurrentYearLevel() {
+            return currentYearLevel;
+        }
+
+        public void setCurrentYearLevel(String currentYearLevel) {
+            this.currentYearLevel = currentYearLevel;
+        }
     }
 
     public static class PasswordUpdateRequest {
         private String currentPassword;
         private String newPassword;
 
-        public String getCurrentPassword() { return currentPassword; }
-        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
-        public String getNewPassword() { return newPassword; }
-        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
     }
 
     public static class NotificationPreferencesRequest {
         private Boolean emailNotificationsEnabled;
         private Boolean pushNotificationsEnabled;
 
-        public Boolean getEmailNotificationsEnabled() { return emailNotificationsEnabled; }
-        public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
-        public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
-        public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
+        public Boolean getEmailNotificationsEnabled() {
+            return emailNotificationsEnabled;
+        }
+
+        public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) {
+            this.emailNotificationsEnabled = emailNotificationsEnabled;
+        }
+
+        public Boolean getPushNotificationsEnabled() {
+            return pushNotificationsEnabled;
+        }
+
+        public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) {
+            this.pushNotificationsEnabled = pushNotificationsEnabled;
+        }
     }
 
     public static class GoogleSignInRequest {
@@ -376,25 +516,59 @@ public class UserController {
         private String lastName;
         private String profilePictureUrl;
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getFirstName() { return firstName; }
-        public void setFirstName(String firstName) { this.firstName = firstName; }
-        public String getLastName() { return lastName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
-        public String getProfilePictureUrl() { return profilePictureUrl; }
-        public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
+
+        public String getProfilePictureUrl() {
+            return profilePictureUrl;
+        }
+
+        public void setProfilePictureUrl(String profilePictureUrl) {
+            this.profilePictureUrl = profilePictureUrl;
+        }
     }
 
     public static class UserPreferencesRequest {
         private Boolean emailNotificationsEnabled;
         private Boolean pushNotificationsEnabled;
-        
+
         // Getters and setters
-        public Boolean getEmailNotificationsEnabled() { return emailNotificationsEnabled; }
-        public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
-        public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
-        public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
+        public Boolean getEmailNotificationsEnabled() {
+            return emailNotificationsEnabled;
+        }
+
+        public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) {
+            this.emailNotificationsEnabled = emailNotificationsEnabled;
+        }
+
+        public Boolean getPushNotificationsEnabled() {
+            return pushNotificationsEnabled;
+        }
+
+        public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) {
+            this.pushNotificationsEnabled = pushNotificationsEnabled;
+        }
     }
 
     public static class UsernameAvailabilityResponse {
@@ -404,7 +578,12 @@ public class UserController {
             this.available = available;
         }
 
-        public boolean isAvailable() { return available; }
-        public void setAvailable(boolean available) { this.available = available; }
+        public boolean isAvailable() {
+            return available;
+        }
+
+        public void setAvailable(boolean available) {
+            this.available = available;
+        }
     }
 }

@@ -1,24 +1,37 @@
-import React, { useState } from "react";
-import { Users, UserCheck, TrendingUp, Search, User, Settings, Lock } from "lucide-react";
+
+import React, { useEffect, useState } from "react";
+import {
+  Users,
+  UserCheck,
+  TrendingUp,
+  Search,
+  User,
+  Settings,
+  Lock,
+  Power,
+} from "lucide-react";
 import dummyProfile from "../../../drawables/dummyProfile.webp";
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [users, setUsers] = useState([
-    { id: 1, name: "John Doe", email: "johnDoe@gmail.com", level: 1, date: "10/20/2025", active: true },
-    { id: 2, name: "Jane Smith", email: "janeSmith@gmail.com", level: 2, date: "10/19/2025", active: true },
-    { id: 3, name: "Mike Chen", email: "mikeChen@gmail.com", level: 1, date: "10/18/2025", active: true },
-    { id: 4, name: "Sarah Johnson", email: "sarahJ@gmail.com", level: 3, date: "10/17/2025", active: false },
-    { id: 5, name: "Emily Rodriguez", email: "emilyR@gmail.com", level: 1, date: "10/15/2025", active: true },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [toast, setToast] = useState(null);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(user.level).includes(searchTerm)
-  );
+  useEffect(() => {
+    fetch("http://localhost:8080/api/users")
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch((err) => console.error("Error fetching users:", err));
+  }, []);
+
+  const filteredUsers = users
+    .filter((user) =>
+      `${user.firstName} ${user.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+    .filter((user) => user.role !== "ADMIN");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,11 +41,92 @@ const UserManagement = () => {
     }));
   };
 
-  const handleSaveChanges = () => {
-    setUsers((prevUsers) =>
-      prevUsers.map((u) => (u.id === selectedUser.id ? selectedUser : u))
-    );
-    setSelectedUser(null);
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedUser((prev) => ({
+        ...prev,
+        profilePictureUrl: reader.result, // store as base64 temporarily
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFreezeAccount = async (e) => {
+    const freeze = e.target.checked; // true = frozen
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/users/freeze/${selectedUser.userId}?freeze=${freeze}`,
+        { method: "PUT", headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.ok) {
+        const updated = await response.json();
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.userId === updated.userId ? { ...u, isActive: updated.isActive } : u
+          )
+        );
+        setSelectedUser((prev) => ({ ...prev, isActive: updated.isActive }));
+
+        // ✅ show toast
+        setToast(
+          freeze
+            ? "Account frozen successfully ❄️"
+            : "Account reactivated ✅"
+        );
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (error) {
+      console.error("Error freezing account:", error);
+      setToast("Something went wrong ⚠️");
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const formatYearLevel = (level) => {
+    switch (level) {
+      case "1":
+        return "1st Year";
+      case "2":
+        return "2nd Year";
+      case "3":
+        return "3rd Year";
+      case "4":
+        return "4th Year";
+      default:
+        return level || "1st Year";
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/users/profile/${selectedUser.userId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName: selectedUser.firstName,
+            lastName: selectedUser.lastName,
+            profilePictureUrl: selectedUser.profilePictureUrl,
+            currentYearLevel: selectedUser.currentYearLevel,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const updated = await response.json();
+        setUsers((prev) =>
+          prev.map((u) => (u.userId === updated.userId ? updated : u))
+        );
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
   };
 
   return (
@@ -44,7 +138,7 @@ const UserManagement = () => {
           <Search className="absolute left-3 top-3 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search users by name, email, or ID..."
+            placeholder="Search users by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border bg-white border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
@@ -52,6 +146,7 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
           <div>
@@ -59,7 +154,9 @@ const UserManagement = () => {
               <Users size={20} />
               <p className="font-medium text-gray-600">Total Registered</p>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mt-1">{users.length}</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">
+              {users.filter((u) => u.role !== "ADMIN").length}
+            </p>
           </div>
         </div>
 
@@ -70,7 +167,7 @@ const UserManagement = () => {
               <p className="font-medium text-gray-600">Active This Month</p>
             </div>
             <p className="text-3xl font-bold text-gray-800 mt-1">
-              {users.filter((u) => u.active).length}
+              {users.filter((u) => u.isActive && u.role !== "ADMIN").length}
             </p>
           </div>
         </div>
@@ -87,30 +184,33 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* User List */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div className="divide-y divide-gray-100">
           {filteredUsers.map((user) => (
             <div
-              key={user.id}
+              key={user.userId}
               onClick={() => setSelectedUser(user)}
               className="flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-100 transition"
             >
               <div className="flex items-center gap-3">
-                <div className="bg-gray-200 p-2 rounded-full">
-                  <User size={22} className="text-gray-600" />
+                <div className="relative">
+                  <div className="bg-gray-200 p-2 rounded-full">
+                    <User size={22} className="text-gray-600" />
+                  </div>
+                  <span
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${user.isActive ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                  ></span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">{user.name}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
+                  <p className="font-medium text-gray-800">
+                    {user.firstName} {user.lastName}
+                  </p>
                 </div>
               </div>
-
               <div className="flex items-center gap-10">
-                <p className="text-gray-700">{user.level}</p>
-                <p className="text-gray-700">{user.date}</p>
-                <div
-                  className={`h-3 w-3 rounded-full ${user.active ? "bg-green-500" : "bg-red-400"}`}
-                ></div>
+                <p className="text-gray-700">{formatYearLevel(user.currentYearLevel)}</p>
               </div>
             </div>
           ))}
@@ -121,6 +221,7 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Modal */}
       {selectedUser && (
         <div className="fixed inset-0 backdrop-blur-lg bg-opacity-30 flex justify-center items-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-[80%] max-w-5xl p-8 border-2 border-[#3C2363] relative">
@@ -132,114 +233,118 @@ const UserManagement = () => {
             </button>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Side */}
               <div className="p-6 bg-white border border-gray-200 rounded-xl">
                 <h2 className="text-lg font-semibold text-[#3C2363] flex items-center gap-2 mb-4">
                   <User className="text-[#3C2363]" /> Account Information
                 </h2>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-row items-center">
-                    <img src={dummyProfile} alt="Profile" className="w-20 h-20 rounded-full" />
-                    <div className="flex flex-col ml-5">
-                      <p className="text-black text-lg font-semibold">Profile Picture</p>
-                      <button className="mt-2 px-3 py-1 bg-[#7A5AF8] text-white rounded-lg text-sm">
-                        Change Photo
-                      </button>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm text-gray-600">Email Address</label>
+                <div className="flex flex-col items-center">
+                  <img
+                    src={selectedUser.profilePictureUrl || dummyProfile}
+                    alt="Profile"
+                    className="w-28 h-28 rounded-full mb-3 object-cover border-2 border-[#3C2363]"
+                  />
+                  <label className="bg-[#3C2363] text-white px-3 py-1 rounded-lg cursor-pointer hover:bg-[#5a3699]">
+                    Change Photo
                     <input
-                      name="email"
-                      type="email"
-                      value={selectedUser.email}
-                      onChange={handleInputChange}
-                      className="border rounded-lg px-3 py-2 text-gray-800"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
                     />
+                  </label>
+                </div>
 
-                    <label className="text-sm text-gray-600">Display Name</label>
-                    <input
-                      name="name"
-                      type="text"
-                      value={selectedUser.name}
-                      onChange={handleInputChange}
-                      className="border rounded-lg px-3 py-2 text-gray-800"
-                    />
+                <div className="flex flex-col gap-2 mt-6">
+                  <label className="text-sm text-gray-600">First Name</label>
+                  <input
+                    name="firstName"
+                    type="text"
+                    value={selectedUser.firstName || ""}
+                    onChange={handleInputChange}
+                    className="border rounded-lg px-3 py-2 text-gray-800"
+                  />
 
-                    <label className="text-sm text-gray-600">Username</label>
-                    <input
-                      name="username"
-                      type="text"
-                      value={selectedUser.username || selectedUser.name.replace(" ", "").toLowerCase()}
-                      onChange={handleInputChange}
-                      className="border rounded-lg px-3 py-2 text-gray-800"
-                    />
+                  <label className="text-sm text-gray-600">Last Name</label>
+                  <input
+                    name="lastName"
+                    type="text"
+                    value={selectedUser.lastName || ""}
+                    onChange={handleInputChange}
+                    className="border rounded-lg px-3 py-2 text-gray-800"
+                  />
 
-                    <label className="text-sm text-gray-600">Current Academic Year Level</label>
-                    <select
-                      name="level"
-                      value={selectedUser.level}
-                      onChange={handleInputChange}
-                      className="border rounded-lg px-3 py-2 text-gray-800"
-                    >
-                      <option value={"1st Year"}>1st Year</option>
-                      <option value={"2nd Year"}>2nd Year</option>
-                      <option value={"3rd Year"}>3rd Year</option>
-                      <option value={"4th Year"}>4th Year</option>
-                    </select>
-                  </div>
+                  <label className="text-sm text-gray-600">
+                    Current Academic Year Level
+                  </label>
+                  <select
+                    name="currentYearLevel"
+                    value={selectedUser.currentYearLevel || ""}
+                    onChange={handleInputChange}
+                    className="border rounded-lg px-3 py-2 text-gray-800"
+                  >
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
+                </div>
 
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={handleSaveChanges}
-                      className="bg-[#3C2363] text-white px-4 py-2 rounded-lg hover:bg-[#5a3699]"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={() => setSelectedUser(null)}
-                      className="bg-gray-300 px-4 py-2 rounded-lg"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleSaveChanges}
+                    className="bg-[#3C2363] text-white px-4 py-2 rounded-lg hover:bg-[#5a3699]"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="bg-gray-300 px-4 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
 
-              {/* Right Panel - Admin Control */}
+              {/* Right Side - Admin Control */}
               <div className="p-6 bg-white border border-gray-200 rounded-xl">
                 <h2 className="text-lg font-semibold text-[#3C2363] flex items-center gap-2 mb-4">
                   <Settings className="text-[#3C2363]" /> Admin Control
                 </h2>
 
-                <div className="flex items-center justify-between bg-yellow-100 px-4 py-3 rounded-lg mb-6">
-                  <div className="flex items-center gap-2 text-yellow-700 font-medium">
-                    <Lock size={18} /> Freeze Account
-                  </div>
+                {/* Freeze Account */}
+                <div className="flex items-center justify-between bg-[#F8F6FD] px-4 py-3 rounded-lg border border-[#3C2363]/20 mb-4">
+                  <p className="text-[#3C2363] font-medium">Freeze Account</p>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-yellow-400 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={!selectedUser.isActive}
+                      onChange={handleFreezeAccount}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3C2363]"></div>
                   </label>
                 </div>
 
-                <div className="bg-indigo-50 rounded-xl p-5 text-center">
-                  <p className="text-sm text-[#3C2363] font-medium">Beginner Scholar</p>
-                  <p className="text-3xl font-bold text-[#3C2363] mt-1">135</p>
-                  <p className="text-sm text-red-500">+65 points to next level</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 text-center mt-6">
-                  <div>
-                    <p className="text-xl font-bold text-gray-800">{selectedUser.level}</p>
-                    <p className="text-sm text-gray-500">Level</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-gray-800">1.0</p>
-                    <p className="text-sm text-gray-500">Day Streak</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-gray-800">0.00</p>
-                    <p className="text-sm text-gray-500">Cumulative GPA</p>
+                {/* Progress Section */}
+                <div className="bg-[#F8F6FD] border border-[#3C2363]/20 rounded-lg p-5 mt-3">
+                  <p className="text-[#3C2363] font-semibold text-lg">
+                    Beginner Scholar
+                  </p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Current GPA</p>
+                      <p className="text-xl font-bold text-[#3C2363]">3.52</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Semester GPA</p>
+                      <p className="text-xl font-bold text-[#3C2363]">3.68</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Streak</p>
+                      <p className="text-xl font-bold text-[#3C2363]">7 Days</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -252,3 +357,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+
