@@ -32,9 +32,22 @@ function MainHeader({
           
           <button
             onClick={onBack}
-            className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors duration-200"
+            className="w-12 h-12 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 rounded-full hover:bg-white/30 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
+            title="Back to Dashboard"
           >
-            <span className="text-2xl font-bold">←</span>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
           </button>
           
           {/* Edit Course Button */}

@@ -5,10 +5,8 @@
 
 import React, { useState, useEffect } from "react";
 import AssessmentCard from "./AssessmentCard";
-import AIFocusIndicator from "../../../ai/components/AIFocusIndicator";
-import { generateAIRecommendations } from "../../../ai/services/geminiService";
+import { generateAIRecommendations } from "../../../ai/services/groqService";
 import { convertToGPA } from "../../academic_goal/gpaConversionUtils";
-import { getFocusIndicatorForCategory, subscribeToAIAnalysis } from "../../../ai/services/aiAnalysisService";
 // Simple grade color function to replace the deleted one
 const getGradeColor = (percentage) => {
   if (percentage >= 90) return "text-green-600";
@@ -35,25 +33,6 @@ function AssessmentCategory({
   activeSemesterTerm, // Add active semester term prop
   isMidtermCompleted // Add midterm completion status
 }) {
-  const [focusIndicator, setFocusIndicator] = useState(null);
-
-  // Subscribe to AI analysis data changes
-  useEffect(() => {
-    const unsubscribe = subscribeToAIAnalysis((analysisData) => {
-      if (analysisData) {
-        const categoryName = category.categoryName || category.name;
-        const indicator = getFocusIndicatorForCategory(categoryName);
-        setFocusIndicator(indicator);
-      }
-    });
-
-    // Get initial focus indicator
-    const categoryName = category.categoryName || category.name;
-    const indicator = getFocusIndicatorForCategory(categoryName);
-    setFocusIndicator(indicator);
-
-    return unsubscribe;
-  }, [category.categoryName, category.name]);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300 group">
@@ -111,16 +90,6 @@ function AssessmentCategory({
           </button>
         </div>
         
-        {/* AI Focus Indicator - Show for both categories with assessments and empty categories */}
-        {focusIndicator && (
-          <div className="mt-4 relative z-10">
-            <AIFocusIndicator 
-              categoryName={category.categoryName || category.name}
-              focusData={focusIndicator}
-              isVisible={true}
-            />
-          </div>
-        )}
       </div>
 
       {/* Category Content Area */}

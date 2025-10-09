@@ -11,6 +11,7 @@ import {
   getConversionDisplay, 
   getAvailableCoursesForModal
 } from "./goalModalUtils";
+import { convertToPercentage } from "../course/academic_goal/gpaConversionUtils";
 const GoalModal = ({
   isOpen,
   onClose,
@@ -24,6 +25,7 @@ const GoalModal = ({
     goalTitle: '',
     goalType: 'COURSE_GRADE',
     targetValue: '',
+    inputFormat: 'gpa', // Default to GPA input
     courseId: '',
     priority: 'MEDIUM',
     targetDate: '',
@@ -42,6 +44,7 @@ const GoalModal = ({
           goalTitle: editingGoal.goalTitle || '',
           goalType: editingGoal.goalType || 'COURSE_GRADE',
           targetValue: editingGoal.targetValue || '',
+          inputFormat: 'gpa', // Default to GPA for editing
           courseId: editingGoal.courseId || '',
           priority: editingGoal.priority || 'MEDIUM',
           targetDate: editingGoal.targetDate || '',
@@ -54,6 +57,7 @@ const GoalModal = ({
           goalTitle: '',
           goalType: 'COURSE_GRADE',
           targetValue: '',
+          inputFormat: 'gpa', // Default to GPA input
           courseId: '',
           priority: 'MEDIUM',
           targetDate: '',
@@ -187,7 +191,30 @@ const GoalModal = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      // Convert target value to percentage before saving to database
+      let processedFormData = { ...formData };
+      
+      if (formData.inputFormat === 'gpa' && formData.targetValue) {
+        // Get the course's GPA scale for conversion
+        let gpaScale = 4.0; // Default
+        if (formData.goalType === 'COURSE_GRADE' && formData.courseId) {
+          const course = courses.find(c => c.courseId === parseInt(formData.courseId));
+          if (course && course.gpaScale) {
+            gpaScale = course.gpaScale === '5.0' ? 5.0 : 4.0;
+          }
+        }
+        
+        // Convert GPA input to percentage for database storage
+        const percentageValue = convertToPercentage(parseFloat(formData.targetValue), gpaScale);
+        processedFormData.targetValue = percentageValue;
+        
+        console.log(`Converting GPA ${formData.targetValue} to percentage ${percentageValue} for database storage`);
+      }
+      
+      // Remove inputFormat from the data sent to backend (it's only for UI)
+      delete processedFormData.inputFormat;
+      
+      await onSubmit(processedFormData);
       onClose();
     } catch (error) {
       console.error('Error submitting goal:', error);
@@ -202,7 +229,8 @@ const GoalModal = ({
     formData.goalType, 
     formData.courseId, 
     formData.targetValue, 
-    courses
+    courses,
+    formData.inputFormat
   );
   const availableCourses = getAvailableCoursesForModal(
     formData.goalType, 
@@ -471,13 +499,53 @@ const GoalModal = ({
               </div>
             )}
 
+            {/* Input Format Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-800">
+                📊 Input Format
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="inputFormat"
+                    value="gpa"
+                    checked={formData.inputFormat === 'gpa'}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">🎓 GPA (0.0-4.0)</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="inputFormat"
+                    value="percentage"
+                    checked={formData.inputFormat === 'percentage'}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">📈 Percentage (0-100%)</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">
+                Choose how you want to enter your target value. GPA input will be converted to percentage for storage.
+              </p>
+            </div>
+
             {/* Target Value */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-800">
                 🎯 Target Value *
-                {formData.courseId && (
+                {formData.inputFormat === 'gpa' && (
                   <span className="text-gray-500 text-xs ml-2 font-normal">
-                    ({courses.find(c => c.courseId === parseInt(formData.courseId))?.gradingScale || 'percentage'})
+                    (GPA Scale: {formData.courseId ? 
+                      (courses.find(c => c.courseId === parseInt(formData.courseId))?.gpaScale || '4.0') : '4.0'})
+                  </span>
+                )}
+                {formData.inputFormat === 'percentage' && (
+                  <span className="text-gray-500 text-xs ml-2 font-normal">
+                    (Percentage Scale: 0-100%)
                   </span>
                 )}
               </label>
@@ -488,8 +556,13 @@ const GoalModal = ({
                   value={formData.targetValue}
                   onChange={handleInputChange}
                   className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter target value"
-                  step={inputConstraints.step}
+                  placeholder={formData.inputFormat === 'gpa' ? 'Enter GPA (e.g., 3.5)' : 'Enter percentage (e.g., 85)'}
+                  step={formData.inputFormat === 'gpa' ? 0.1 : 1}
+                  min={formData.inputFormat === 'gpa' ? 0 : 0}
+                  max={formData.inputFormat === 'gpa' ? 
+                    (formData.courseId ? 
+                      (courses.find(c => c.courseId === parseInt(formData.courseId))?.gpaScale === '5.0' ? 5 : 4) : 4) : 
+                    100}
                   required
                 />
                 {conversionDisplay && (

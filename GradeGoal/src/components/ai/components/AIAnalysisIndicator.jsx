@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { generateAIRecommendations } from "../services/geminiService";
+import { generateAIRecommendations } from "../services/groqService";
 import { checkAIAnalysisExists } from "../../../backend/api";
 import { setAIAnalysisData } from "../services/aiAnalysisService";
 import { 
@@ -100,37 +100,66 @@ const AIAnalysisIndicator = ({
 
   // Handle analysis button click
   const handleAnalysisClick = async () => {
-    if (!currentUser || !course || isAnalyzing) return;
+    const startTime = performance.now();
+    console.log('🚀 [AI INDICATOR DEBUG] Starting AI analysis click handler');
+    console.log('🚀 [AI INDICATOR DEBUG] Timestamp:', new Date().toISOString());
+    
+    if (!currentUser || !course || isAnalyzing) {
+      console.log('⚠️ [AI INDICATOR DEBUG] Analysis blocked - missing user/course or already analyzing');
+      return;
+    }
     
     setIsAnalyzing(true);
+    console.log('🔄 [AI INDICATOR DEBUG] Set analyzing state to true');
     
     try {
       // Get user profile to get database user ID
+      console.log('👤 [AI INDICATOR DEBUG] Getting user profile...');
+      const profileStart = performance.now();
       const { getUserProfile } = await import('../../../backend/api');
       const userProfile = await getUserProfile(currentUser.email);
+      console.log('👤 [AI INDICATOR DEBUG] User profile fetch took:', (performance.now() - profileStart).toFixed(2), 'ms');
       
       if (!userProfile?.userId) {
-        console.error('No user profile found for email:', currentUser.email);
+        console.error('❌ [AI INDICATOR DEBUG] No user profile found for email:', currentUser.email);
         return;
       }
       
+      console.log('✅ [AI INDICATOR DEBUG] User profile found:', {
+        userId: userProfile.userId,
+        email: currentUser.email
+      });
+      
       // Include all available grades for comprehensive AI analysis
+      console.log('📊 [AI INDICATOR DEBUG] Processing grades data...');
+      const gradesStart = performance.now();
       const filteredGrades = {};
       if (grades) {
         Object.keys(grades).forEach(categoryId => {
           const categoryGrades = grades[categoryId] || [];
           // Analyze ALL available grades, not just MIDTERM
           filteredGrades[categoryId] = categoryGrades;
-          });
-        
-        }
+        });
+        console.log('📊 [AI INDICATOR DEBUG] Grades processed:', {
+          categoriesCount: Object.keys(filteredGrades).length,
+          totalGrades: Object.values(filteredGrades).flat().length
+        });
+      } else {
+        console.warn('⚠️ [AI INDICATOR DEBUG] No grades data available');
+      }
+      console.log('📊 [AI INDICATOR DEBUG] Grades processing took:', (performance.now() - gradesStart).toFixed(2), 'ms');
 
       // Get the latest course GPA directly from the database
+      console.log('🎓 [AI INDICATOR DEBUG] Getting latest course data...');
+      const courseDataStart = performance.now();
       const { getCourseById } = await import('../../../backend/api');
       const latestCourseData = await getCourseById(course.id);
       const latestGPA = latestCourseData?.courseGpa || currentGrade || 0;
+      console.log('🎓 [AI INDICATOR DEBUG] Course data fetch took:', (performance.now() - courseDataStart).toFixed(2), 'ms');
+      console.log('🎓 [AI INDICATOR DEBUG] Latest GPA:', latestGPA);
       
       // Prepare course data for AI analysis
+      console.log('📋 [AI INDICATOR DEBUG] Preparing course data for AI analysis...');
       const courseData = {
         course: {
           ...course,
@@ -148,24 +177,55 @@ const AIAnalysisIndicator = ({
         goalType: targetGrade?.goalType || 'COURSE_GRADE'
       };
       
-      console.log('🤖 Starting AI analysis for course:', course.courseName);
+      console.log('📋 [AI INDICATOR DEBUG] Course data prepared:', {
+        courseId: courseData.course.id,
+        userId: courseData.course.userId,
+        currentGPA: courseData.currentGPA,
+        progress: courseData.progress,
+        activeSemesterTerm: courseData.activeSemesterTerm,
+        categoriesCount: courseData.categories.length,
+        gradesCount: Object.keys(courseData.grades).length
+      });
+      console.log('🎯 [AI INDICATOR DEBUG] Goal data prepared:', goalData);
+      
+      console.log('🤖 [AI INDICATOR DEBUG] Starting AI analysis for course:', course.courseName);
       
       // Clear cache to ensure fresh analysis with updated logic
-      const { clearAIAnalysisCache } = await import('../services/geminiService');
+      console.log('🗑️ [AI INDICATOR DEBUG] Clearing AI analysis cache...');
+      const { clearAIAnalysisCache } = await import('../services/groqService');
       clearAIAnalysisCache(userProfile.userId, course.id);
       
       // Generate AI recommendations
+      console.log('🚀 [AI INDICATOR DEBUG] Calling generateAIRecommendations...');
+      const aiAnalysisStart = performance.now();
       const analysisResult = await generateAIRecommendations(
         courseData, 
         goalData, 
         'HIGH'
       );
+      const aiAnalysisTime = performance.now() - aiAnalysisStart;
+      console.log('⚡ [AI INDICATOR DEBUG] AI analysis took:', aiAnalysisTime.toFixed(2), 'ms');
+      
       if (analysisResult) {
+        console.log('✅ [AI INDICATOR DEBUG] AI analysis completed successfully');
+        console.log('📊 [AI INDICATOR DEBUG] Analysis result:', {
+          userId: analysisResult.userId,
+          courseId: analysisResult.courseId,
+          recommendationType: analysisResult.recommendationType,
+          title: analysisResult.title,
+          aiGenerated: analysisResult.aiGenerated,
+          aiModel: analysisResult.aiModel
+        });
+        
         // Store the analysis data
         setAIAnalysisData(analysisResult);
         
         // Store the data hash to track changes
         storeAnalysisHash(course.id);
+        
+        // Clear any old cache to ensure fresh data
+        const { clearAIAnalysisCache } = await import('../services/groqService');
+        clearAIAnalysisCache(analysisResult.userId, analysisResult.courseId);
         
         // Update state
         setHasExistingAnalysis(true);
@@ -173,13 +233,20 @@ const AIAnalysisIndicator = ({
         
         // Notify parent component
         if (onAnalysisComplete) {
+          console.log('📢 [AI INDICATOR DEBUG] Notifying parent component of completion');
           onAnalysisComplete(analysisResult);
         }
         
-        }
+      } else {
+        console.warn('⚠️ [AI INDICATOR DEBUG] AI analysis returned no result');
+      }
     } catch (error) {
-      } finally {
+      console.error('❌ [AI INDICATOR DEBUG] Error in AI analysis:', error);
+      console.error('❌ [AI INDICATOR DEBUG] Error stack:', error.stack);
+    } finally {
       setIsAnalyzing(false);
+      console.log('🔄 [AI INDICATOR DEBUG] Set analyzing state to false');
+      console.log('✅ [AI INDICATOR DEBUG] Total analysis handler time:', (performance.now() - startTime).toFixed(2), 'ms');
     }
   };
 

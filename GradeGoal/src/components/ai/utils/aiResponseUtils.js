@@ -6,8 +6,7 @@
 import { calculateCurrentGrade, calculateGPAFromPercentage } from "./achievementProbabilityUtils.js";
 import { 
   analyzePerformancePatterns, 
-  generateRealisticPredictions, 
-  generateConsistencyRecommendations 
+  generateRealisticPredictions
 } from "./performanceAnalysisUtils.js";
 /**
  * Build comprehensive prompt for real AI analysis
@@ -76,7 +75,7 @@ ${categories.map(cat => {
   
   return `- ${cat.categoryName || cat.name} (${cat.weightPercentage || cat.weight}% weight):
     ${activeSemesterTerm} GRADES: ${currentTermGrades.length > 0 ? currentTermGrades.map(grade => 
-      `${grade.percentageScore}% (${grade.pointsEarned}/${grade.pointsPossible} points)`
+      `${grade.percentageScore}% (${grade.pointsEarned}/${grade.pointsPossible} points, maxScore: ${grade.maxScore || grade.pointsPossible})`
     ).join(', ') : 'No grades yet for this term'}`;
 }).join('\n')}
 
@@ -99,15 +98,16 @@ ANALYSIS REQUIREMENTS:
    - Each term should have distinct, contextually appropriate indicators
 
 3. **GRADE PREDICTIONS FOR UPCOMING ASSESSMENTS**: 
-   - NOT best possible grade if user attains perfect score
-   - AI prediction based on user's performance on previous assessments
+   - Base predictions on user's actual performance patterns and consistency
+   - If user has consistently achieved perfect scores, maintain that expectation
    - Consider learning curve, improvement trends, and realistic performance patterns
-   - Provide realistic predictions, not optimistic "perfect score" scenarios
+   - Provide predictions that reflect the user's demonstrated performance level
 
 4. **TARGET GOAL ANALYSIS**: Provide analysis of the target goal achievability:
    - Calculate current weighted grade % for the ${activeSemesterTerm} period
-   - Simulate realistic improvement scenarios (not perfect scores)
-   - Show minimum realistic scores needed on remaining assessments
+   - Simulate scenarios based on user's demonstrated performance patterns
+   - If user consistently achieves perfect scores, factor that into achievability calculations
+   - Show minimum scores needed on remaining assessments based on actual performance trends
    - Use GPA-to-percentage mapping rules when target is GPA (e.g., "≥97% = 4.0")
    - Consider ${activeSemesterTerm} performance as the primary focus
 
@@ -115,32 +115,60 @@ ANALYSIS REQUIREMENTS:
    - Include ${activeSemesterTerm} completion status and its impact on planning
    - Provide ${activeSemesterTerm}-specific insights and recommendations
 
-6. **FOCUS INDICATORS**: Identify which assessment categories need attention:
+6. **FOCUS INDICATORS**: Identify which assessment categories need attention based on ACTUAL USER PERFORMANCE:
+   - Analyze each category: ${categories.map(cat => cat.categoryName || cat.name).join(', ')}
+   - Focus on categories where user performance is below target or inconsistent
+   - Identify categories that need immediate attention vs those performing well
+   - Provide category-specific insights based on actual performance patterns
    - MIDTERM: Focus on current performance and completion status
    - FINAL TERM: Focus on empty categories and upcoming assessments
    - Provide term-specific, contextually appropriate indicators
 
-7. **TOP PRIORITY RECOMMENDATIONS**: Provide exactly 4 most important recommendations with:
+7. **TOP PRIORITY RECOMMENDATIONS**: Provide exactly 4 most important recommendations based on ACTUAL PERFORMANCE ANALYSIS:
+   - Analyze user's performance patterns across all categories: ${categories.map(cat => cat.categoryName || cat.name).join(', ')}
+   - PRIORITIZE recommendations based on actual performance gaps and improvement opportunities
+   - Focus on categories where user needs immediate attention or can improve significantly
    - Mix of course-specific and general academic advice
-   - PRIORITIZE course-specific recommendations (if 2-3 course-specific exist, prioritize them)
    - Priority-based ordering (HIGH, MEDIUM, LOW)
-   - Quick action buttons where applicable (e.g., "Add Study Session", "Review Notes", "Practice Problems")
    - Specific, actionable steps the student can take immediately
    - FOR UPCOMING ASSESSMENTS: Focus on preparation strategies (study plans, review materials, practice)
    - FOR COMPLETED ASSESSMENTS: Focus on improvement strategies based on actual performance
-   - FOR EMPTY CATEGORIES: Provide specific guidance on adding assessments (types, quantities, target scores)
-   - Clearly distinguish between "prepare for upcoming exam" vs "improve assignment quality" vs "add assessments to empty category"
+   - FOR CONSISTENT PERFECT PERFORMERS: Include recommendations to maintain consistency and excellence
+   - If user consistently achieves perfect scores, recommend strategies to maintain that level of performance
+   - DO NOT recommend adding assessments - students cannot control what assessments professors assign
+   - Focus only on improving performance on existing and upcoming assessments
+   - Clearly distinguish between "prepare for upcoming exam" vs "improve assignment quality"
    - DO NOT provide recommendations for non-existent upcoming assessments
+   - NO ACTION BUTTONS: Do not include actionButton fields in recommendations
+   - PERFORMANCE-BASED RECOMMENDATIONS: Base recommendations on actual performance data:
+     * If user has perfect scores (100%) in all completed assessments, focus on maintaining excellence
+     * If user has inconsistent performance, focus on specific weak areas
+     * If user has upcoming assessments, provide specific preparation strategies
+     * If user is already exceeding targets, provide advanced strategies for continued excellence
+     * Avoid generic study advice - provide specific, data-driven recommendations
+     * Consider the user's actual performance patterns, not theoretical scenarios
+   - ACTIONABLE RECOMMENDATIONS REQUIREMENTS:
+     * Provide specific steps: "Spend 2 hours daily reviewing [specific topic]" not "review key concepts"
+     * Include timeframes: "Study for 30 minutes before each quiz" not "practice regularly"
+     * Mention specific resources: "Use textbook Chapter 5 exercises" not "review materials"
+     * Give concrete actions: "Create flashcards for formulas" not "memorize important information"
+     * Include measurable goals: "Aim for 90% on next assignment" not "improve performance"
+     * Provide study techniques: "Use Pomodoro technique for 25-minute study sessions" not "study effectively"
+   - CRITICAL: ONLY recommend for categories that have upcoming/pending assessments (no grade yet)
+   - DO NOT recommend for categories where all assessments are completed
+   - Check the assessment data: only provide recommendations for categories with assessments that have no score or are marked as upcoming
 
 IMPORTANT: 
 - Current GPA: ${currentGPA} (0.0-4.0 scale)
 - Current Course Grade: ${currentGrade}% (0-100% scale)
 - Target: ${targetValue} (${goalType === 'COURSE_GRADE' ? 'percentage grade 0-100%' : 'GPA scale 0.0-4.0'})
-- Provide analysis based on realistic improvement potential
+- Provide analysis based on user's demonstrated performance patterns and consistency
+- If user consistently achieves perfect scores, factor that into success probability calculations
 - If target is percentage (0-100%), compare with current course percentage (${currentGrade}%), not GPA
 - Always base analysis on WEIGHTED PERCENTAGES of assessments (not just unweighted averages).
 - When goalType is GPA, always map the final percentage to GPA using the provided rule (e.g., "97% and above = 4.0").
 - Provide clear analysis of achievability with specific reasoning
+- For consistent perfect performers, success probability should reflect their demonstrated excellence
 
 RESPONSE FORMAT (JSON - MUST BE VALID JSON):
 {
@@ -151,9 +179,7 @@ RESPONSE FORMAT (JSON - MUST BE VALID JSON):
     "explanation": "Brief explanation"
   },
   "assessmentGradeRecommendations": {
-    "assignments": {"recommendedScore": "X%", "reasoning": "explanation", "priority": "HIGH/MEDIUM/LOW"},
-    "quizzes": {"recommendedScore": "X%", "reasoning": "explanation", "priority": "HIGH/MEDIUM/LOW"},
-    "exams": {"recommendedScore": "X%", "reasoning": "explanation", "priority": "HIGH/MEDIUM/LOW"}
+    ${categories.map(cat => `"${cat.categoryName || cat.name}": {"recommendedScore": "X%", "reasoning": "explanation", "priority": "HIGH/MEDIUM/LOW"}`).join(',\n    ')}
   },
   "targetGoalAnalysis": {
     "achievable": true/false,
@@ -175,53 +201,18 @@ RESPONSE FORMAT (JSON - MUST BE VALID JSON):
     "timeManagement": "specific time management advice"
   },
   "focusIndicators": {
-    "assignments": {"needsAttention": true/false, "reason": "explanation", "priority": "HIGH/MEDIUM/LOW"},
-    "quizzes": {"needsAttention": true/false, "reason": "explanation", "priority": "HIGH/MEDIUM/LOW"},
-    "exams": {"needsAttention": true/false, "reason": "explanation", "priority": "HIGH/MEDIUM/LOW"},
-    "emptyCategories": [
-      {
-        "categoryName": "category name",
-        "weight": "X%",
-        "needsAttention": true,
-        "reason": "This category has no assessments but represents X% of final grade",
-        "priority": "HIGH/MEDIUM/LOW",
-        "recommendations": [
-          "Add X assessments to this category",
-          "Target scores: X%+ on each assessment",
-          "Timeline: Add within X weeks"
-        ]
-      }
-    ]
+    ${categories.map(cat => `"${cat.categoryName || cat.name}": {"needsAttention": true/false, "reason": "explanation", "priority": "HIGH/MEDIUM/LOW"}`).join(',\n    ')}
   },
   "scorePredictions": {
-    "assignments": {"neededScore": "X%", "confidence": "HIGH/MEDIUM/LOW"},
-    "quizzes": {"neededScore": "X%", "confidence": "HIGH/MEDIUM/LOW"},
-    "exams": {"neededScore": "X%", "confidence": "HIGH/MEDIUM/LOW"}
+    ${categories.map(cat => `"${cat.categoryName || cat.name}": {"neededScore": "X%", "confidence": "HIGH/MEDIUM/LOW"}`).join(',\n    ')}
   },
   "topPriorityRecommendations": [
     {
       "title": "Specific recommendation title",
       "description": "Detailed explanation of the recommendation",
       "priority": "HIGH/MEDIUM/LOW",
-      "category": "COURSE_SPECIFIC/GENERAL_ACADEMIC/EMPTY_CATEGORY",
-      "actionButton": {
-        "text": "Quick action text",
-        "action": "ACTION_TYPE",
-        "enabled": true
-      },
+      "category": "COURSE_SPECIFIC/GENERAL_ACADEMIC",
       "impact": "Expected impact on grade/performance"
-    },
-    {
-      "title": "Add Assessments to [Category Name]",
-      "description": "This category represents X% of your final grade but currently has no assessments. Add X assessments with target scores of X%+ to maintain your academic goals.",
-      "priority": "HIGH/MEDIUM/LOW",
-      "category": "EMPTY_CATEGORY",
-      "actionButton": {
-        "text": "Add Assessment",
-        "action": "ADD_ASSESSMENT",
-        "enabled": true
-      },
-      "impact": "Will complete course structure and allow accurate grade calculation"
     }
   ],
   "studyStrategy": {
@@ -232,6 +223,58 @@ RESPONSE FORMAT (JSON - MUST BE VALID JSON):
 }
 
 Provide a detailed, actionable analysis that helps the student understand exactly what they need to do to reach their target goal.
+
+EXAMPLES OF GOOD ACTIONABLE RECOMMENDATIONS:
+- "Spend 45 minutes daily reviewing Database normalization concepts using Chapter 8 exercises"
+- "Create flashcards for SQL query syntax and practice 20 minutes before each quiz"
+- "Schedule 2-hour study sessions on weekends focusing on weak areas identified in Assignment 3"
+- "Use Pomodoro technique: 25 minutes study, 5 minutes break, repeat 4 times daily"
+- "Aim for 85% on next quiz by practicing past quiz questions for 30 minutes daily"
+- "Join study group meetings every Tuesday and Thursday from 7-8 PM"
+
+EXAMPLES OF BAD GENERIC RECOMMENDATIONS (DO NOT USE):
+- "Focus on reviewing and practicing key concepts" (too vague)
+- "Study more effectively" (no specific actions)
+- "Improve your performance" (no measurable steps)
+- "Review course materials" (no timeframe or specific resources)
+- "Practice regularly" (no concrete actions)
+
+EXAMPLES FOR PERFECT PERFORMERS (100% in all completed assessments):
+- "Maintain your 100% streak by continuing your current 2-hour daily study routine"
+- "Prepare for upcoming Quiz 6 by reviewing Chapters 9-10 for 45 minutes daily"
+- "Consider tutoring classmates in Database concepts to reinforce your mastery"
+- "Set goal to complete extra credit assignment by [specific date]"
+
+EXAMPLES FOR IMPROVEMENT OPPORTUNITIES:
+- "Focus on SQL JOIN operations where you scored 70% - practice 30 minutes daily using textbook exercises"
+- "Improve Assignment performance by spending 1 hour daily on weak topics identified in feedback"
+
+CRITICAL RECOMMENDATION FILTERING RULES:
+- BEFORE generating ANY recommendation, check if the category has upcoming/pending assessments
+- If a category has NO upcoming assessments (all assessments completed), DO NOT generate recommendations for it
+- Only generate recommendations for categories that have assessments with no score or marked as upcoming
+- Example: If "Exam" category has all assessments completed, DO NOT recommend "Improve Exam Performance"
+- Example: If "Laboratory Activity" has upcoming assessments, DO recommend "Enhance Laboratory Activity Performance"
+
+MANDATORY FILTERING PROCESS:
+1. For each category in the assessment data, check if there are any assessments with:
+   - score === null OR score === undefined OR score === 0
+   - status === 'PENDING' OR status === 'UPCOMING' OR status === null
+2. If NO such assessments exist in a category, that category should get NO recommendations
+3. If such assessments exist in a category, that category can get recommendations
+4. NEVER generate recommendations for categories where all assessments have scores > 0
+
+EXAMPLES OF WHAT NOT TO RECOMMEND:
+- DO NOT recommend "Focus on achieving at least 90% in the final Exam" if there are NO upcoming exams
+- DO NOT recommend for categories where all assessments are completed
+- DO NOT recommend for categories with no pending/upcoming assessments
+- ONLY recommend for categories that actually have assessments without grades or marked as upcoming
+
+SPECIFIC EXAMPLE FOR CURRENT CASE:
+- If "Exam" category has assessments: [Exam 3: 25/25, Exam 4: 25/25] (all completed with scores)
+- And "Laboratory Activity" category has assessments: [Lab 4: 25/25, Lab 5: no score yet]
+- Then: DO NOT recommend "Improve Exam Performance" (all exams completed)
+- Then: DO recommend "Enhance Laboratory Activity Performance" (Lab 5 has no score)
 
 CRITICAL JSON FORMATTING REQUIREMENTS:
 1. Your response MUST be ONLY valid JSON - no markdown, no explanations, no code blocks
@@ -389,8 +432,25 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
   
   // Analyze performance patterns for realistic predictions
   const patterns = analyzePerformancePatterns(courseData.grades, courseData.categories);
-  const predictions = generateRealisticPredictions(patterns, courseData.categories, targetGPA);
-  const consistencyRecs = generateConsistencyRecommendations(patterns, currentGPA, targetGPA);
+  const predictions = generateRealisticPredictions(patterns, courseData.categories, targetGPA, courseData);
+  
+  // Generate simple consistency recommendations based on performance
+  const consistencyRecs = {
+    priority: currentGPA >= targetGPA ? 'LOW' : 'MEDIUM',
+    recommendations: currentGPA >= targetGPA ? [
+      {
+        title: 'Maintain Excellence',
+        description: 'You\'ve achieved your target GPA! Continue your excellent performance.',
+        action: 'Keep up the great work and consider setting higher goals.'
+      }
+    ] : [
+      {
+        title: 'Focus on Improvement',
+        description: 'Continue working on areas that need improvement to reach your target GPA.',
+        action: 'Focus on upcoming assessments and maintain consistent performance.'
+      }
+    ]
+  };
   
   const gpaGap = targetGPA - currentGPA;
   const achievable = gpaGap <= 1.0;
@@ -437,19 +497,9 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       });
       
       if (!hasGrades) {
-        // Empty category - should be HIGH priority
-        emptyCategories.push({
-          categoryName: category.categoryName || category.name,
-          weight: `${category.weight}%`,
-          needsAttention: true,
-          reason: `This category has no assessments but represents ${category.weight}% of final grade and needs attention when assessments are added because it has high impact on your GPA and needs focus to get perfect scores.`,
-          priority: "HIGH",
-          recommendations: [
-            `Add ${Math.max(2, Math.ceil(category.weight / 20))} assessments to this category`,
-            `Target scores: 85%+ on each assessment`,
-            `Timeline: Add within 2 weeks`
-          ]
-        });
+        // Empty category - note it but don't recommend adding assessments
+        // Students cannot control what assessments professors assign
+        console.log(`Category ${category.categoryName || category.name} is empty - this is noted but no action recommended`);
       } else {
         // Category with assessments - analyze performance and completion status
         const totalCount = categoryGrades.length;
@@ -515,12 +565,12 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         confidence: pred.confidence,
         reasoning: pred.reasoning
       })),
-      averagePredictedScore: `${(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length).toFixed(1)}/${categoryPredictions[0]?.predictedMaxScore || 15}`,
+      averagePredictedScore: `${(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length).toFixed(1)}/${categoryPredictions[0]?.predictedMaxScore}`,
       confidence: predictions.confidence
     };
     
     assessmentRecommendations[categoryName.toLowerCase()] = {
-      recommendedScore: `${Math.round(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length)}/15`,
+      recommendedScore: `${Math.round(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length)}/${categoryPredictions[0]?.predictedMaxScore}`,
       reasoning: `Based on your ${patterns.overall.consistency.toLowerCase()} consistency performance, these are realistic predictions for upcoming ${categoryName.toLowerCase()}.`,
       priority: categoryPredictions.length > 0 ? "HIGH" : "MEDIUM"
     };
@@ -554,11 +604,6 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         description: rec.description,
         priority: consistencyRecs.priority,
         category: "PERFORMANCE_ANALYSIS",
-        actionButton: {
-          text: "View Details",
-          action: "VIEW_ANALYSIS",
-          enabled: true
-        },
         impact: rec.action
       })),
       ...(predictions.upcomingAssessments.length > 0 ? [{
@@ -566,11 +611,6 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         description: `You have ${predictions.upcomingAssessments.length} categories with upcoming assessments. Based on your performance patterns, realistic predictions have been generated.`,
         priority: "HIGH",
         category: "UPCOMING_ASSESSMENTS",
-        actionButton: {
-          text: "View Predictions",
-          action: "VIEW_PREDICTIONS",
-          enabled: true
-        },
         impact: "Will help you prepare effectively for upcoming assessments"
       }] : [])
     ],
@@ -580,7 +620,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
       tips: [
         `Your ${patterns.overall.consistency.toLowerCase()} consistency is ${patterns.overall.consistency === 'HIGH' ? 'excellent' : 'good'}`,
         `Performance trend is ${patterns.overall.trend.toLowerCase()}`,
-        "Focus on upcoming assessments in empty categories"
+        "Focus on improving performance on upcoming assessments"
       ]
     },
     realisticPredictions: predictions
@@ -600,16 +640,104 @@ export const parseAIResponse = async (aiResponse, courseData, goalData) => {
 
     const parsed = JSON.parse(jsonMatch[0]);
     
+    // Filter recommendations for categories with no upcoming assessments
+    if (parsed.topPriorityRecommendations && Array.isArray(parsed.topPriorityRecommendations)) {
+      console.log('🔍 [RECOMMENDATION FILTER DEBUG] Filtering recommendations based on upcoming assessments');
+      
+      // Get categories with upcoming assessments
+      const categoriesWithUpcoming = new Set();
+      if (courseData.categories && Array.isArray(courseData.categories)) {
+        courseData.categories.forEach(category => {
+          const categoryGrades = courseData.grades[category.id] || [];
+          const hasUpcoming = categoryGrades.some(grade => 
+            grade.score === null || grade.score === undefined || grade.score === 0 ||
+            grade.status === 'PENDING' || grade.status === 'UPCOMING' || grade.status === null
+          );
+          if (hasUpcoming) {
+            categoriesWithUpcoming.add(category.categoryName || category.name);
+          }
+        });
+      }
+      
+      console.log('🔍 [RECOMMENDATION FILTER DEBUG] Categories with upcoming assessments:', Array.from(categoriesWithUpcoming));
+      
+      // Filter recommendations
+      const originalCount = parsed.topPriorityRecommendations.length;
+      parsed.topPriorityRecommendations = parsed.topPriorityRecommendations.filter(rec => {
+        const title = rec.title || '';
+        const description = rec.description || '';
+        
+        // Check if recommendation is for a category with no upcoming assessments
+        const isForExam = title.toLowerCase().includes('exam') || description.toLowerCase().includes('exam');
+        const isForCategoryWithoutUpcoming = Array.from(categoriesWithUpcoming).some(categoryName => 
+          title.toLowerCase().includes(categoryName.toLowerCase()) || 
+          description.toLowerCase().includes(categoryName.toLowerCase())
+        );
+        
+        // Keep general recommendations and recommendations for categories with upcoming assessments
+        const shouldKeep = !isForExam || categoriesWithUpcoming.has('Exam') || isForCategoryWithoutUpcoming;
+        
+        if (!shouldKeep) {
+          console.log('🚫 [RECOMMENDATION FILTER DEBUG] Filtering out recommendation:', rec.title);
+        }
+        
+        return shouldKeep;
+      });
+      
+      console.log('🔍 [RECOMMENDATION FILTER DEBUG] Filtered recommendations:', {
+        originalCount,
+        filteredCount: parsed.topPriorityRecommendations.length,
+        removed: originalCount - parsed.topPriorityRecommendations.length
+      });
+    }
+    
+    // Post-process the AI response to fix probability calculations
+    const { postProcessAIResponse } = await import('./achievementProbabilityUtils.js');
+    const correctedParsed = postProcessAIResponse(parsed, courseData, goalData);
+    
+    // Check if the AI response is missing prediction data and generate it
+    if (!correctedParsed.scorePredictions && !correctedParsed.realisticPredictions) {
+      console.log('🔍 [PARSE DEBUG] AI response missing prediction data, generating fallback predictions');
+      
+      // Import utility functions for generating predictions
+      const { 
+        analyzePerformancePatterns, 
+        generateRealisticPredictions, 
+        generateConsistencyRecommendations 
+      } = await import('./performanceAnalysisUtils.js');
+      
+      // Analyze performance patterns
+      const patterns = analyzePerformancePatterns(courseData.grades, courseData.categories);
+      
+      // Generate realistic predictions
+      const predictions = generateRealisticPredictions(patterns, courseData.categories, 
+        goalData.goalType === 'COURSE_GRADE' ? 
+          calculateGPAFromPercentage(parseFloat(goalData.targetValue) || 100) : 
+          parseFloat(goalData.targetValue) || 4.0, 
+        courseData
+      );
+      
+      // Add the generated predictions to the response
+      correctedParsed.realisticPredictions = predictions;
+      correctedParsed.scorePredictions = predictions.predictedScores;
+      
+      console.log('🔍 [PARSE DEBUG] Generated fallback predictions:', {
+        upcomingAssessments: predictions.upcomingAssessments.length,
+        predictedScores: Object.keys(predictions.predictedScores).length,
+        confidence: predictions.confidence
+      });
+    }
+    
     return {
       courseId: courseData.course.id,
       userId: courseData.course.userId,
       recommendationType: 'AI_ANALYSIS',
       title: `AI Analysis for ${courseData.course.courseName}`,
-      content: JSON.stringify(parsed),
-      priority: determinePriority(parsed),
+      content: JSON.stringify(correctedParsed),
+      priority: determinePriority(correctedParsed),
       aiGenerated: true,
       generatedAt: new Date().toISOString(),
-      ...parsed
+      ...correctedParsed
     };
     } catch (error) {
       console.error('Error parsing AI response:', error);

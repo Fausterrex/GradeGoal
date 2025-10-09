@@ -23,28 +23,59 @@ const API_BASE_URL =
  * @returns {Promise<Object>} Save result
  */
 export async function saveAIAnalysis(userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS', aiModel = 'gemini-2.0-flash-exp', confidence = 0.85) {
+  const startTime = performance.now();
+  console.log('🌐 [API DEBUG] Starting saveAIAnalysis API call');
+  console.log('🌐 [API DEBUG] Request parameters:', {
+    userId,
+    courseId,
+    analysisType,
+    aiModel,
+    confidence,
+    analysisDataKeys: Object.keys(analysisData || {}),
+    analysisDataSize: JSON.stringify(analysisData || {}).length,
+    apiUrl: `${API_BASE_URL}/api/recommendations/save-ai-analysis`
+  });
+  
+  const requestBody = {
+    userId,
+    courseId,
+    analysisData: analysisData, // Pass as object, not string
+    aiModel,
+    confidence
+  };
+  
+  console.log('🌐 [API DEBUG] Request body size:', JSON.stringify(requestBody).length, 'characters');
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/save-ai-analysis`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      userId,
-      courseId,
-      analysisData: analysisData, // Pass as object, not string
-      aiModel,
-      confidence
-    }),
+    body: JSON.stringify(requestBody),
   });
+  
+  const responseTime = performance.now() - startTime;
+  console.log('🌐 [API DEBUG] Response received in:', responseTime.toFixed(2), 'ms');
+  console.log('🌐 [API DEBUG] Response status:', response.status, response.statusText);
   
   if (!response.ok) {
     const text = await response.text().catch(() => "");
+    console.error('❌ [API DEBUG] API call failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      responseText: text,
+      url: `${API_BASE_URL}/api/recommendations/save-ai-analysis`
+    });
     throw new Error(
       text || `Failed to save AI analysis with status ${response.status}`
     );
   }
   
-  return response.json();
+  const responseData = await response.json();
+  console.log('✅ [API DEBUG] API call successful:', responseData);
+  console.log('✅ [API DEBUG] Total API call time:', (performance.now() - startTime).toFixed(2), 'ms');
+  
+  return responseData;
 }
 
 /**
@@ -144,40 +175,7 @@ export async function dismissRecommendation(recommendationId) {
 // LEGACY AI ANALYSIS FUNCTIONS
 // ========================================
 
-/**
- * Get AI analysis from database (legacy function - now redirects to recommendations)
- * @deprecated Use getAIRecommendationsForCourse instead
- * @param {number} userId - User ID
- * @param {number} courseId - Course ID
- * @returns {Promise<Object>} AI analysis data
- */
-export async function getAIAnalysis(userId, courseId) {
-  // Redirect to recommendations table
-  return await getAIRecommendationsForCourse(userId, courseId);
-}
 
-/**
- * Check if AI analysis exists (legacy function - now checks recommendations)
- * @deprecated Use getAIRecommendationsForCourse instead
- * @param {number} userId - User ID
- * @param {number} courseId - Course ID
- * @returns {Promise<Object>} Analysis existence check result
- */
-export async function checkAIAnalysisExists(userId, courseId) {
-  try {
-    const response = await getAIRecommendationsForCourse(userId, courseId);
-    return {
-      success: true,
-      exists: response.success && response.recommendations && response.recommendations.length > 0
-    };
-  } catch (error) {
-    return {
-      success: false,
-      exists: false,
-      error: error.message
-    };
-  }
-}
 
 // ========================================
 // AI ASSESSMENT PREDICTIONS
@@ -249,4 +247,100 @@ export async function getAIAssessmentPredictions(userId, courseId) {
   }
   
   return response.json();
+}
+
+// ========================================
+// AI ANALYSIS FUNCTIONS FOR MAIN DASHBOARD
+// ========================================
+
+/**
+ * Check if AI analysis exists for a course
+ * @param {number} userId - User ID
+ * @param {number} courseId - Course ID
+ * @returns {Promise<Object>} Check result
+ */
+export async function checkAIAnalysisExists(userId, courseId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        exists: false,
+        error: `HTTP ${response.status}`
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      success: true,
+      exists: data.success && data.recommendations && data.recommendations.length > 0
+    };
+  } catch (error) {
+    return {
+      success: false,
+      exists: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Get AI analysis for a course
+ * @param {number} userId - User ID
+ * @param {number} courseId - Course ID
+ * @returns {Promise<Object>} AI analysis data
+ */
+export async function getAIAnalysis(userId, courseId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        hasAnalysis: false,
+        error: `HTTP ${response.status}`
+      };
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.recommendations && data.recommendations.length > 0) {
+      // Get the most recent AI analysis
+      const latestAnalysis = data.recommendations[0];
+      
+      return {
+        success: true,
+        hasAnalysis: true,
+        analysis: {
+          analysisData: latestAnalysis.content,
+          createdAt: latestAnalysis.createdAt,
+          updatedAt: latestAnalysis.updatedAt,
+          aiConfidence: latestAnalysis.aiConfidence || 0.85,
+          aiModel: latestAnalysis.aiModel || 'gemini-2.0-flash-exp'
+        }
+      };
+    }
+    
+    return {
+      success: true,
+      hasAnalysis: false
+    };
+  } catch (error) {
+    return {
+      success: false,
+      hasAnalysis: false,
+      error: error.message
+    };
+  }
 }

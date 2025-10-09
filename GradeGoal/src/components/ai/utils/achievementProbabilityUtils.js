@@ -2,6 +2,7 @@
 // ACHIEVEMENT PROBABILITY UTILITIES
 // ========================================
 // Utility functions for calculating achievement probability and related metrics
+// Updated: 2025-01-06 - Fixed duplicate function declaration
 
 import DatabaseGradeService from "../../services/databaseGradeService.js";
 /**
@@ -32,7 +33,7 @@ export const calculateMaxPossibleGrade = (grades, categories) => {
     const categoryGrades = gradesArray.filter(g => g.categoryId === category.id);
     
     if (categoryGrades.length > 0) {
-      // Filter out ungraded/placeholder assessments (0% scores)
+      // Separate graded and ungraded assessments
       const gradedAssessments = categoryGrades.filter(g => {
         let percentage = g.percentage;
         if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
@@ -41,38 +42,60 @@ export const calculateMaxPossibleGrade = (grades, categories) => {
         return percentage > 0;
       });
       
-      if (gradedAssessments.length > 0) {
-        // Calculate current average for this category
-        const categoryAverage = gradedAssessments.reduce((sum, g) => {
-          let percentage = g.percentage;
-          if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
-            percentage = (g.score / g.maxScore) * 100;
-          }
-          return sum + (percentage || 0);
-        }, 0) / gradedAssessments.length;
+      const ungradedAssessments = categoryGrades.filter(g => {
+        let percentage = g.percentage;
+        if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
+          percentage = (g.score / g.maxScore) * 100;
+        }
+        return percentage === 0 || percentage === null || percentage === undefined;
+      });
+      
+      // Process categories that have either graded or ungraded assessments
+      if (gradedAssessments.length > 0 || ungradedAssessments.length > 0) {
+        let maxCategoryAverage = 0;
         
-        // For max possible, assume perfect scores on remaining assessments
-        // This means the category average becomes 100% if there are any ungraded assessments
-        const hasUngradedAssessments = categoryGrades.some(g => {
-          let percentage = g.percentage;
-          if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
-            percentage = (g.score / g.maxScore) * 100;
-          }
-          return percentage === 0;
-        });
-        
-        const maxCategoryAverage = hasUngradedAssessments ? 100 : categoryAverage;
+        if (gradedAssessments.length > 0 && ungradedAssessments.length > 0) {
+          // Calculate weighted average: keep current scores for graded + perfect scores for ungraded
+          const currentGradedTotal = gradedAssessments.reduce((sum, g) => {
+            let percentage = g.percentage;
+            if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
+              percentage = (g.score / g.maxScore) * 100;
+            }
+            return sum + (percentage || 0);
+          }, 0);
+          
+          const perfectUngradedTotal = ungradedAssessments.length * 100; // Perfect scores for ungraded
+          const totalAssessments = categoryGrades.length;
+          
+          maxCategoryAverage = (currentGradedTotal + perfectUngradedTotal) / totalAssessments;
+          
+          // Mixed category calculation: current scores + perfect scores for ungraded
+        } else if (ungradedAssessments.length > 0) {
+          // Only ungraded assessments, max possible is 100%
+          maxCategoryAverage = 100;
+        } else {
+          // Only graded assessments, use current average
+          maxCategoryAverage = gradedAssessments.reduce((sum, g) => {
+            let percentage = g.percentage;
+            if (!percentage && g.score !== undefined && g.maxScore !== undefined) {
+              percentage = (g.score / g.maxScore) * 100;
+            }
+            return sum + (percentage || 0);
+          }, 0) / gradedAssessments.length;
+        }
         
         if (maxCategoryAverage > 0) {
           const weightedScore = (maxCategoryAverage * category.weight / 100);
           totalWeightedScore += weightedScore;
           totalWeight += category.weight;
+          // Added to total weighted score
         }
       } else {
         // No graded assessments, assume perfect scores
         const weightedScore = (100 * category.weight / 100);
         totalWeightedScore += weightedScore;
         totalWeight += category.weight;
+        // No assessments - assumed perfect
       }
     } else {
       // No assessments in this category, assume perfect scores
@@ -84,9 +107,11 @@ export const calculateMaxPossibleGrade = (grades, categories) => {
   
   // Calculate the final grade as a percentage
   if (totalWeight > 0) {
-    return (totalWeightedScore / totalWeight);
+    const finalGrade = (totalWeightedScore / totalWeight) * 100;
+    return finalGrade;
   }
   
+  // No total weight - returning 0
   return 0;
 };
 
@@ -94,18 +119,14 @@ export const calculateMaxPossibleGrade = (grades, categories) => {
  * Calculate GPA from percentage (fallback function matching database logic)
  */
 export const calculateGPAFromPercentage = (percentage) => {
-  if (percentage >= 97) return 4.00;
-  if (percentage >= 93) return 3.70;
-  if (percentage >= 90) return 3.30;
-  if (percentage >= 87) return 3.00;
-  if (percentage >= 83) return 2.70;
-  if (percentage >= 80) return 2.30;
-  if (percentage >= 77) return 2.00;
-  if (percentage >= 73) return 1.70;
-  if (percentage >= 70) return 1.30;
-  if (percentage >= 67) return 1.00;
-  if (percentage >= 65) return 0.70;
-  return 0.00;
+  if (percentage >= 95.5) return 4.00;
+  if (percentage >= 89.5) return 3.50;
+  if (percentage >= 83.5) return 3.00;
+  if (percentage >= 77.5) return 2.50;
+  if (percentage >= 71.5) return 2.00;
+  if (percentage >= 65.5) return 1.50;
+  if (percentage >= 59.5) return 1.00;
+  return 0.00; // Below 59.5% = R (Remedial/Fail) - represented as 0.00 in frontend
 };
 
 /**
@@ -136,6 +157,8 @@ export const calculateCurrentGrade = (grades, categories) => {
     // Filter grades by categoryId (more reliable than categoryName)
     const categoryGrades = gradesArray.filter(g => g.categoryId === category.id);
     
+    // Processing category
+    
     if (categoryGrades.length > 0) {
       // Filter out ungraded/placeholder assessments (0% scores)
       const gradedAssessments = categoryGrades.filter(g => {
@@ -146,6 +169,8 @@ export const calculateCurrentGrade = (grades, categories) => {
         // Exclude assessments with 0% score (ungraded/placeholder)
         return percentage > 0;
       });
+      
+      // Processing graded assessments
       
       if (gradedAssessments.length > 0) {
         // Calculate percentage from score and maxScore if percentage is not available
@@ -170,9 +195,11 @@ export const calculateCurrentGrade = (grades, categories) => {
   // Calculate the final grade as a percentage
   // Convert weighted score to percentage based on completed work
   if (totalWeight > 0) {
-    return (totalWeightedScore / totalWeight);
+    const finalGrade = (totalWeightedScore / totalWeight) * 100;
+    return finalGrade;
   }
   
+  // No total weight - returning 0
   return 0;
 };
 
@@ -285,12 +312,6 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
       probability: hasEmptyCategories ? 85 : 75, // Higher probability if empty categories exist
       bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
       confidence: hasEmptyCategories ? "HIGH" : "MEDIUM"
-    };
-  } else {
-    return {
-      probability: 0,
-      bestPossibleGPA: Math.min(currentGPA + totalPotential, 4.0),
-      confidence: "LOW"
     };
   }
 
@@ -656,9 +677,22 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
  * Post-process AI response to fix incorrect probability calculations
  */
 export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
+  console.log('🔍 [POST-PROCESS DEBUG] Starting post-processing with:', {
+    currentGPA: courseData.currentGPA,
+    goalType: goalData.goalType,
+    targetValue: goalData.targetValue,
+    gradesCount: Object.keys(courseData.grades || {}).length,
+    categoriesCount: courseData.categories?.length || 0
+  });
+  
   const currentGrade = calculateCurrentGrade(courseData.grades, courseData.categories);
   // Use the course GPA directly from the database (already calculated and stored)
   const currentGPA = parseFloat(courseData.currentGPA) || 0;
+  
+  console.log('🔍 [POST-PROCESS DEBUG] Calculated values:', {
+    currentGrade: currentGrade.toFixed(2),
+    currentGPA: currentGPA.toFixed(2)
+  });
 
   let targetGPA, gpaGap;
   if (goalData.goalType === 'COURSE_GRADE') {
@@ -674,23 +708,45 @@ export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
   const maxAchievableGPA = calculateGPAFromPercentage(maxAchievableGrade);
 
   let correctProbability;
-  let bestPossibleGPA = maxAchievableGPA; // Default to max achievable GPA
+  // Always use the correctly calculated maxAchievableGPA as bestPossibleGPA
+  // This ensures consistency with the assessment card's GPA Impact Analysis
+  let bestPossibleGPA = maxAchievableGPA;
 
-  if (currentGPA >= targetGPA) {
+  // Ensure we're comparing numbers, not strings
+  const currentGPANum = parseFloat(currentGPA);
+  const targetGPANum = parseFloat(targetGPA);
+  const bestPossibleGPANum = parseFloat(bestPossibleGPA);
+
+  if (currentGPANum >= targetGPANum) {
     // Already at or above target
     correctProbability = 100;
+  } else if (bestPossibleGPANum >= targetGPANum) {
+    // Target is achievable with perfect performance on remaining assessments
+    correctProbability = 100;
   } else {
-    // Always use realistic assessment scenarios, even if target seems unreachable
-    // This accounts for potential future assessments and gives more optimistic probabilities
-    const realisticResult = calculateRealisticAchievementProbability(
-      currentGPA, 
-      targetGPA, 
-      courseData.categories, 
-      courseData.grades
-    );
-    correctProbability = realisticResult.probability;
-    bestPossibleGPA = realisticResult.bestPossibleGPA;
+    // Target is not achievable even with perfect performance
+    // Calculate probability based on how close we can get
+    // Since GPA scale uses 0.5 increments only, adjust probability accordingly
+    const gap = targetGPANum - bestPossibleGPANum;
+    if (gap <= 0.5) {
+      correctProbability = 80; // One GPA level away (0.5 gap)
+    } else if (gap <= 1.0) {
+      correctProbability = 60; // Two GPA levels away (1.0 gap)
+    } else if (gap <= 1.5) {
+      correctProbability = 40; // Three GPA levels away (1.5 gap)
+    } else if (gap <= 2.0) {
+      correctProbability = 25; // Four GPA levels away (2.0 gap)
+    } else {
+      correctProbability = 10; // Very large gap (2.5+ gap)
+    }
   }
+
+  console.log('🔍 [POST-PROCESS DEBUG] Final probability calculation:', {
+    correctProbability,
+    bestPossibleGPA: bestPossibleGPA.toFixed(2),
+    maxAchievableGPA: maxAchievableGPA.toFixed(2),
+    gpaGap: gpaGap.toFixed(2)
+  });
 
   parsedAnalysis.targetGoalProbability = {
     probability: `${correctProbability}%`,

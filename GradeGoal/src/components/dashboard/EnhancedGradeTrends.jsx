@@ -14,8 +14,7 @@ import {
   ResponsiveContainer,
   LineChart,
 } from "recharts";
-// Removed GradeService import import { getCourseColorScheme } from "../utils/courseColors";
-// Removed grade calculations import // Removed all GPA calculation imports
+import { getCourseColorScheme } from "../utils/courseColors";
 import {
   getAcademicGoalsByUserId,
   getUserProfile,

@@ -80,7 +80,31 @@ function AssessmentCategories({
         const categoryGrades = (grades[category.id] || []).filter(grade => 
           grade.semesterTerm === activeSemesterTerm
         );
-        const categoryAverage = categoryAverages[category.id] || null;
+        let categoryAverage = categoryAverages[category.id] || null;
+        
+        // Fix category average calculation - only include completed assessments
+        if (categoryAverage !== null && categoryGrades.length > 0) {
+          const completedGrades = categoryGrades.filter(grade => 
+            grade.score !== null && grade.score !== undefined && grade.score > 0
+          );
+          
+          if (completedGrades.length > 0) {
+            // Calculate average from completed assessments only
+            const completedAverage = completedGrades.reduce((sum, grade) => {
+              let percentage = grade.percentage;
+              if (!percentage && grade.score !== undefined && grade.maxScore !== undefined) {
+                percentage = (grade.score / grade.maxScore) * 100;
+              }
+              return sum + (percentage || 0);
+            }, 0) / completedGrades.length;
+            
+            // Use the corrected average if it's different from the database calculation
+            if (Math.abs(completedAverage - categoryAverage) > 1) {
+              console.log('🔧 [CATEGORY AVERAGE DEBUG] Correcting category average for', category.name, 'from', categoryAverage.toFixed(1) + '%', 'to', completedAverage.toFixed(1) + '%');
+              categoryAverage = completedAverage;
+            }
+          }
+        }
 
         return (
           <AssessmentCategory

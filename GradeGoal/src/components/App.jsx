@@ -12,6 +12,7 @@ import Landingpage from "./auth/landingpage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AchievementProvider, useAchievementNotifications } from "./context/AchievementContext";
 import { YearLevelProvider } from "./context/YearLevelContext";
+import { SemesterProvider } from "./context/SemesterContext";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainDashboard from "./dashboard/MainDashboard";
 import PrivateRoute from "./PrivateRoute";
@@ -45,7 +46,7 @@ function AppRoutes() {
   // Handle case where useAuth returns undefined
   if (!auth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-green-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Initializing...</p>
@@ -59,7 +60,7 @@ function AppRoutes() {
   // Show loading spinner while determining user role
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-green-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -286,10 +287,11 @@ function App() {
             ======================================== */}
         <AchievementProvider>
           <YearLevelProvider>
+            <SemesterProvider>
             {/* ========================================
                 MAIN APP CONTAINER
                 ======================================== */}
-            <div className="min-h-screen flex flex-col bg-green-100">
+            <div className="min-h-screen flex flex-col bg-white">
             {/* ========================================
                 MAIN CONTENT AREA
                 ======================================== */}
@@ -305,6 +307,7 @@ function App() {
                 ======================================== */}
             <AchievementModalManager />
             </div>
+            </SemesterProvider>
           </YearLevelProvider>
         </AchievementProvider>
         </AuthProvider>

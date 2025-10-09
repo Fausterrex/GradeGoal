@@ -382,6 +382,25 @@ public class CourseControllerNew {
         }
     }
 
+    @PutMapping("/{courseId}/complete-with-rating")
+    public ResponseEntity<Course> completeCourseWithRating(
+            @PathVariable Long courseId, 
+            @RequestBody Map<String, Integer> request) {
+        try {
+            Integer aiPredictionRating = request.get("aiPredictionRating");
+            Course completedCourse = courseService.completeCourseWithRating(courseId, aiPredictionRating);
+            if (completedCourse != null) {
+                return ResponseEntity.ok(completedCourse);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @PutMapping("/{courseId}/uncomplete")
     public ResponseEntity<Course> uncompleteCourse(@PathVariable Long courseId) {
         try {

@@ -16,7 +16,7 @@ public class UserProgress {
     private Integer totalPoints = 0;
     
     @Column(name = "current_level", nullable = false)
-    private Integer currentLevel = 1;
+    private Integer currentLevel = 0;
     
     @Column(name = "points_to_next_level", nullable = false)
     private Integer pointsToNextLevel = 100;
@@ -52,7 +52,7 @@ public class UserProgress {
     public UserProgress(Long userId) {
         this.userId = userId;
         this.totalPoints = 0;
-        this.currentLevel = 1;
+        this.currentLevel = 0;
         this.pointsToNextLevel = 100;
         this.streakDays = 0;
         this.semesterGpa = 0.00;

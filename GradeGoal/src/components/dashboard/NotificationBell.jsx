@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaBell, FaTimes, FaTrophy, FaCheckCircle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAchievementNotifications } from "../context/AchievementContext";
 const NotificationBell = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fastPolling, setFastPolling] = useState(false);
   const dropdownRef = useRef(null);
+  const previousNotificationCountRef = useRef(0); // Fixed: using ref instead of state
+  const isInitialLoadRef = useRef(true); // Track if this is the first load
+  const { showAchievementNotification } = useAchievementNotifications();
 
   const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
     (import.meta.env.DEV ? '' : 'http://localhost:8080');
@@ -21,7 +26,46 @@ const NotificationBell = ({ userId }) => {
       const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`);
       if (response.ok) {
         const data = await response.json();
+        
+        // Check for new achievement notifications
+        const hasNewNotifications = data.length > previousNotificationCountRef.current;
+        
+        // Only trigger modals for new notifications, not on initial page load
+        if (hasNewNotifications && !isInitialLoadRef.current) {
+          const newNotifications = data.slice(previousNotificationCountRef.current);
+          const achievementNotifications = newNotifications.filter(n => 
+            n.notificationType === 'ACHIEVEMENT' && n.actionData && !n.isRead
+          );
+          
+          // Trigger achievement modals for new achievement notifications
+          achievementNotifications.forEach(notification => {
+            try {
+              const actionData = JSON.parse(notification.actionData);
+              const achievement = {
+                achievementId: actionData.achievementId,
+                achievementName: actionData.achievementName,
+                description: notification.message.replace(`You earned '${actionData.achievementName}' - `, ''),
+                pointsValue: actionData.points,
+                rarity: actionData.rarity,
+                category: actionData.category
+              };
+              
+              showAchievementNotification(achievement);
+            } catch (error) {
+              console.error('Error parsing achievement notification:', error, notification);
+            }
+          });
+        }
+        
         setNotifications(data);
+        
+        // Update previous count AFTER processing new notifications
+        previousNotificationCountRef.current = data.length;
+        
+        // Mark that initial load is complete
+        if (isInitialLoadRef.current) {
+          isInitialLoadRef.current = false;
+        }
         
         // Count unread
         const unreadCount = data.filter(n => !n.isRead).length;
@@ -102,7 +146,10 @@ const NotificationBell = ({ userId }) => {
       fetchUnreadCount();
     }
     
-    const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications(); // Use fetchNotifications instead of just fetchUnreadCount
+      fetchUnreadCount();
+    }, fastPolling ? 5000 : 30000); // Fast polling (5s) or normal polling (30s)
     return () => clearInterval(interval);
   }, [userId]);
 
@@ -113,6 +160,80 @@ const NotificationBell = ({ userId }) => {
       fetchNotifications();
     }
   };
+
+  // Trigger fast polling for achievement detection
+  const triggerFastPolling = () => {
+    setFastPolling(true);
+    // Stop fast polling after 2 minutes
+    setTimeout(() => {
+      setFastPolling(false);
+    }, 120000);
+  };
+
+  // Manual trigger for existing achievement notifications
+  const triggerExistingAchievementModals = () => {
+    // Get only unread achievement notifications
+    const achievementNotifications = notifications.filter(n => 
+      n.notificationType === 'ACHIEVEMENT' && n.actionData && !n.isRead
+    );
+    
+    achievementNotifications.forEach(notification => {
+      try {
+        const actionData = JSON.parse(notification.actionData);
+        const achievement = {
+          achievementId: actionData.achievementId,
+          achievementName: actionData.achievementName,
+          description: notification.message.replace(`You earned '${actionData.achievementName}' - `, ''),
+          pointsValue: actionData.points,
+          rarity: actionData.rarity,
+          category: actionData.category
+        };
+        
+        showAchievementNotification(achievement);
+      } catch (error) {
+        console.error('Error parsing achievement notification:', error, notification);
+      }
+    });
+  };
+
+  // Trigger specific achievement modal (for testing)
+  const triggerSpecificAchievementModal = (achievementName) => {
+    const achievementNotification = notifications.find(n => 
+      n.notificationType === 'ACHIEVEMENT' && 
+      n.actionData && 
+      n.message.includes(achievementName)
+    );
+    
+    if (achievementNotification) {
+      try {
+        const actionData = JSON.parse(achievementNotification.actionData);
+        const achievement = {
+          achievementId: actionData.achievementId,
+          achievementName: actionData.achievementName,
+          description: achievementNotification.message.replace(`You earned '${actionData.achievementName}' - `, ''),
+          pointsValue: actionData.points,
+          rarity: actionData.rarity,
+          category: actionData.category
+        };
+        
+        showAchievementNotification(achievement);
+      } catch (error) {
+        console.error('Error parsing achievement notification:', error, achievementNotification);
+      }
+    }
+  };
+
+  // Expose functions for external use
+  useEffect(() => {
+    window.triggerAchievementPolling = triggerFastPolling;
+    window.triggerExistingAchievementModals = triggerExistingAchievementModals;
+    window.triggerSpecificAchievementModal = triggerSpecificAchievementModal;
+    return () => {
+      delete window.triggerAchievementPolling;
+      delete window.triggerExistingAchievementModals;
+      delete window.triggerSpecificAchievementModal;
+    };
+  }, [notifications]);
 
   // Get notification icon based on type
   const getNotificationIcon = (type, actionData) => {

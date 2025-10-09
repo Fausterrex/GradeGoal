@@ -7,18 +7,14 @@ import React, { useState } from "react";
 import { Target, TrendingUp, Info, X, Calculator, Award } from "lucide-react";
 // GPA conversion function that matches the database CalculateGPA() function
 const calculateGPAFromPercentage = (percentage) => {
-  if (percentage >= 97) return 4.00;
-  if (percentage >= 93) return 3.70;
-  if (percentage >= 90) return 3.30;  // 91.67% will get 3.30
-  if (percentage >= 87) return 3.00;
-  if (percentage >= 83) return 2.70;
-  if (percentage >= 80) return 2.30;
-  if (percentage >= 77) return 2.00;
-  if (percentage >= 73) return 1.70;
-  if (percentage >= 70) return 1.30;
-  if (percentage >= 67) return 1.00;
-  if (percentage >= 65) return 0.70;
-  return 0.00;
+  if (percentage >= 95.5) return 4.00;
+  if (percentage >= 89.5) return 3.50;
+  if (percentage >= 83.5) return 3.00;
+  if (percentage >= 77.5) return 2.50;
+  if (percentage >= 71.5) return 2.00;
+  if (percentage >= 65.5) return 1.50;
+  if (percentage >= 59.5) return 1.00;
+  return 0.00; // Below 59.5% = R (Remedial/Fail) - represented as 0.00 in frontend
 };
 
 const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseData = null }) => {
@@ -156,10 +152,8 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       }
     });
     
-    // Normalize the weighted average for excluded categories
-    if (totalWeight > 0 && totalWeight < 100) {
-      currentWeightedAverage = (currentWeightedAverage / totalWeight) * 100;
-    }
+    // Don't normalize - use the actual weighted average as calculated
+    // The weighted average should already be in the correct range (0-100)
     
     
     // Calculate what the new weighted average would be with perfect score in this category
@@ -232,10 +226,8 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       }
     });
     
-    // Normalize the new weighted average for excluded categories
-    if (newTotalWeight > 0 && newTotalWeight < 100) {
-      newWeightedAverage = (newWeightedAverage / newTotalWeight) * 100;
-    }
+    // Don't normalize - use the actual weighted average as calculated
+    // The weighted average should already be in the correct range (0-100)
     
     
     // Use the actual course GPA instead of recalculating from weighted average
@@ -308,9 +300,7 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       }
     });
     
-    if (totalWeight > 0 && totalWeight < 100) {
-      currentWeightedAverage = (currentWeightedAverage / totalWeight) * 100;
-    }
+    // Don't normalize - use the actual weighted average as calculated
     
     // Calculate perfect score scenario
     let perfectWeightedAverage = 0;
@@ -376,9 +366,7 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
       }
     });
     
-    if (perfectTotalWeight > 0 && perfectTotalWeight < 100) {
-      perfectWeightedAverage = (perfectWeightedAverage / perfectTotalWeight) * 100;
-    }
+    // Don't normalize - use the actual weighted average as calculated
     
     const perfectGPA = calculateGPAFromPercentage(perfectWeightedAverage);
     const perfectImprovement = perfectGPA - currentGPAValue;

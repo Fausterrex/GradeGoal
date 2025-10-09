@@ -28,7 +28,7 @@ export const validateGoalForm = (formData, courses, existingGoals, editingGoal) 
   if (formData.goalType === 'COURSE_GRADE' && formData.courseId) {
     const course = courses.find(c => c.courseId === parseInt(formData.courseId));
     if (course) {
-      const validation = validateTargetValue(targetValue, course);
+      const validation = validateTargetValue(targetValue, course, formData.inputFormat);
       if (validation.error) {
         errors.push(validation.error);
       }
@@ -85,21 +85,34 @@ export const validateGoalForm = (formData, courses, existingGoals, editingGoal) 
 };
 
 /**
- * Validate target value based on course grading scale
+ * Validate target value based on course grading scale and input format
  */
-export const validateTargetValue = (targetValue, course) => {
-  if (course.gradingScale === 'percentage') {
-    if (targetValue < 0 || targetValue > 100) {
-      return { error: 'Target percentage must be between 0 and 100' };
-    }
-  } else if (course.gradingScale === 'gpa') {
+export const validateTargetValue = (targetValue, course, inputFormat = null) => {
+  // If inputFormat is specified, validate based on that format
+  if (inputFormat === 'gpa') {
     const maxGPA = course.gpaScale === '5.0' ? 5.0 : 4.0;
     if (targetValue < 0 || targetValue > maxGPA) {
       return { error: `Target GPA must be between 0 and ${maxGPA}` };
     }
-  } else if (course.gradingScale === 'points') {
-    if (targetValue < 0 || targetValue > course.maxPoints) {
-      return { error: `Target points must be between 0 and ${course.maxPoints}` };
+  } else if (inputFormat === 'percentage') {
+    if (targetValue < 0 || targetValue > 100) {
+      return { error: 'Target percentage must be between 0 and 100' };
+    }
+  } else {
+    // Fallback to course grading scale validation
+    if (course.gradingScale === 'percentage') {
+      if (targetValue < 0 || targetValue > 100) {
+        return { error: 'Target percentage must be between 0 and 100' };
+      }
+    } else if (course.gradingScale === 'gpa') {
+      const maxGPA = course.gpaScale === '5.0' ? 5.0 : 4.0;
+      if (targetValue < 0 || targetValue > maxGPA) {
+        return { error: `Target GPA must be between 0 and ${maxGPA}` };
+      }
+    } else if (course.gradingScale === 'points') {
+      if (targetValue < 0 || targetValue > course.maxPoints) {
+        return { error: `Target points must be between 0 and ${course.maxPoints}` };
+      }
     }
   }
   
@@ -128,13 +141,15 @@ export const getInputConstraints = (goalType, courseId, courses) => {
 /**
  * Get conversion display text for target value
  */
-export const getConversionDisplay = (goalType, courseId, targetValue, courses) => {
+export const getConversionDisplay = (goalType, courseId, targetValue, courses, inputFormat = null) => {
   if (goalType === 'COURSE_GRADE' && courseId && targetValue) {
     const course = courses.find(c => c.courseId === parseInt(courseId));
     if (course && targetValue) {
       const numValue = parseFloat(targetValue);
       const gpaScale = course.gpaScale === '5.0' ? 5.0 : 4.0;
-      const format = detectValueFormat(numValue, gpaScale);
+      
+      // Use inputFormat if provided, otherwise detect format
+      const format = inputFormat || detectValueFormat(numValue, gpaScale);
       
       if (format === 'gpa') {
         // Input is GPA, show percentage conversion

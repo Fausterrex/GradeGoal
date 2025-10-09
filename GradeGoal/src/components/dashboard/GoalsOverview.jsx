@@ -29,11 +29,13 @@ import {
   checkAIAnalysisExists
 } from "../../backend/api";
 import { useAuth } from "../context/AuthContext";
+import { useYearLevel } from "../context/YearLevelContext";
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from "../course/academic_goal/goalProgress";
 import { convertToGPA } from "../course/academic_goal/gpaConversionUtils";
 import { getAchievementProbability, getAchievementProbabilityFromData, loadAIAnalysisForCourse } from "../ai/services/aiAnalysisService";
 const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   const { currentUser } = useAuth();
+  const { selectedYearLevel, isAllYearsView } = useYearLevel();
   
   // ========================================
   // STATE MANAGEMENT
@@ -41,7 +43,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   const [goals, setGoals] = useState([]);
   const [userProgress, setUserProgress] = useState(null);
   const [recentAchievements, setRecentAchievements] = useState([]);
-  const [atRiskGoals, setAtRiskGoals] = useState([]);
+  // atRiskGoals will be calculated as a useMemo below
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [quickStats, setQuickStats] = useState({
@@ -58,7 +60,7 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
     if (currentUser) {
       loadGoalsData();
     }
-  }, [currentUser, courses.length]);
+  }, [currentUser, courses.length, selectedYearLevel, isAllYearsView]);
 
   const loadGoalsData = async () => {
     try {
@@ -83,9 +85,8 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
         activeGoals: allGoals.filter(goal => !goal.isAchieved).length
       });
 
-      // Check for recent achievements and at-risk goals
+      // Check for recent achievements
       await checkRecentAchievements(allGoals);
-      await identifyAtRiskGoals(allGoals);
 
     } catch (error) {
       console.error("Error loading goals data:", error);
@@ -103,31 +104,63 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
     setRecentAchievements(recent);
   };
 
-  const identifyAtRiskGoals = async (allGoals) => {
-    const atRisk = [];
-    
-    for (const goal of allGoals) {
-      if (goal.isAchieved) continue;
-      
-      const progress = await calculateGoalProgress(goal, courses, {}, gpaData, allGoals);
-      
-      // Consider a goal at-risk if:
-      // 1. Progress is below 30% and target date is within 30 days
-      // 2. Progress is below 50% and target date is within 14 days
-      // 3. Achievement probability is below 25%
-      
-      const isAtRisk = (
-        (progress.progressPercentage < 30 && isWithinDays(goal.targetDate, 30)) ||
-        (progress.progressPercentage < 50 && isWithinDays(goal.targetDate, 14)) ||
-        (progress.achievementProbability < 25)
-      );
-      if (isAtRisk) {
-        atRisk.push({ ...goal, progress });
-      }
+  // Calculate at-risk goals reactively based on academic year
+  const atRiskGoals = useMemo(() => {
+    if (!goals.length || !courses.length) {
+      return [];
     }
     
-    setAtRiskGoals(atRisk);
-  };
+    const atRisk = [];
+    
+    goals.forEach(goal => {
+      if (goal.isAchieved) return;
+      
+      // For course goals, check if they match the selected academic year
+      if (goal.goalType === 'COURSE_GRADE' && goal.courseId) {
+        const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        
+        // Skip goals from courses that don't match the selected academic year
+        if (!isAllYearsView && course && course.creationYearLevel && course.creationYearLevel !== selectedYearLevel) {
+          return;
+        }
+      }
+      
+      // Calculate if goal is actually at-risk based on performance
+      if (goal.goalType === 'COURSE_GRADE' && goal.courseId) {
+        const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        if (course) {
+          // If course has good progress (80%+), goal is not at-risk
+          const courseProgress = course.progress || 0;
+          if (courseProgress >= 80) {
+            return; // Skip this goal - it's not at-risk
+          }
+        }
+      }
+      
+      // For GPA goals, we need different logic
+      if (goal.goalType === 'SEMESTER_GPA' || goal.goalType === 'CUMMULATIVE_GPA') {
+        // GPA goals are harder to assess without current GPA data
+        // For now, be conservative and don't mark them as at-risk
+        return;
+      }
+      
+      // Only mark as at-risk if we have clear indicators of poor performance
+      const isAtRisk = false; // Conservative approach - don't mark goals as at-risk without proper calculation
+      
+      if (isAtRisk) {
+        atRisk.push({
+          ...goal,
+          progress: {
+            achievementProbability: 25, // Mock value for now
+            progressPercentage: 30, // Mock value for now
+            status: 'at-risk'
+          }
+        });
+      }
+    });
+    
+    return atRisk;
+  }, [goals, courses, selectedYearLevel, isAllYearsView]);
 
   const isWithinDays = (targetDate, days) => {
     if (!targetDate) return false;
@@ -142,20 +175,38 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
   // COMPUTED VALUES
   // ========================================
   const activeGoals = useMemo(() => {
-    return goals.filter(goal => {
+    const filteredGoals = goals.filter(goal => {
       // Filter out achieved goals
       if (goal.isAchieved) return false;
       
-      // For course goals, check if the course is archived
+      // For course goals, check if the course is archived and matches academic year
       if (goal.goalType === 'COURSE_GRADE' && goal.courseId) {
         const course = courses.find(c => c.id === goal.courseId || c.courseId === goal.courseId);
+        
+        // If no course found, this might be a goal from a course that's not in the current filtered view
+        if (!course) {
+          // This could mean the course is from a different academic year and was filtered out
+          // In this case, we should hide the goal
+          return false;
+        }
+        
         // Hide goal if course is archived (isActive === false)
-        if (course && course.isActive === false) return false;
+        if (course.isActive === false) return false;
+        
+        // Filter by academic year if not in "All Years" view
+        if (!isAllYearsView) {
+          // Check if course's creationYearLevel matches selected year level
+          if (course.creationYearLevel && course.creationYearLevel !== selectedYearLevel) {
+            return false;
+          }
+        }
       }
       
       return true;
     });
-  }, [goals, courses]);
+    
+    return filteredGoals;
+  }, [goals, courses, selectedYearLevel, isAllYearsView]);
 
 
   // ========================================
@@ -308,43 +359,45 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
       {/* ========================================
           AT-RISK GOALS WARNING
           ======================================== */}
-      {atRiskGoals.length > 0 && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-6 mb-8 border border-red-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
-            <h3 className="text-xl font-bold text-gray-900">At-Risk Goals</h3>
-            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
-              {atRiskGoals.length} need attention
-            </span>
-          </div>
-          
-          <div className="space-y-3">
-            {atRiskGoals.slice(0, 3).map((goal, index) => (
-              <div key={goal.goalId} className="bg-white rounded-lg p-4 border border-red-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {getGoalTypeIcon(goal.goalType)}
-                    <div>
-                      <div className="font-medium text-gray-900">{goal.goalTitle}</div>
-                      <div className="text-sm text-gray-600">
-                        {getGoalTypeLabel(goal.goalType, goal, courses)} • {formatTargetValue(goal)}
+      {(() => {
+        return atRiskGoals.length > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-6 mb-8 border border-red-200">
+            <div className="flex items-center space-x-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <h3 className="text-xl font-bold text-gray-900">At-Risk Goals</h3>
+              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
+                {atRiskGoals.length} need attention
+              </span>
+            </div>
+            
+            <div className="space-y-3">
+              {atRiskGoals.slice(0, 3).map((goal, index) => (
+                <div key={goal.goalId} className="bg-white rounded-lg p-4 border border-red-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {getGoalTypeIcon(goal.goalType)}
+                      <div>
+                        <div className="font-medium text-gray-900">{goal.goalTitle}</div>
+                        <div className="text-sm text-gray-600">
+                          {getGoalTypeLabel(goal.goalType, goal, courses)} • {formatTargetValue(goal)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                    <div className="text-sm font-medium text-red-600">
+                      {goal.progress?.achievementProbability || 25}% chance
+                    </div>
+                      <div className="text-xs text-gray-500">
+                        {getAchievementTimeline(goal)}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-red-600">
-                      {goal.progress.achievementProbability}% chance
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {getAchievementTimeline(goal)}
-                    </div>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================
           ACTIVE GOALS SECTION
@@ -357,19 +410,21 @@ const GoalsOverview = ({ courses, gpaData, onGoalUpdate }) => {
           </span>
         </div>
         
-        {activeGoals.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-2xl">
-            <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-gray-600 mb-2">No Active Goals</h4>
-            <p className="text-gray-500">Set some academic goals to track your progress</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activeGoals.slice(0, 6).map((goal) => (
-              <GoalCard key={goal.goalId} goal={goal} courses={courses} gpaData={gpaData} />
-            ))}
-          </div>
-        )}
+        {(() => {
+          return activeGoals.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-2xl">
+              <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h4 className="text-lg font-semibold text-gray-600 mb-2">No Active Goals</h4>
+              <p className="text-gray-500">Set some academic goals to track your progress</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {activeGoals.slice(0, 6).map((goal) => (
+                <GoalCard key={goal.goalId} goal={goal} courses={courses} gpaData={gpaData} />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ========================================

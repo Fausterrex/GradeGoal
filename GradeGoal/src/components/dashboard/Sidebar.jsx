@@ -14,8 +14,10 @@ import {
   FaCog,
 } from "react-icons/fa";
 import { useYearLevel } from "../context/YearLevelContext";
+import { useSemester } from "../context/SemesterContext";
 const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
   const { selectedYearLevel, changeYearLevel, getYearLevelLabel } = useYearLevel();
+  const { selectedSemester, changeSemester, getSemesterLabel } = useSemester();
   // Navigation items configuration
   const navItems = [
     { icon: <FaTachometerAlt />, label: "Dashboard", tab: "overview" },
@@ -62,6 +64,27 @@ const Sidebar = ({ activeTab, onTabClick, onLogout, displayName, tabs, isMobileS
             <option value="2" className="text-gray-800">2nd Year</option>
             <option value="3" className="text-gray-800">3rd Year</option>
             <option value="4" className="text-gray-800">4th Year</option>
+          </select>
+        </div>
+
+        {/* ========================================
+            SEMESTER SELECTOR
+            ======================================== */}
+        <div className="mb-6 px-4">
+          <label className="block text-sm font-medium text-white mb-2">
+            Semester View
+          </label>
+          <select
+            value={selectedSemester}
+            onChange={(e) => {
+              changeSemester(e.target.value);
+            }}
+            className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50"
+          >
+            <option value="all" className="text-gray-800">All Semesters</option>
+            <option value="FIRST" className="text-gray-800">1st Semester</option>
+            <option value="SECOND" className="text-gray-800">2nd Semester</option>
+            <option value="THIRD" className="text-gray-800">3rd Semester</option>
           </select>
         </div>
 

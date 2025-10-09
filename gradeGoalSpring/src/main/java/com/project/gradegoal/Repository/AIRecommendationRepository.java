@@ -25,7 +25,7 @@ public interface AIRecommendationRepository extends JpaRepository<Recommendation
     Optional<Recommendation> findByUserIdAndCourseIdAndRecommendationTypeAndAiGeneratedTrue(
             @Param("userId") Long userId, 
             @Param("courseId") Long courseId, 
-            @Param("recommendationType") String recommendationType);
+            @Param("recommendationType") Recommendation.RecommendationType recommendationType);
 
     /**
      * Find AI recommendations by user ID (with limit)
@@ -75,7 +75,7 @@ public interface AIRecommendationRepository extends JpaRepository<Recommendation
      * Find AI recommendations by type
      */
     List<Recommendation> findByUserIdAndRecommendationTypeAndAiGeneratedTrueOrderByCreatedAtDesc(
-            Long userId, String recommendationType);
+            Long userId, Recommendation.RecommendationType recommendationType);
 
     /**
      * Find AI recommendations by priority

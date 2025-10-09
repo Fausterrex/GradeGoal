@@ -7,6 +7,7 @@
 import React from "react";
 import { getCourseColorScheme } from "../utils/courseColors";
 import { calculateCourseProgress } from "../services/progressCalculationService";
+import logo from "../../drawables/logo.svg";
 function GradeSuccessFeedback({
   gradeData,
   course,
@@ -131,19 +132,11 @@ function GradeSuccessFeedback({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <img
+                  src={logo}
+                  alt="GradeGoal Logo"
+                  className="w-8 h-8"
+                />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">

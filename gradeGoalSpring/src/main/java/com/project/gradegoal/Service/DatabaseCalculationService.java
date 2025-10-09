@@ -628,18 +628,19 @@ public class DatabaseCalculationService {
             // UpdateCourseGrades stored procedure already calls UpdateUserAnalytics
         }
 
-        /**
-         * Check goal progress and mark achievements using stored procedure
-         */
-        @Transactional
-        public void checkGoalProgress(Long userId) {
-            try {
-                String procedureCall = "CALL CheckGoalProgress(?)";
-                entityManager.createNativeQuery(procedureCall)
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                System.err.println("Error calling CheckGoalProgress stored procedure: " + e.getMessage());
+    /**
+     * Check goal progress and mark achievements using stored procedure
+     */
+    @Transactional
+    public void checkGoalProgress(Long userId) {
+        try {
+            String procedureCall = "CALL CheckGoalProgress(?)";
+            entityManager.createNativeQuery(procedureCall)
+                    .setParameter(1, userId)
+                    .executeUpdate();
+        } catch (Exception e) {
+            System.err.println("Error calling CheckGoalProgress stored procedure: " + e.getMessage());
+            throw new RuntimeException("Failed to check goal progress: " + e.getMessage());
         }
     }
 

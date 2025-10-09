@@ -77,6 +77,9 @@ public class Course {
     @Column(name = "is_midterm_completed")
     private Boolean isMidtermCompleted = false;
 
+    @Column(name = "ai_prediction_rating")
+    private Integer aiPredictionRating;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -196,6 +199,9 @@ public class Course {
 
     public Boolean getIsMidtermCompleted() { return isMidtermCompleted; }
     public void setIsMidtermCompleted(Boolean isMidtermCompleted) { this.isMidtermCompleted = isMidtermCompleted; }
+
+    public Integer getAiPredictionRating() { return aiPredictionRating; }
+    public void setAiPredictionRating(Integer aiPredictionRating) { this.aiPredictionRating = aiPredictionRating; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

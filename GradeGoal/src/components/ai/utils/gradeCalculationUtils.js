@@ -8,14 +8,14 @@ import DatabaseGradeService from "../../services/databaseGradeService.js";
  * Calculate GPA from percentage (matching database CalculateGPA function)
  */
 export const calculateGPAFromPercentage = (percentage) => {
-  if (percentage >= 95.5) return '4.00';
-  if (percentage >= 89.5) return '3.50';
-  if (percentage >= 83.5) return '3.00';
-  if (percentage >= 77.5) return '2.50';
-  if (percentage >= 71.5) return '2.00';
-  if (percentage >= 65.5) return '1.50';
-  if (percentage >= 59.5) return '1.00';
-  return 'R'; // Below 59.5 = R (Remedial/Fail)
+  if (percentage >= 95.5) return 4.00;
+  if (percentage >= 89.5) return 3.50;
+  if (percentage >= 83.5) return 3.00;
+  if (percentage >= 77.5) return 2.50;
+  if (percentage >= 71.5) return 2.00;
+  if (percentage >= 65.5) return 1.50;
+  if (percentage >= 59.5) return 1.00;
+  return 0.00; // Below 59.5% = R (Remedial/Fail) - represented as 0.00 in frontend
 };
 
 /**

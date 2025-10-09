@@ -12,7 +12,9 @@ import GoalFilter from "./GoalFilter";
 import GoalCard from "./GoalCard";
 import GoalModal from "../../modals/GoalModal";
 import RealtimeNotificationService from "../../services/realtimeNotificationService";
+import { useAchievements } from '../../services/useAchievements';
 import { useYearLevel } from "../../context/YearLevelContext";
+import { useAchievementNotifications } from "../../context/AchievementContext";
 const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }) => {
   const { filterDataByYearLevel, selectedYearLevel } = useYearLevel();
   
@@ -31,6 +33,11 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  // Initialize achievements hook after user state is defined
+  const { checkForAchievements } = useAchievements(user?.userId);
+  const { showAchievementNotification } = useAchievementNotifications();
+  
 
   // ========================================
   // EFFECTS
@@ -148,6 +155,17 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
               goal.targetValue,
               goal.goalType
             );
+            
+            console.log('Goal achievement check:', {
+              goalId: goal.goalId,
+              goalTitle: goal.goalTitle,
+              currentProgress: goal.currentProgress,
+              targetValue: goal.targetValue,
+              isAchieved: isAchieved,
+              alreadyAchieved: goal.isAchieved,
+              willUpdate: isAchieved && !goal.isAchieved
+            });
+            
             // Only update database if just achieved (not already marked as achieved in database)
             if (isAchieved && !goal.isAchieved) {
               try {
@@ -168,6 +186,9 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
                 if (response.ok) {
                   const updatedGoal = await response.json();
                   setGoals(prev => prev.map(g => g.goalId === goal.goalId ? updatedGoal : g));
+                  
+                  // Note: Achievement checking is handled by the backend when course is completed
+                  // No need to check achievements here as this is just frontend progress calculation
                   } else {
                   }
               } catch (error) {

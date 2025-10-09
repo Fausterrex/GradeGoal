@@ -9,30 +9,37 @@ import { X, CheckCircle } from "lucide-react";
 function WelcomeModal({ isOpen, onClose, userName }) {
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Helper function to render text with bold formatting
+  const renderBoldText = (text) => {
+    return text.split('**').map((part, index) => 
+      index % 2 === 1 ? <strong key={index}>{part}</strong> : part
+    );
+  };
+
   const steps = [
     {
       title: "Welcome to GradeGoal!",
-      content: `Hi ${userName || 'there'}! We're excited to help you track your academic progress. Let's walk through how to get started with GradeGoal step by step.`
+      content: `Hi **${userName ? userName.charAt(0).toUpperCase() + userName.slice(1) : 'there'}**! We're excited to help you track your **academic progress**. Let's walk through how to get started with **GradeGoal** step by step.`
     },
     {
       title: "Navigate to Courses",
-      content: "Start by clicking the 'Courses' tab in the sidebar. This will show you all your courses. If you're new, you'll see an empty list ready for your first course."
+      content: "Click the **'Courses'** tab in the sidebar. This shows all your courses. If you're new, you'll see an empty list ready for your first course."
     },
     {
       title: "Add Your First Course",
-      content: "Click the 'Add Course' button to create a new course. You'll enter course details like name, code, credits, and target grade. You'll also set up assessment categories during this process - choose from templates or add custom categories like Assignments, Written Works, Seatworks, Laboratory, Exams, Quizzes, Projects, and more."
+      content: "Click **'Add Course'** to create a new course. Enter course details like **name**, **code**, **credits**, and **target grade**. Set up assessment categories - choose from templates or add custom categories like **Assignments**, **Exams**, **Quizzes**, **Projects**, and more."
     },
     {
       title: "Add Assessments",
-      content: "Click the 'Assessment' tab inside your course, then 'Add Assessment'. Set the maximum points, date when it will be taken, and assign it to a category. This creates individual tasks to track."
+      content: "Click **'Assessment'** tab inside your course, then **'Add Assessment'**. Set **maximum points**, **date**, and assign it to a **category**. This creates individual tasks to track."
     },
     {
       title: "Enter Scores & Track Progress",
-      content: "After adding assessments, you can enter your scores. GradeGoal will automatically calculate your current progress and show it in the dashboard. Monitor your progress toward your target grade!"
+      content: "After adding assessments, enter your **scores**. GradeGoal automatically calculates your **current progress** and shows it in the dashboard. Monitor your progress toward your **target grade**!"
     },
     {
       title: "You're Ready to Succeed!",
-      content: "That's it! You now know how to use GradeGoal effectively. Remember: Courses → Categories → Assessments → Scores → Progress tracking. Good luck with your studies!"
+      content: "That's it! You now know how to use **GradeGoal** effectively. Remember: **Courses** → **Categories** → **Assessments** → **Scores** → **Progress tracking**. Good luck with your studies!"
     }
   ];
 
@@ -102,7 +109,7 @@ function WelcomeModal({ isOpen, onClose, userName }) {
         <div className="p-8">
           <div className="min-h-[200px] flex items-center justify-center">
             <p className="text-lg text-gray-700 leading-relaxed text-center">
-              {steps[currentStep].content}
+              {renderBoldText(steps[currentStep].content)}
             </p>
           </div>
 
@@ -110,39 +117,39 @@ function WelcomeModal({ isOpen, onClose, userName }) {
           {currentStep === 1 && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <p className="text-sm text-blue-800">
-                <strong>Tip:</strong> The sidebar is your main navigation hub. You'll use it to switch between different sections of GradeGoal.
+                {renderBoldText("**Tip:** The sidebar is your main navigation hub. You'll use it to switch between different sections of GradeGoal.")}
               </p>
             </div>
           )}
 
           {currentStep === 2 && (
-            <div className="mt-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <p className="text-sm text-green-800">
-                <strong>Tip:</strong> The course creation form includes semester, year level, grading scale, GPA scale, course color, and category setup all in one place!
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-blue-800">
+                {renderBoldText("**Tip:** The course creation form includes **semester**, **year level**, **grading scale**, **GPA scale**, **course color**, and **category setup** all in one place!")}
               </p>
             </div>
           )}
 
           {currentStep === 3 && (
-            <div className="mt-6 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-              <p className="text-sm text-purple-800">
-                <strong>Available Options:</strong> Use the 3-Category Template or add custom categories. You can also choose how to handle missing grades and set maximum points.
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-blue-800">
+                {renderBoldText("**Available Options:** Use the **3-Category Template** or add **custom categories**. You can also choose how to handle **missing grades** and set **maximum points**.")}
               </p>
             </div>
           )}
 
           {currentStep === 4 && (
-            <div className="mt-6 p-4 bg-orange-50 rounded-lg border-l-4 border-orange-500">
-              <p className="text-sm text-orange-800">
-                <strong>Tip:</strong> Set realistic dates for your assessments. This helps GradeGoal track your progress timeline and upcoming deadlines.
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-blue-800">
+                {renderBoldText("**Tip:** Set **realistic dates** for your assessments. This helps GradeGoal track your **progress timeline** and **upcoming deadlines**.")}
               </p>
             </div>
           )}
 
           {currentStep === 5 && (
-            <div className="mt-6 p-4 bg-teal-50 rounded-lg border-l-4 border-teal-500">
-              <p className="text-sm text-teal-800">
-                <strong>Tip:</strong> The dashboard shows your overall progress across all courses. Check it regularly to stay on track with your goals!
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-blue-800">
+                {renderBoldText("**Tip:** The dashboard shows your **overall progress** across all courses. Check it regularly to stay on track with your **goals**!")}
               </p>
             </div>
           )}

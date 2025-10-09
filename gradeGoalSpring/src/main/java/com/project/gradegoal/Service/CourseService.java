@@ -256,10 +256,11 @@ public class CourseService {
 
             // Evaluate academic goals when course is completed
             try {
+                logger.info("🎯 Course {} completed! Evaluating academic goals...", courseId);
                 academicGoalService.evaluateGoalsOnCourseCompletion(courseId);
-                logger.info("Academic goals evaluated for completed course: {}", courseId);
+                logger.info("✅ Academic goals evaluated for completed course: {}", courseId);
             } catch (Exception e) {
-                logger.error("Error evaluating academic goals for course: {}", courseId, e);
+                logger.error("❌ Error evaluating academic goals for course: {}", courseId, e);
                 // Don't fail the course completion if goal evaluation fails
             }
 
@@ -337,6 +338,68 @@ public class CourseService {
             } catch (Exception e) {
                 logger.error("Error reactivating academic goals for course: {}", courseId, e);
                 // Don't fail the course uncomplete if goal reactivation fails
+            }
+
+            return savedCourse;
+        }
+        return null;
+    }
+
+    /**
+     * Complete course with AI prediction rating
+     * @param courseId Course ID
+     * @param aiPredictionRating Rating from 1-10 for AI predictions
+     * @return Completed course with rating
+     */
+    public Course completeCourseWithRating(Long courseId, Integer aiPredictionRating) {
+        // Validate rating
+        if (aiPredictionRating == null || aiPredictionRating < 1 || aiPredictionRating > 10) {
+            throw new IllegalArgumentException("AI prediction rating must be between 1 and 10");
+        }
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()) {
+            Course course = courseOpt.get();
+
+            // Set rating and mark as completed
+            course.setAiPredictionRating(aiPredictionRating);
+            course.setIsCompleted(true);
+
+            Course savedCourse = courseRepository.save(course);
+
+            // Evaluate academic goals when course is completed
+            try {
+                logger.info("🎯 Course {} completed with AI rating {}! Evaluating academic goals...", courseId, aiPredictionRating);
+                academicGoalService.evaluateGoalsOnCourseCompletion(courseId);
+                logger.info("✅ Academic goals evaluated for completed course: {}", courseId);
+            } catch (Exception e) {
+                logger.error("❌ Error evaluating academic goals for course: {}", courseId, e);
+                // Don't fail the course completion if goal evaluation fails
+            }
+
+            // Send course completion notifications
+            try {
+                // Get user information for notifications
+                User user = userRepository.findById(course.getUserId()).orElse(null);
+                if (user != null) {
+                    String userEmail = user.getEmail();
+                    String courseName = course.getCourseName();
+                    String finalGradeStr = course.getCalculatedCourseGrade() != null ? 
+                        course.getCalculatedCourseGrade().toString() : "N/A";
+                    String semester = course.getSemester() != null ? 
+                        course.getSemester().toString() : "N/A";
+
+                    // Send email notification
+                    emailNotificationService.sendCourseCompletionNotification(userEmail, courseName, finalGradeStr, semester);
+                    
+                    // Send push notification
+                    pushNotificationService.sendCourseCompletionNotification(userEmail, courseName, finalGradeStr, semester);
+                    
+                    logger.info("📧 Course completion notifications sent to: {}", user.getEmail());
+                }
+            } catch (Exception e) {
+                logger.error("❌ Error sending course completion notification for course: {}", courseId, e);
+                // Don't fail the course completion if notification fails
             }
 
             return savedCourse;

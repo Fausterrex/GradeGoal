@@ -184,23 +184,24 @@ public class UserProgressService {
     
     /**
      * Calculate points required to reach a specific level using progressive formula
-     * Formula: level * 500 + (level - 1) * 250 for level > 1, and 0 for level 1
-     * This matches the database stored procedure formula:
-     * Level 1: 0 points
-     * Level 2: 500 points  
-     * Level 3: 1,250 points
-     * Level 4: 2,000 points
-     * Level 5: 2,750 points
-     * Level 10: 6,500 points
-     * Level 20: 14,000 points
-     * Level 50: 36,500 points
-     * Level 100: 74,000 points
+     * New formula: level * 100 + (level - 1) * 50 for level >= 0
+     * This creates a more reasonable progression starting from level 0:
+     * Level 0: 0 points (starting level)
+     * Level 1: 100 points
+     * Level 2: 250 points  
+     * Level 3: 400 points
+     * Level 4: 550 points
+     * Level 5: 700 points
+     * Level 10: 1,450 points
+     * Level 20: 2,950 points
+     * Level 50: 7,450 points
+     * Level 100: 14,950 points
      * @param level the target level
      * @return points required to reach that level
      */
     public Integer calculatePointsRequiredForLevel(Integer level) {
-        if (level <= 1) return 0;
-        return level * 500 + (level - 1) * 250;
+        if (level <= 0) return 0;
+        return level * 100 + (level - 1) * 50;
     }
     
     /**
@@ -241,8 +242,9 @@ public class UserProgressService {
      * @return rank title
      */
     public String getUserRankTitle(Integer level) {
-        if (level == null || level <= 0) return "Newcomer";
+        if (level == null || level < 0) return "Newcomer";
         
+        if (level == 0) return "Newcomer";
         if (level >= 1 && level <= 4) return "Beginner Scholar";
         if (level >= 5 && level <= 9) return "Rising Scholar";
         if (level >= 10 && level <= 14) return "Dedicated Student";

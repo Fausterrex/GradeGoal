@@ -34,6 +34,28 @@ function AddCourse({
   const { currentUser } = useAuth();
 
   // ========================================
+  // ACADEMIC YEAR UTILITY FUNCTIONS
+  // ========================================
+  
+  // Generate academic years dynamically
+  const generateAcademicYears = () => {
+    const currentYear = new Date().getFullYear();
+    const academicYears = [];
+    
+    // Add current year first, then previous years (latest to oldest)
+    for (let i = 0; i <= 10; i++) {
+      const year = currentYear - i;
+      const isCurrentYear = i === 0;
+      academicYears.push({
+        value: year.toString(),
+        label: isCurrentYear ? `${year}-${year + 1} (Current Academic Year)` : `${year}-${year + 1}`
+      });
+    }
+    
+    return academicYears;
+  };
+
+  // ========================================
   // STATE MANAGEMENT
   // ========================================
   const [isFormLoading, setIsFormLoading] = useState(false);
@@ -817,10 +839,11 @@ function AddCourse({
                   className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8168C5] focus:border-[#8168C5] transition-all duration-200 appearance-none cursor-pointer"
                   required
                 >
-                  <option value="2024">2024-2025</option>
-                  <option value="2025">2025-2026</option>
-                  <option value="2026">2026-2027</option>
-                  <option value="2027">2027-2028</option>
+                  {generateAcademicYears().map((academicYear) => (
+                    <option key={academicYear.value} value={academicYear.value}>
+                      {academicYear.label}
+                    </option>
+                  ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -839,7 +862,7 @@ function AddCourse({
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Select the academic year for this course
+                Select the academic year for this course. Only past and current academic years are available.
               </p>
             </div>
 

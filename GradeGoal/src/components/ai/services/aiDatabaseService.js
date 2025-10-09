@@ -2,23 +2,50 @@ import { saveAIAnalysis, getAIRecommendationsForCourse, markRecommendationAsRead
 /**
  * Save AI analysis data to recommendations table
  */
-export const saveAIAnalysisData = async (userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS') => {
+export const saveAIAnalysisData = async (userId, courseId, analysisType, analysisData, aiModel = 'llama-3.1-8b-instant', confidence = 0.85) => {
+  const startTime = performance.now();
+  console.log('💾 [DB DEBUG] Starting AI analysis database save');
+  console.log('💾 [DB DEBUG] Save parameters:', {
+    userId,
+    courseId,
+    analysisType,
+    analysisDataKeys: Object.keys(analysisData || {}),
+    analysisDataSize: JSON.stringify(analysisData || {}).length
+  });
+  
   try {
+    console.log('📡 [DB DEBUG] Calling saveAIAnalysis API...');
+    const apiCallStart = performance.now();
     const response = await saveAIAnalysis(
       userId,
       courseId,
       analysisData,
       analysisType,
-      'gemini-2.0-flash-exp',
-      0.85
+      aiModel,
+      confidence
     );
+    const apiCallTime = performance.now() - apiCallStart;
+    console.log('📡 [DB DEBUG] API call took:', apiCallTime.toFixed(2), 'ms');
+    console.log('📡 [DB DEBUG] API response:', response);
+    
     if (response.success) {
       const action = response.isUpdate ? 'updated' : 'saved';
+      console.log(`✅ [DB DEBUG] Database save successful (${action})`);
+      console.log('✅ [DB DEBUG] Total database save time:', (performance.now() - startTime).toFixed(2), 'ms');
       return { success: true, isUpdate: response.isUpdate };
     } else {
+      console.error('❌ [DB DEBUG] Database save failed:', response.error);
+      console.log('❌ [DB DEBUG] Total database save time (failed):', (performance.now() - startTime).toFixed(2), 'ms');
       return { success: false, error: response.error };
     }
   } catch (error) {
+    console.error('❌ [DB DEBUG] Database save error:', error);
+    console.error('❌ [DB DEBUG] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    console.log('❌ [DB DEBUG] Total database save time (error):', (performance.now() - startTime).toFixed(2), 'ms');
     return { success: false, error: error.message };
   }
 };

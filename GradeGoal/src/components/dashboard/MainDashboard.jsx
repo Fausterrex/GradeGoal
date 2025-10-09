@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
+import { useSemester } from "../context/SemesterContext";
 import { useNavigate } from "react-router-dom";
 import CourseManager from "../course/CourseManager";
 import GradeEntry from "../course/course_details/GradeEntry";
@@ -82,6 +83,7 @@ if (typeof document !== "undefined") {
 function MainDashboard({ initialTab = "overview" }) {
   const { currentUser, logout, loading } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
+  const { selectedSemester, getSemesterLabel } = useSemester();
   const navigate = useNavigate();
 
   // ========================================

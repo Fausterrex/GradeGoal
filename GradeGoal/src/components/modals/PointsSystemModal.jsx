@@ -126,20 +126,32 @@ function PointsSystemModal({ isOpen, onClose }) {
                 <h4 className="font-semibold text-gray-800 mb-3">Level Milestones</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
+                    <span>Level 0:</span>
+                    <span className="font-mono text-blue-600">0 pts (Starting Level)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Level 1:</span>
+                    <span className="font-mono text-blue-600">100 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Level 2:</span>
+                    <span className="font-mono text-blue-600">250 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span>Level 5:</span>
-                    <span className="font-mono text-blue-600">2,000 pts</span>
+                    <span className="font-mono text-blue-600">700 pts</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Level 10:</span>
-                    <span className="font-mono text-blue-600">6,250 pts</span>
+                    <span className="font-mono text-blue-600">1,450 pts</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Level 20:</span>
-                    <span className="font-mono text-blue-600">17,500 pts</span>
+                    <span className="font-mono text-blue-600">2,950 pts</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Level 50:</span>
-                    <span className="font-mono text-blue-600">61,250 pts</span>
+                    <span className="font-mono text-blue-600">7,450 pts</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Level 100:</span>
@@ -151,6 +163,10 @@ function PointsSystemModal({ isOpen, onClose }) {
             <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
               <h4 className="font-semibold text-gray-800 mb-2">Rank Titles by Level</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="text-center p-2 bg-gray-50 rounded">
+                  <div className="font-semibold text-gray-700">Level 0</div>
+                  <div className="text-gray-600">Newcomer</div>
+                </div>
                 <div className="text-center p-2 bg-gray-50 rounded">
                   <div className="font-semibold text-gray-700">Levels 1-4</div>
                   <div className="text-gray-600">Beginner Scholar</div>

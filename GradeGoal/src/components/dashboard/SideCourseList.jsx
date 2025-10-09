@@ -163,7 +163,7 @@ const SideCourseList = ({
                         course.name.substring(0, 8).toUpperCase()}
                     </span>
                     {course.isActive === false && (
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg">
                         ARCHIVED
                       </span>
                     )}

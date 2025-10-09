@@ -4,7 +4,7 @@
 // Consolidated component that displays AI-generated recommendations
 
 import React, { useState, useEffect, useMemo } from "react";
-import { getAIRecommendations } from "../../../ai/services/geminiService";
+import { getAIRecommendations } from "../../../ai/services/groqService";
 import { loadAIAnalysisForCourse } from "../../../ai/services/aiAnalysisService";
 import { useAuth } from "../../../context/AuthContext";
 import AIPredictions from "../../../ai/components/AIPredictions";
@@ -36,6 +36,14 @@ function UnifiedRecommendations({
     const loadAIData = async () => {
       if (!course?.id || !currentUser?.uid) return;
 
+      // Skip AI analysis for completed courses
+      if (course.isCompleted) {
+        console.log('Skipping AI analysis for completed course:', course.courseName);
+        setAiRecommendations([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -45,12 +53,17 @@ function UnifiedRecommendations({
         const userProfile = await getUserProfile(currentUser.email);
         
         if (userProfile?.userId && course?.id) {
-          await loadAIAnalysisForCourse(userProfile.userId, course.id);
+          // Force refresh if refreshTrigger changed (new analysis completed)
+          const forceRefresh = refreshTrigger > 0;
+          await loadAIAnalysisForCourse(userProfile.userId, course.id, forceRefresh);
         }
 
         // Then load recommendations
-        const recommendations = await getAIRecommendations(course.userId, course.id);
+        const recommendationsResult = await getAIRecommendations(course.userId, course.id);
+        const recommendations = recommendationsResult.success ? recommendationsResult.recommendations : [];
         setAiRecommendations(recommendations);
+        
+        // Loaded recommendations
       } catch (err) {
         console.error('Error loading AI data:', err);
         setError('Failed to load AI recommendations');
@@ -181,27 +194,6 @@ function UnifiedRecommendations({
 
   return (
     <div className="space-y-4">
-      {/* AI Predictions Component */}
-      <AIPredictions 
-        course={course}
-        grades={grades}
-        categories={categories}
-        targetGrade={targetGrade}
-        currentGrade={currentGrade}
-        aiAnalysisData={(() => {
-          const aiRec = aiRecommendations.find(rec => rec.recommendationType === 'AI_ANALYSIS');
-          if (aiRec && aiRec.content) {
-            try {
-              return typeof aiRec.content === 'string' ? JSON.parse(aiRec.content) : aiRec.content;
-            } catch (e) {
-              console.warn('Failed to parse AI analysis content for predictions:', e);
-              return null;
-            }
-          }
-          return null;
-        })()}
-      />
-      
       {/* AI Recommendations List */}
       <div className="space-y-4">
         {aiRecommendations.map((recommendation, index) => {
@@ -296,17 +288,13 @@ function UnifiedRecommendations({
                                   </button>
                                 )}
                                 
-                                {/* Action Button (filter out quiz-related actions) */}
-                                {rec.actionButton && rec.actionButton.enabled && 
-                                 !rec.actionButton.text.toLowerCase().includes('quiz') &&
-                                 !rec.actionButton.action.toLowerCase().includes('quiz') && (
-                                  <button
-                                    onClick={() => handleQuickAction(rec.actionButton.action, rec.title)}
-                                    className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
-                                  >
-                                    {rec.actionButton.text}
-                                  </button>
-                                )}
+                                {/* Dismiss Button */}
+                                <button
+                                  onClick={() => handleDismissRecommendation(recommendation.recommendationId)}
+                                  className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition-colors"
+                                >
+                                  Dismiss
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -410,6 +398,40 @@ function UnifiedRecommendations({
           );
         })}
       </div>
+      
+      {/* AI Predictions Component */}
+      <AIPredictions 
+        course={course}
+        grades={grades}
+        categories={categories}
+        targetGrade={targetGrade}
+        currentGrade={currentGrade}
+        aiAnalysisData={(() => {
+          const aiRec = aiRecommendations.find(rec => rec.recommendationType === 'AI_ANALYSIS');
+          // AI Recommendation found
+          if (aiRec && aiRec.content) {
+            try {
+              const parsedContent = typeof aiRec.content === 'string' ? JSON.parse(aiRec.content) : aiRec.content;
+              // Parsed AI analysis content
+              
+              // Add grades data to the AI analysis data so AIPredictions can check for upcoming assessments
+              const aiAnalysisDataWithGrades = {
+                ...parsedContent,
+                grades: grades, // Include grades data for upcoming assessment checks
+                categories: categories // Include categories data as well
+              };
+              
+              // AI analysis data with grades
+              return aiAnalysisDataWithGrades;
+            } catch (e) {
+              console.warn('Failed to parse AI analysis content for predictions:', e);
+              return null;
+            }
+          }
+          // No AI recommendation found
+          return null;
+        })()}
+      />
     </div>
   );
 }

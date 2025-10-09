@@ -39,7 +39,7 @@ public class RecommendationService {
             // Check if there's an existing AI analysis for this user and course
             Optional<Recommendation> existingAnalysis = recommendationRepository
                 .findByUserIdAndCourseIdAndRecommendationTypeAndAiGeneratedTrue(
-                    userId, courseId, Recommendation.RecommendationType.AI_ANALYSIS.toString());
+                    userId, courseId, Recommendation.RecommendationType.AI_ANALYSIS);
             
             // Extract key information from analysis data
             String title = extractTitleFromAnalysis(analysisData);

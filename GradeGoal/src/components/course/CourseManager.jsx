@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
+import { useSemester } from "../context/SemesterContext";
 // Removed GradeService import
 import {
   deleteCourse as deleteCourseApi,
@@ -18,6 +19,8 @@ import { getCourseColorScheme } from "../utils/courseColors";
 // Removed grade calculations import
 import AddCourse from "../modals/AddCourse";
 import ConfirmationModal from "../modals/ConfirmationModal";
+import AIPredictionRatingModal from "../modals/AIPredictionRatingModal";
+import SemesterTransitionModal from "../modals/SemesterTransitionModal";
 function CourseManager({
   onCourseUpdate,
   onCourseSelect = () => {},
@@ -27,6 +30,7 @@ function CourseManager({
 }) {
   const { currentUser } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
+  const { selectedSemester, detectSemesterProgression, changeSemester, filterDataBySemester } = useSemester();
 
 
   // ========================================
@@ -61,8 +65,23 @@ function CourseManager({
     warningItems: [],
     showTip: false,
     tipMessage: "",
-    onConfirm: null,
-    onClose: null,
+    onConfirm: () => {},
+    onClose: () => {}
+  });
+
+  // State for AI prediction rating modal
+  const [ratingModal, setRatingModal] = useState({
+    isOpen: false,
+    courseId: null,
+    courseName: "",
+    isLoading: false
+  });
+
+  // State for semester transition modal
+  const [semesterTransitionModal, setSemesterTransitionModal] = useState({
+    isOpen: false,
+    progressionData: null,
+    isLoading: false
   });
 
   // Helper function to filter completed courses
@@ -131,38 +150,92 @@ function CourseManager({
   const handleMarkComplete = (courseId) => {
     const course = courses.find(c => c.id === courseId);
     
-    setConfirmationModal({
+    // Show AI prediction rating modal instead of confirmation modal
+    setRatingModal({
       isOpen: true,
-      type: "complete",
-      title: "Mark Course as Complete",
-      message: `Are you sure you want to mark "${course.name}" as complete? This will move the course to the completed section and will send email and push notifications about the completion.`,
-      confirmText: "Mark as Complete",
-      cancelText: "Cancel",
-      showWarning: false,
-      warningItems: [],
-      showTip: false,
-      tipMessage: "",
-      onConfirm: async () => {
-        try {
-          const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/complete`);
-          if (response.status === 200) {
-            // Course completion notifications are now handled by the backend
-            // Update the local course state and refresh the course list
-            const updatedCourses = courses.map(course => 
-              course.id === courseId 
-                ? { ...course, isCompleted: true }
-                : course
-            );
-            onCourseUpdate(updatedCourses);
-          }
-        } catch (error) {
-          }
-        setConfirmationModal({ ...confirmationModal, isOpen: false });
-      },
-      onClose: () => {
-        setConfirmationModal({ ...confirmationModal, isOpen: false });
-      }
+      courseId: courseId,
+      courseName: course.name,
+      isLoading: false
     });
+  };
+
+  // Handle AI prediction rating submission
+  const handleRatingSubmit = async (rating) => {
+    try {
+      setRatingModal(prev => ({ ...prev, isLoading: true }));
+      
+      const response = await axios.put(
+        `http://localhost:8080/api/courses/${ratingModal.courseId}/complete-with-rating`,
+        { aiPredictionRating: rating }
+      );
+      
+      if (response.status === 200) {
+        // Update the local course state and refresh the course list
+        const updatedCourses = courses.map(course => 
+          course.id === ratingModal.courseId 
+            ? { ...course, isCompleted: true, aiPredictionRating: rating }
+            : course
+        );
+        onCourseUpdate(updatedCourses);
+        
+        // Trigger immediate notification refresh to catch new achievements
+        console.log('Course completed with AI rating! Achievement notifications should appear shortly...');
+        
+        // Trigger fast polling for achievement detection
+        if (window.triggerAchievementPolling) {
+          window.triggerAchievementPolling();
+        }
+        
+        // Close the rating modal
+        setRatingModal({ isOpen: false, courseId: null, courseName: "", isLoading: false });
+        
+        // Check for semester progression after course completion
+        checkSemesterProgression();
+      }
+    } catch (error) {
+      console.error('Error completing course with rating:', error);
+      alert('Failed to complete course. Please try again.');
+    } finally {
+      setRatingModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Check for semester progression
+  const checkSemesterProgression = () => {
+    const progressionData = detectSemesterProgression(courses);
+    if (progressionData) {
+      setSemesterTransitionModal({
+        isOpen: true,
+        progressionData: progressionData,
+        isLoading: false
+      });
+    }
+  };
+
+  // Handle semester transition
+  const handleSemesterTransition = async (proceed) => {
+    if (proceed) {
+      setSemesterTransitionModal(prev => ({ ...prev, isLoading: true }));
+      
+      try {
+        // Update to next semester
+        const { toSemester } = semesterTransitionModal.progressionData;
+        changeSemester(toSemester);
+        
+        // Here you could also update the user's current semester in the database
+        // await updateUserCurrentSemester(currentUser.email, toSemester);
+        
+        console.log(`Transitioned to ${toSemester} semester`);
+      } catch (error) {
+        console.error('Error transitioning semester:', error);
+        alert('Failed to transition semester. Please try again.');
+      } finally {
+        setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false });
+      }
+    } else {
+      // User chose to stay in current semester
+      setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false });
+    }
   };
 
   // Handle marking course as incomplete
@@ -330,9 +403,21 @@ function CourseManager({
 
   return (
     <div
-      className="w-full p-4 sm:p-6 bg-gradient-to-br from-[#8168C5] via-[#6D4FC2] to-[#3E325F] relative pb-20"
+      className="w-full p-4 sm:p-6 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 relative pb-20 min-h-screen"
       style={{ minHeight: "100vh" }}
     >
+      {/* ========================================
+          SUBTLE BACKGROUND PATTERN
+          ======================================== */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, #8168C5 0%, transparent 50%),
+                           radial-gradient(circle at 75% 75%, #3E325F 0%, transparent 50%),
+                           radial-gradient(circle at 50% 50%, #6D4FC2 0%, transparent 50%)`,
+          backgroundSize: '400px 400px, 300px 300px, 500px 500px',
+          backgroundPosition: '0 0, 100px 100px, 200px 200px'
+        }}></div>
+      </div>
       {/* ========================================
           HEADER SECTION
           ======================================== */}
@@ -348,7 +433,7 @@ function CourseManager({
             onClick={() => {
               onBack();
             }}
-            className="w-12 h-12 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
+            className="w-12 h-12 bg-gray-100 text-black border-2 border-black rounded-full hover:bg-gray-200 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
             title="Back to Dashboard"
           >
             <svg
@@ -394,10 +479,10 @@ function CourseManager({
             PAGE TITLE SECTION
             ======================================== */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-lg">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-800 mb-3 drop-shadow-lg">
             Course List
           </h2>
-          <p className="text-white/90 text-lg sm:text-xl font-medium drop-shadow-sm">
+          <p className="text-gray-600 text-lg sm:text-xl font-medium drop-shadow-sm">
             Manage your academic courses
           </p>
         </div>
@@ -406,13 +491,13 @@ function CourseManager({
       {/* ========================================
            COURSE LIST HEADER SECTION
            ======================================== */}
-      <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg relative z-10">
+      <div className="flex items-center gap-3 mb-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-md border border-white/50 relative z-10">
         {/* ========================================
              EXPAND/COLLAPSE TOGGLE BUTTON
              ======================================== */}
         <button
           onClick={() => setShowCourses(!showCourses)}
-          className="flex items-center gap-3 hover:bg-white/20 rounded-xl p-2 transition-all duration-300"
+          className="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-2 transition-all duration-300"
         >
           <div
             className={`w-10 h-10 bg-gradient-to-br from-[#8168C5] to-[#3E325F] rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
@@ -433,7 +518,7 @@ function CourseManager({
               />
             </svg>
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-[#3E325F] uppercase tracking-wider">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-700 uppercase tracking-wider">
             COURSES
           </h3>
         </button>
@@ -479,7 +564,7 @@ function CourseManager({
               return (
                 <div
                   key={`${course.id}-${course.units}-${course.creditHours}`}
-                  className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative"
+                  className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/40 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative"
                   onClick={() => handleCourseSelection(course)}
                 >
                   {/* ========================================
@@ -548,7 +633,7 @@ function CourseManager({
                           className={`px-4 py-2 rounded-full text-sm font-bold shadow-xl border border-white/20 ${
                             hasGrades
                               ? `bg-gradient-to-r ${colorScheme.gradeGradient} text-white`
-                              : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white"
+                              : "bg-gradient-to-r from-blue-400 to-blue-500 text-white"
                           }`}
                         >
                           {typeof courseGrade === "number"
@@ -578,7 +663,7 @@ function CourseManager({
                           <div
                             className={`h-3 rounded-full transition-all duration-700 shadow-sm ${
                               isOngoing && progress === 0
-                                ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                                ? "bg-gradient-to-r from-blue-400 to-blue-500"
                                 : `bg-gradient-to-r ${colorScheme.progressGradient}`
                             }`}
                             style={{
@@ -647,7 +732,7 @@ function CourseManager({
                               e.stopPropagation();
                               handleMarkComplete(course.id);
                             }}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                             title="Mark as Complete"
                           >
                             <svg
@@ -671,7 +756,7 @@ function CourseManager({
                             e.stopPropagation();
                             handleArchiveClick(course.id);
                           }}
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                           title="Archive Course"
                         >
                           <svg
@@ -724,13 +809,13 @@ function CourseManager({
           ARCHIVED COURSES SECTION
           ======================================== */}
       <div className="mb-8 relative z-10">
-        <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="flex items-center gap-3 mb-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-md border border-white/50">
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-3 hover:bg-white/10 rounded-xl p-2 transition-all duration-300"
+            className="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-2 transition-all duration-300"
           >
             <div
-              className={`w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
+              className={`w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
                 showArchived ? "rotate-0" : "-rotate-90"
               }`}
             >
@@ -748,12 +833,12 @@ function CourseManager({
                 />
               </svg>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-orange-700 uppercase tracking-wider">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-700 uppercase tracking-wider">
               ARCHIVED COURSES
             </h3>
           </button>
           <div className="ml-auto flex items-center">
-            <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-md font-bold whitespace-nowrap">
+            <span className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 py-2 rounded-xl text-lg sm:text-xl shadow-md font-bold whitespace-nowrap">
               {archivedCourses.length} Archived
             </span>
           </div>
@@ -781,15 +866,15 @@ function CourseManager({
                 return (
                   <div
                     key={`archived-${course.id}`}
-                    className="bg-orange-50 rounded-2xl shadow-lg border border-orange-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative opacity-75"
+                    className="bg-white/40 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative opacity-75"
                     onClick={() => handleCourseSelection(course)}
                   >
                     <div
-                      className={`absolute inset-0 bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                      className={`absolute inset-0 bg-gradient-to-br from-gray-500/10 via-gray-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                     ></div>
 
                     <div
-                      className={`absolute inset-0 rounded-2xl border-2 border-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                      className={`absolute inset-0 rounded-2xl border-2 border-gray-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                     ></div>
 
                     <div className="p-4 sm:p-6 relative z-10">
@@ -806,7 +891,7 @@ function CourseManager({
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-orange-700 transition-colors duration-300">
+                            <h1 className="text-xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-gray-700 transition-colors duration-300">
                               {course.courseCode ||
                                 course.name.substring(0, 6).toUpperCase()}
                             </h1>
@@ -822,7 +907,7 @@ function CourseManager({
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                          <span className="px-4 py-2 rounded-full text-sm font-bold shadow-xl border border-white/20 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                          <span className="px-4 py-2 rounded-full text-sm font-bold shadow-xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 text-white">
                             ARCHIVED
                           </span>
                         </div>
@@ -832,7 +917,7 @@ function CourseManager({
                         <div className="flex-1 mr-4">
                           <div className="flex justify-between items-center mb-3">
                             <span
-                              className={`text-sm font-bold text-orange-600 uppercase tracking-wide`}
+                              className={`text-sm font-bold text-gray-600 uppercase tracking-wide`}
                             >
                               Progress
                             </span>
@@ -842,7 +927,7 @@ function CourseManager({
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner border border-gray-300/50">
                             <div
-                              className="h-3 rounded-full transition-all duration-700 shadow-sm bg-gradient-to-r from-orange-500 to-orange-600"
+                              className="h-3 rounded-full transition-all duration-700 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600"
                               style={{
                                 width: `${
                                   isNaN(progress) || !isFinite(progress)
@@ -881,7 +966,7 @@ function CourseManager({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteCourse(course.id);
+                              handleDeleteClick(course.id);
                             }}
                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                             title="Delete Course"
@@ -908,10 +993,10 @@ function CourseManager({
               })}
             </div>
           ) : (
-            <div className="text-center py-12 text-orange-600">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-12 text-gray-600">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="w-8 h-8 text-orange-500"
+                  className="w-8 h-8 text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -924,10 +1009,10 @@ function CourseManager({
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-orange-700 mb-2">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
                 No Archived Courses
               </h3>
-              <p className="text-orange-600">
+              <p className="text-gray-600">
                 Archive courses to see them here.
               </p>
             </div>
@@ -938,10 +1023,10 @@ function CourseManager({
           COMPLETED COURSES SECTION
           ======================================== */}
       <div className="mb-8 relative z-10">
-        <div className="flex items-center gap-3 mb-6 bg-white/20 rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="flex items-center gap-3 mb-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-md border border-white/50">
           <button
             onClick={() => setShowCompleted(!showCompleted)}
-            className="flex items-center gap-3 hover:bg-white/10 rounded-xl p-2 transition-all duration-300"
+            className="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-2 transition-all duration-300"
           >
             <div
               className={`w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 ${
@@ -962,7 +1047,7 @@ function CourseManager({
                 />
               </svg>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-green-700 uppercase tracking-wider">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-700 uppercase tracking-wider">
               COMPLETED COURSES
             </h3>
           </button>
@@ -1053,7 +1138,7 @@ function CourseManager({
                 return (
                   <div
                     key={`completed-${course.id}`}
-                    className="bg-green-50 rounded-2xl shadow-lg border border-green-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative"
+                    className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/40 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group relative"
                     onClick={() => handleCourseSelection(course)}
                   >
                     <div
@@ -1186,7 +1271,7 @@ function CourseManager({
                               e.stopPropagation();
                               handleArchiveClick(course.id);
                             }}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg hover:shadow-xl"
                             title="Archive Course"
                           >
                             <svg
@@ -1287,6 +1372,29 @@ function CourseManager({
         warningItems={confirmationModal.warningItems}
         showTip={confirmationModal.showTip}
         tipMessage={confirmationModal.tipMessage}
+      />
+
+      {/* ========================================
+          AI PREDICTION RATING MODAL
+          ======================================== */}
+      <AIPredictionRatingModal
+        isOpen={ratingModal.isOpen}
+        onClose={() => setRatingModal({ isOpen: false, courseId: null, courseName: "", isLoading: false })}
+        onSubmit={handleRatingSubmit}
+        courseName={ratingModal.courseName}
+        isLoading={ratingModal.isLoading}
+      />
+
+      {/* ========================================
+          SEMESTER TRANSITION MODAL
+          ======================================== */}
+      <SemesterTransitionModal
+        isOpen={semesterTransitionModal.isOpen}
+        onClose={() => setSemesterTransitionModal({ isOpen: false, progressionData: null, isLoading: false })}
+        onProceed={() => handleSemesterTransition(true)}
+        onStay={() => handleSemesterTransition(false)}
+        progressionData={semesterTransitionModal.progressionData}
+        isLoading={semesterTransitionModal.isLoading}
       />
     </div>
   );

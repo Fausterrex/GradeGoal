@@ -161,17 +161,31 @@ const AIRecommendations = ({ courses }) => {
         }
       }
 
-      // Sort recommendations by priority and update time
-      const sortedRecommendations = allRecommendations
-        .sort((a, b) => {
-          // First sort by priority
-          const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-          if (priorityDiff !== 0) return priorityDiff;
-          
-          // Then by update time (newer first)
-          return new Date(b.updatedAt) - new Date(a.updatedAt);
-        })
-        .slice(0, 6); // Take top 6 recommendations
+      // Group recommendations by course and take top 2 per course
+      const recommendationsByCourse = {};
+      allRecommendations.forEach(rec => {
+        if (!recommendationsByCourse[rec.courseId]) {
+          recommendationsByCourse[rec.courseId] = [];
+        }
+        recommendationsByCourse[rec.courseId].push(rec);
+      });
+
+      // Sort each course's recommendations and take top 2
+      const sortedRecommendations = [];
+      Object.values(recommendationsByCourse).forEach(courseRecs => {
+        const sortedCourseRecs = courseRecs
+          .sort((a, b) => {
+            // First sort by priority
+            const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+            if (priorityDiff !== 0) return priorityDiff;
+            
+            // Then by update time (newer first)
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+          })
+          .slice(0, 2); // Take top 2 per course
+        
+        sortedRecommendations.push(...sortedCourseRecs);
+      });
 
       setRecommendations(sortedRecommendations);
       setLastUpdated(new Date());
@@ -353,15 +367,7 @@ const AIRecommendations = ({ courses }) => {
                 
                 {/* Footer */}
                 <div className="flex items-center justify-end">
-                  {rec.actionButton && rec.actionButton.enabled && (
-                    <button
-                      onClick={() => handleActionClick(rec.actionButton.action, rec.courseId, rec.courseName)}
-                      className="flex items-center space-x-1 px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                    >
-                      <span className="font-medium">{rec.actionButton.text}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  )}
+                  {/* Action buttons removed for main dashboard */}
                 </div>
               </div>
             );

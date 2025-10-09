@@ -3,6 +3,7 @@ package com.project.gradegoal.Service;
 import com.project.gradegoal.Entity.AcademicGoal;
 import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Entity.Course;
+import com.project.gradegoal.Entity.Achievement;
 import com.project.gradegoal.Repository.AcademicGoalRepository;
 import com.project.gradegoal.Repository.UserRepository;
 import com.project.gradegoal.Repository.CourseRepository;
@@ -35,6 +36,9 @@ public class AcademicGoalService {
 
     @Autowired
     private PushNotificationService pushNotificationService;
+
+    @Autowired
+    private AchievementService achievementService;
 
     public AcademicGoal createAcademicGoal(AcademicGoal academicGoal) {
         return academicGoalRepository.save(academicGoal);
@@ -235,6 +239,23 @@ public class AcademicGoalService {
                         
                         // Send achievement notifications
                         sendGoalAchievementNotifications(goal, course);
+                        
+                        // Check for achievements after goal is achieved
+                        try {
+                            logger.info("Checking achievements for user {} after goal achievement: {}", 
+                                goal.getUserId(), goal.getGoalTitle());
+                            List<Achievement> newAchievements = achievementService.checkAndAwardAchievements(goal.getUserId());
+                            if (!newAchievements.isEmpty()) {
+                                logger.info("🎉 User {} earned {} achievements after completing goal '{}': {}", 
+                                    goal.getUserId(), newAchievements.size(), goal.getGoalTitle(), 
+                                    newAchievements.stream().map(Achievement::getAchievementName).collect(java.util.stream.Collectors.toList()));
+                            } else {
+                                logger.info("No new achievements unlocked for user {} after completing goal: {}", 
+                                    goal.getUserId(), goal.getGoalTitle());
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error checking achievements after goal completion for user {}", goal.getUserId(), e);
+                        }
                     } else {
                         goal.setAchievedDate(null);
                     }

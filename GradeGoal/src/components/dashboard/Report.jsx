@@ -136,11 +136,6 @@ const Report = () => {
         const allCourses = res.data.courses || [];
         setResData(res.data); // ✅ add this line near the top
 
-        // Debug: Log the structure of the first course to understand the data format
-        if (allCourses.length > 0) {
-          console.log('🎓 [Report] First course structure:', allCourses[0]);
-          console.log('🎓 [Report] Course fields:', Object.keys(allCourses[0]));
-        }
 
         const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
 
@@ -148,14 +143,6 @@ const Report = () => {
         // In this case, show all courses for now (or we could add a different filtering logic)
         const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
 
-        console.log('🎓 [Report] Filtering courses by year level:', {
-          totalCourses: allCourses.length,
-          filteredCourses: filteredCourses.length,
-          finalCourses: finalCourses.length,
-          selectedYearLevel: selectedYearLevel,
-          firstCourseYearLevel: allCourses[0]?.creationYearLevel || 'undefined',
-          usingFallback: filteredCourses.length === 0 && allCourses.length > 0
-        });
 
         setCourses(finalCourses);
       })
@@ -171,18 +158,12 @@ const Report = () => {
   // Reload courses when year level changes
   useEffect(() => {
     if (currentUser?.userId && !loading) {
-      console.log('🎓 [Report] Year level changed, reloading reports data');
       setIsLoading(true);
 
       axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
         .then((res) => {
           const allCourses = res.data.courses || [];
 
-          // Debug: Log the structure of the first course to understand the data format
-          if (allCourses.length > 0) {
-            console.log('🎓 [Report] Year level change - First course structure:', allCourses[0]);
-            console.log('🎓 [Report] Year level change - Course fields:', Object.keys(allCourses[0]));
-          }
 
           const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
 
@@ -190,14 +171,6 @@ const Report = () => {
           // In this case, show all courses for now (or we could add a different filtering logic)
           const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
 
-          console.log('🎓 [Report] Year level change - filtering courses:', {
-            totalCourses: allCourses.length,
-            filteredCourses: filteredCourses.length,
-            finalCourses: finalCourses.length,
-            selectedYearLevel: selectedYearLevel,
-            firstCourseYearLevel: allCourses[0]?.creationYearLevel || 'undefined',
-            usingFallback: filteredCourses.length === 0 && allCourses.length > 0
-          });
 
           setCourses(finalCourses);
         })

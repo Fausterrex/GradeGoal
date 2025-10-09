@@ -76,12 +76,12 @@ function UserProgress({ userProgress, course, userId }) {
   }
 
   const currentProgress = progressData.userProgress;
-  const rankTitle = progressData.rankTitle || "Beginner Scholar";
+  const rankTitle = progressData.rankTitle || "Newcomer";
   const pointsRequiredForNextLevel = progressData.pointsRequiredForNextLevel || 100;
   const pointsRequiredForCurrentLevel = progressData.pointsRequiredForCurrentLevel || 0;
 
   // Calculate progress within current level
-  const currentLevel = currentProgress.currentLevel || 1;
+  const currentLevel = currentProgress.currentLevel || 0;
   const totalPoints = currentProgress.totalPoints || 0;
   
   // Calculate points needed for next level (simplified logic)

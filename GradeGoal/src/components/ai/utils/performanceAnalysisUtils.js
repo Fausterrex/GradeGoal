@@ -99,9 +99,9 @@ export const analyzePerformancePatterns = (grades, categories) => {
 };
 
 /**
- * Generate realistic predictions for empty categories based on performance patterns
+ * Generate realistic predictions for upcoming assessments based on performance patterns
  */
-export const generateRealisticPredictions = (patterns, categories, targetGPA) => {
+export const generateRealisticPredictions = (patterns, categories, targetGPA, courseData = null) => {
   const predictions = {
     upcomingAssessments: [],
     predictedScores: {},
@@ -109,27 +109,40 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
     reasoning: ''
   };
 
-  // Find categories that could benefit from additional assessments
-  // This includes completely empty categories AND categories with only one term's assessments
-  const emptyCategories = categories.filter(cat => {
+  // Find categories that have upcoming assessments
+  // Look for categories that have pending/upcoming assessments (not completed ones)
+  const upcomingCategories = categories.filter(cat => {
     const pattern = patterns.byCategory[cat.id];
-    if (!pattern) return true; // Category has no data at all
+    if (!pattern) return false; // No pattern data, skip
     
-    // Completely empty category
-    if (pattern.isEmpty) return true;
+    // Check if this category has upcoming assessments
+    const categoryName = (cat.name || cat.categoryName || '').toLowerCase();
     
-    // Category with assessments in only one term (could benefit from more assessments)
-    // This is more realistic - most courses have assessments in both terms
-    if (pattern.hasMidtermAssessments && !pattern.hasFinalTermAssessments) return true;
-    if (pattern.hasFinalTermAssessments && !pattern.hasMidtermAssessments) return true;
+    // Only predict for common assessment types that typically have multiple assessments
+    const hasUpcomingPotential = categoryName.includes('assignment') || 
+                                categoryName.includes('exam') || 
+                                categoryName.includes('project') ||
+                                categoryName.includes('lab');
     
-    // Category with very few assessments (could benefit from more)
-    if (pattern.totalAssessments <= 1) return true;
+    if (!hasUpcomingPotential) return false;
     
-    return false;
+    // If we have courseData, check for actual upcoming assessments
+    if (courseData && courseData.grades) {
+      const categoryGrades = courseData.grades[cat.id] || [];
+      // Look for assessments that are not completed (no score or score is 0)
+      const upcomingAssessments = categoryGrades.filter(grade => 
+        grade.score === null || grade.score === undefined || grade.score === 0
+      );
+      
+      // Only predict if there are actual upcoming assessments
+      return upcomingAssessments.length > 0;
+    }
+    
+    // Fallback: if no courseData, use the old logic
+    return pattern.totalAssessments >= 1;
   });
 
-  if (emptyCategories.length === 0) {
+  if (upcomingCategories.length === 0) {
     predictions.reasoning = 'No upcoming assessments detected. All categories have existing assessments.';
     return predictions;
   }
@@ -151,10 +164,43 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
 
   const averageBaseline = baselineCount > 0 ? baselineScore / baselineCount : 75; // Default 75%
 
-  // Generate predictions for each empty category
-  emptyCategories.forEach(category => {
+  // Generate predictions for each upcoming category
+  upcomingCategories.forEach(category => {
     const categoryPredictions = [];
     const categoryPattern = patterns.byCategory[category.id];
+    
+    // Get maxScore from upcoming assessments in this category
+    let maxScoreToUse = null;
+    
+    if (courseData && courseData.grades) {
+      const categoryGrades = courseData.grades[category.id] || [];
+      // Look for upcoming assessments (not completed ones)
+      const upcomingAssessments = categoryGrades.filter(grade => 
+        grade.score === null || grade.score === undefined || grade.score === 0
+      );
+      
+      if (upcomingAssessments.length > 0) {
+        // Get maxScore from upcoming assessments
+        const maxScores = upcomingAssessments.map(grade => grade.maxScore || grade.pointsPossible).filter(score => score > 0);
+        if (maxScores.length > 0) {
+          maxScoreToUse = Math.max(...maxScores);
+        }
+      }
+    }
+    
+    // Fallback: get maxScore from existing assessments if no upcoming ones
+    if (maxScoreToUse === null) {
+      const categoryGrades = patterns.byCategory[category.id]?.scores || [];
+      if (categoryGrades.length > 0) {
+        maxScoreToUse = Math.max(...categoryGrades.map(grade => grade.maxScore));
+      }
+    }
+    
+    // If still no maxScore data, skip this category
+    if (maxScoreToUse === null) {
+      console.log(`Skipping predictions for ${category.name || category.categoryName} - no maxScore data available`);
+      return;
+    }
     
     // Determine number of assessments to predict (typically 1-3 per category)
     const assessmentCount = getTypicalAssessmentCount(category.name || category.categoryName);
@@ -164,12 +210,13 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
         averageBaseline,
         patterns.overall.consistency,
         patterns.overall.trend,
-        category.name || category.categoryName
+        category.name || category.categoryName,
+        maxScoreToUse // Pass actual maxScore to prediction function
       );
       categoryPredictions.push({
         assessmentName: `${category.name || category.categoryName} ${i}`,
         predictedScore: predictedScore.score,
-        predictedMaxScore: 15, // Standard max score
+        predictedMaxScore: maxScoreToUse, // Use actual maxScore from assessment data
         confidence: predictedScore.confidence,
         reasoning: predictedScore.reasoning
       });
@@ -194,8 +241,8 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
   }
 
   // Generate more specific reasoning based on what was found
-  const emptyCount = emptyCategories.filter(cat => patterns.byCategory[cat.id]?.isEmpty).length;
-  const singleTermCount = emptyCategories.filter(cat => {
+  const upcomingCount = upcomingCategories.length;
+  const singleTermCount = upcomingCategories.filter(cat => {
     const pattern = patterns.byCategory[cat.id];
     return pattern && !pattern.isEmpty && 
            ((pattern.hasMidtermAssessments && !pattern.hasFinalTermAssessments) ||
@@ -204,12 +251,14 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
   
   let reasoning = `Based on your ${patterns.overall.consistency.toLowerCase()} consistency performance averaging ${averageBaseline.toFixed(1)}%`;
   
-  if (emptyCount > 0 && singleTermCount > 0) {
-    reasoning += `, predictions generated for ${emptyCount} empty categories and ${singleTermCount} categories with single-term assessments`;
-  } else if (emptyCount > 0) {
-    reasoning += `, predictions generated for ${emptyCount} empty categories`;
+  if (upcomingCount > 0 && singleTermCount > 0) {
+    reasoning += `, predictions generated for ${upcomingCount} categories with upcoming assessments and ${singleTermCount} categories with single-term assessments`;
+  } else if (upcomingCount > 0) {
+    reasoning += `, predictions generated for ${upcomingCount} categories with upcoming assessments`;
   } else if (singleTermCount > 0) {
     reasoning += `, predictions generated for ${singleTermCount} categories that could benefit from additional assessments`;
+  } else {
+    reasoning += `, no upcoming assessments detected`;
   }
   
   reasoning += `. These predictions assume you maintain similar performance patterns.`;
@@ -222,13 +271,17 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA) =>
 /**
  * Generate a realistic score prediction based on performance patterns
  */
-const generatePredictedScore = (baseline, consistency, trend, categoryName) => {
+const generatePredictedScore = (baseline, consistency, trend, categoryName, maxScore) => {
   let baseScore = baseline;
   
   // Adjust based on consistency
   if (consistency === 'HIGH') {
-    // High consistency = smaller variance
-    baseScore += (Math.random() - 0.5) * 4; // ±2 points
+    // High consistency = low variance, but if baseline is perfect (100%), maintain perfection
+    if (baseline >= 100) {
+      baseScore = maxScore; // Maintain perfect performance
+    } else {
+      baseScore += (Math.random() - 0.5) * 2; // ±1 point for high consistency
+    }
   } else if (consistency === 'MEDIUM') {
     // Medium consistency = moderate variance
     baseScore += (Math.random() - 0.5) * 8; // ±4 points
@@ -251,8 +304,8 @@ const generatePredictedScore = (baseline, consistency, trend, categoryName) => {
     baseScore += 1; // Quizzes are typically easier
   }
   
-  // Ensure score is within reasonable bounds
-  const finalScore = Math.max(5, Math.min(15, Math.round(baseScore)));
+  // Ensure score is within reasonable bounds based on actual maxScore
+  const finalScore = Math.max(5, Math.min(maxScore, Math.round(baseScore)));
   
   // Determine confidence
   let confidence = 'MEDIUM';
