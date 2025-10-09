@@ -24,19 +24,10 @@ import NotificationBell from "./NotificationBell";
 import { getAcademicGoalsByCourse, getUserProfile, getUserLoginStreak } from "../../backend/api";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
-import { useSemester } from "../context/SemesterContext";
 import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
 const Dashboard = ({ courses, grades, overallGPA }) => {
   const { currentUser } = useAuth();
   const { showCumulativeData } = useYearLevel();
-  const { 
-    selectedSemester, 
-    changeSemester, 
-    getSemesterLabel, 
-    getSemesterShortLabel,
-    filterDataBySemester,
-    detectSemesterProgression 
-  } = useSemester();
 
   // ========================================
   // STATE MANAGEMENT
@@ -350,34 +341,11 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
       </div>
 
       {/* ========================================
-          SEMESTER TABS SECTION
-          ======================================== */}
-      <div className="mb-6 flex-shrink-0">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-          <div className="flex space-x-1">
-            {['all', 'FIRST', 'SECOND', 'THIRD'].map((semester) => (
-              <button
-                key={semester}
-                onClick={() => changeSemester(semester)}
-                className={`flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  selectedSemester === semester
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                {getSemesterLabel(semester)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================
           GRADE TRENDS SECTION
           ======================================== */}
       <div className="mb-8 flex-shrink-0">
         <EnhancedGradeTrends
-          courses={filterDataBySemester(courses)}
+          courses={courses}
           grades={grades}
           overallGPA={overallGPA}
           gpaData={gpaData}
@@ -601,7 +569,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
           ======================================== */}
       <div className="mb-8 flex-shrink-0">
         <GoalsOverview
-          courses={filterDataBySemester(courses)}
+          courses={courses}
           gpaData={gpaData}
           onGoalUpdate={() => {
             // Refresh goals data when needed
@@ -615,7 +583,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
           ======================================== */}
       <div className="mb-8 flex-shrink-0">
         <AIRecommendations
-          courses={filterDataBySemester(courses)}
+          courses={courses}
         />
       </div>
 
@@ -624,7 +592,7 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
           ======================================== */}
       <div className="mb-8 flex-shrink-0">
         <RecentActivities
-          courses={filterDataBySemester(courses)}
+          courses={courses}
         />
       </div>
 
