@@ -111,6 +111,7 @@ const UserManagement = () => {
           body: JSON.stringify({
             firstName: selectedUser.firstName,
             lastName: selectedUser.lastName,
+            email: selectedUser.email,
             profilePictureUrl: selectedUser.profilePictureUrl,
             currentYearLevel: selectedUser.currentYearLevel,
           }),
@@ -271,6 +272,15 @@ const UserManagement = () => {
                     name="lastName"
                     type="text"
                     value={selectedUser.lastName || ""}
+                    onChange={handleInputChange}
+                    className="border rounded-lg px-3 py-2 text-gray-800"
+                  />
+
+                  <label className="text-sm text-gray-600">Email</label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={selectedUser.email || ""}
                     onChange={handleInputChange}
                     className="border rounded-lg px-3 py-2 text-gray-800"
                   />

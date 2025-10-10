@@ -54,13 +54,11 @@ public class UserController {
             User user = userService.authenticateUser(request.getEmail(), request.getPassword());
 
             if (user != null) {
-                // ✅ Check if the account is frozen
                 if (user.getIsActive() != null && !user.getIsActive()) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body("This account has been frozen by an administrator.");
                 }
 
-                // ✅ Continue normal login if account is active
                 return ResponseEntity.ok(user);
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
