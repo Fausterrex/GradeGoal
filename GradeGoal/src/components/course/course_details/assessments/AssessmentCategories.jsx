@@ -100,7 +100,7 @@ function AssessmentCategories({
             
             // Use the corrected average if it's different from the database calculation
             if (Math.abs(completedAverage - categoryAverage) > 1) {
-              console.log('🔧 [CATEGORY AVERAGE DEBUG] Correcting category average for', category.name, 'from', categoryAverage.toFixed(1) + '%', 'to', completedAverage.toFixed(1) + '%');
+              console.log('🔧 [CATEGORY AVERAGE DEBUG] Correcting category average for', category.name, 'from', categoryAverage.toFixed(2) + '%', 'to', completedAverage.toFixed(2) + '%');
               categoryAverage = completedAverage;
             }
           }

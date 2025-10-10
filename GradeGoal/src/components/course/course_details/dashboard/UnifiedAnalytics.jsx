@@ -170,7 +170,7 @@ function UnifiedAnalytics({
             {/* Average */}
             <div className="text-center p-4 bg-blue-50 rounded border border-blue-200">
               <div className="text-xl font-bold text-blue-900">
-                {statistics.average?.toFixed(1) || '0.0'}%
+                {statistics.average?.toFixed(2) || '0.00'}%
               </div>
               <div className="text-sm text-blue-600">Average Score</div>
             </div>
@@ -178,7 +178,7 @@ function UnifiedAnalytics({
             {/* Best */}
             <div className="text-center p-4 bg-green-50 rounded border border-green-200">
               <div className="text-xl font-bold text-green-900">
-                {statistics.best?.toFixed(1) || '0.0'}%
+                {statistics.best?.toFixed(2) || '0.00'}%
               </div>
               <div className="text-sm text-green-600">Best Score</div>
             </div>

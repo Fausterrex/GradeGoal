@@ -19,11 +19,22 @@ const UserManagement = () => {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch((err) => console.error("Error fetching users:", err));
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
   const filteredUsers = users
     .filter((user) =>
@@ -58,7 +69,7 @@ const UserManagement = () => {
     const freeze = e.target.checked; // true = frozen
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/freeze/${selectedUser.userId}?freeze=${freeze}`,
+        `/api/users/freeze/${selectedUser.userId}?freeze=${freeze}`,
         { method: "PUT", headers: { "Content-Type": "application/json" } }
       );
 
@@ -77,6 +88,9 @@ const UserManagement = () => {
             ? "Account frozen successfully ❄️"
             : "Account reactivated ✅"
         );
+        setTimeout(() => setToast(null), 3000);
+      } else {
+        setToast("Failed to update account status ⚠️");
         setTimeout(() => setToast(null), 3000);
       }
     } catch (error) {
@@ -104,7 +118,7 @@ const UserManagement = () => {
   const handleSaveChanges = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/profile/${selectedUser.userId}`,
+        `/api/users/profile/${selectedUser.userId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -124,14 +138,28 @@ const UserManagement = () => {
           prev.map((u) => (u.userId === updated.userId ? updated : u))
         );
         setSelectedUser(null);
+        setToast("User updated successfully ✅");
+        setTimeout(() => setToast(null), 3000);
+      } else {
+        setToast("Failed to update user ⚠️");
+        setTimeout(() => setToast(null), 3000);
       }
     } catch (error) {
       console.error("Error updating user:", error);
+      setToast("Something went wrong ⚠️");
+      setTimeout(() => setToast(null), 3000);
     }
   };
 
   return (
     <div className="p-10 bg-[#D4C5F5] min-h-auto w-11/12 mx-auto flex flex-col gap-8">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+          <p className="text-gray-800 font-medium">{toast}</p>
+        </div>
+      )}
+      
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#3C2363] mb-8">User Management</h1>

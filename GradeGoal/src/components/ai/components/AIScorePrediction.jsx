@@ -424,7 +424,7 @@ const AIScorePrediction = ({ assessment, prediction, isVisible = true, courseDat
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Current weighted average:</span>
-                  <span className="font-semibold text-gray-800">{(gpaImpact?.currentWeightedAverage || perfectScoreImpact?.currentWeightedAverage || 0).toFixed(1)}%</span>
+                  <span className="font-semibold text-gray-800">{(gpaImpact?.currentWeightedAverage || perfectScoreImpact?.currentWeightedAverage || 0).toFixed(2)}%</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Current GPA:</span>

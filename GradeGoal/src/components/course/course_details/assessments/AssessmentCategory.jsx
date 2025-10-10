@@ -117,7 +117,7 @@ function AssessmentCategory({
                       categoryAverage
                     )}`}
                   >
-                    {categoryAverage.toFixed(1)}%
+                    {categoryAverage.toFixed(2)}%
                   </span>
                   <div className={`w-3 h-3 rounded-full ${
                     categoryAverage >= 90 ? 'bg-green-500' :

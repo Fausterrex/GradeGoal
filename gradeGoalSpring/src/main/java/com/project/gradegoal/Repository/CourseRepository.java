@@ -48,6 +48,18 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByIsActiveTrue();
 
     List<Course> findByIsActiveFalse();
+    
+    /**
+     * Count all courses
+     * @return total count of courses
+     */
+    long count();
+    
+    /**
+     * Count active courses
+     * @return count of active courses
+     */
+    long countByIsActiveTrue();
 
     // ========================================
     // DATABASE FUNCTION CALLS

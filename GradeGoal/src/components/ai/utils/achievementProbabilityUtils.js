@@ -372,15 +372,15 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
             console.log({
               gradedWeight: gradedWeight.toFixed(2),
               remainingWeight: remainingWeight.toFixed(2),
-              scenarioPerformance: scenarioPerformance.toFixed(1),
-              finalCategoryAverage: finalCategoryAverage.toFixed(1),
+              scenarioPerformance: scenarioPerformance.toFixed(2),
+              finalCategoryAverage: finalCategoryAverage.toFixed(2),
               gradedCount: gradedAssessments.length,
               ungradedCount: ungradedAssessments.length
             });
           } else {
             finalCategoryAverage = currentAverage;
             console.log({
-              finalCategoryAverage: finalCategoryAverage.toFixed(1),
+              finalCategoryAverage: finalCategoryAverage.toFixed(2),
               gradedCount: gradedAssessments.length,
               ungradedCount: 0
             });
@@ -395,9 +395,9 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
           totalWeight += category.weight;
           
           console.log({
-            scenarioPerformance: scenarioPerformance.toFixed(1),
+            scenarioPerformance: scenarioPerformance.toFixed(2),
             categoryWeight: category.weight,
-            contribution: (scenarioPerformance * category.weight / 100).toFixed(1),
+            contribution: (scenarioPerformance * category.weight / 100).toFixed(2),
             gradedCount: 0,
             ungradedCount: categoryGrades.length
           });
@@ -415,7 +415,7 @@ export const calculateRealisticAchievementProbability = (currentGPA, targetGPA, 
     console.log({
       finalGPA: finalGPA.toFixed(2),
       meetsTarget: finalGPA >= targetGPA,
-      totalWeightedScore: totalWeightedScore.toFixed(1),
+      totalWeightedScore: totalWeightedScore.toFixed(2),
       totalWeight: totalWeight
     });
 
@@ -755,7 +755,7 @@ export const postProcessAIResponse = (parsedAnalysis, courseData, goalData) => {
       `Target GPA: ${targetGPA}`,
       `Gap: ${gpaGap.toFixed(2)}`,
       `Max Achievable GPA: ${maxAchievableGPA.toFixed(2)}`,
-      `Current Grade: ${currentGrade.toFixed(1)}%`
+      `Current Grade: ${currentGrade.toFixed(2)}%`
     ],
     confidence: correctProbability >= 70 ? "HIGH" : correctProbability >= 40 ? "MEDIUM" : "LOW",
     bestPossibleGPA: bestPossibleGPA.toFixed(2),

@@ -4,6 +4,7 @@ import com.project.gradegoal.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -42,4 +43,25 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return true if email exists, false otherwise
      */
     boolean existsByEmail(String email);
+    
+    /**
+     * Count users by role (excluding specified role)
+     * @param role Role to exclude
+     * @return count of users not having the specified role
+     */
+    long countByRoleNot(String role);
+    
+    /**
+     * Count active users by role (excluding specified role)
+     * @param role Role to exclude
+     * @return count of active users not having the specified role
+     */
+    long countByIsActiveTrueAndRoleNot(String role);
+    
+    /**
+     * Find users by role (excluding specified role)
+     * @param role Role to exclude
+     * @return list of users not having the specified role
+     */
+    List<User> findByRoleNot(String role);
 }

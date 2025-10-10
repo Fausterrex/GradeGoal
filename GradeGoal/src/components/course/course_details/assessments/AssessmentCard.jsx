@@ -179,7 +179,7 @@ function AssessmentCard({
                 >
                   {grade.score}
                   /{grade.maxScore} (
-                  {percentage.toFixed(1)}% |{" "}
+                  {percentage.toFixed(2)}% |{" "}
                   {gpa}{" "}
                   GPA)
                   {grade.isExtraCredit &&

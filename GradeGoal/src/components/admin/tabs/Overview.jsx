@@ -1,25 +1,66 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, BookOpen, Target, AlertTriangle, Clock, X } from "lucide-react";
 
 const Overview = () => {
   const [showModal, setShowModal] = useState(false);
+  const [overviewData, setOverviewData] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    totalCourses: 0,
+    activeCourses: 0,
+    goalsCompleted: 0,
+    totalGoals: 0,
+    userGrowthRate: 0,
+    courseGrowthRate: 0,
+    goalGrowthRate: 0
+  });
+  const [studentsAtRisk, setStudentsAtRisk] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const studentsAtRisk = [
-    { name: "Sarah Johnson", courses: 4, percent: 68.5, trend: -5.2 },
-    { name: "Mike Chen", courses: 5, percent: 71.3, trend: -3.8 },
-    { name: "Emily Rodriguez", courses: 3, percent: 69.1, trend: -4.5 },
-    { name: "Jason Lee", courses: 6, percent: 65.8, trend: -6.1 },
-    { name: "Anna Smith", courses: 4, percent: 67.2, trend: -5.0 },
-    { name: "Liam Brown", courses: 5, percent: 70.3, trend: -3.9 },
-    { name: "Mia Garcia", courses: 2, percent: 66.4, trend: -4.7 },
-  ];
+  useEffect(() => {
+    fetchOverviewData();
+    fetchStudentsAtRisk();
+    fetchRecentActivities();
+  }, []);
 
-  const activities = [
-    { icon: <Users size={16} />, text: "New user registration: john.doe@email.com", time: "3 mins ago" },
-    { icon: <BookOpen size={16} />, text: "Added 32 students to 'Data Structures'", time: "12 mins ago" },
-    { icon: <Target size={16} />, text: "AI model retrained - Accuracy: 87.4%", time: "1 hour ago" },
-    { icon: <Clock size={16} />, text: "Bulk data export completed (CSV format)", time: "2 hours ago" },
-  ];
+  const fetchOverviewData = async () => {
+    try {
+      const response = await fetch('/api/admin/overview');
+      if (response.ok) {
+        const data = await response.json();
+        setOverviewData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching overview data:', error);
+    }
+  };
+
+  const fetchStudentsAtRisk = async () => {
+    try {
+      const response = await fetch('/api/admin/students-at-risk');
+      if (response.ok) {
+        const data = await response.json();
+        setStudentsAtRisk(data);
+      }
+    } catch (error) {
+      console.error('Error fetching students at risk:', error);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    try {
+      const response = await fetch('/api/admin/recent-activities');
+      if (response.ok) {
+        const data = await response.json();
+        setActivities(data);
+      }
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     
@@ -36,10 +77,16 @@ const Overview = () => {
               <Users className="text-blue-600" size={20} />
               <p className="font-medium text-gray-600">Total Users</p>
             </div>
-            <p className="text-3xl font-bold mt-2 text-gray-800">12,847</p>
-            <p className="text-sm text-gray-500">8,234 active</p>
+            <p className="text-3xl font-bold mt-2 text-gray-800">
+              {loading ? '...' : overviewData.totalUsers.toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500">
+              {loading ? '...' : `${overviewData.activeUsers.toLocaleString()} active`}
+            </p>
           </div>
-          <span className="text-green-600 font-semibold">+12.5%</span>
+          <span className="text-green-600 font-semibold">
+            {loading ? '...' : `+${overviewData.userGrowthRate.toFixed(1)}%`}
+          </span>
         </div>
 
 
@@ -49,10 +96,16 @@ const Overview = () => {
               <BookOpen className="text-purple-600" size={20} />
               <p className="font-medium text-gray-600">Active Courses</p>
             </div>
-            <p className="text-3xl font-bold mt-2 text-gray-800">2,890</p>
-            <p className="text-sm text-gray-500">3,421 total</p>
+            <p className="text-3xl font-bold mt-2 text-gray-800">
+              {loading ? '...' : overviewData.activeCourses.toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500">
+              {loading ? '...' : `${overviewData.totalCourses.toLocaleString()} total`}
+            </p>
           </div>
-          <span className="text-green-600 font-semibold">+8.3%</span>
+          <span className="text-green-600 font-semibold">
+            {loading ? '...' : `+${overviewData.courseGrowthRate.toFixed(1)}%`}
+          </span>
         </div>
 
 
@@ -62,10 +115,16 @@ const Overview = () => {
               <Target className="text-green-600" size={20} />
               <p className="font-medium text-gray-600">Goals Completed</p>
             </div>
-            <p className="text-3xl font-bold mt-2 text-gray-800">63.0%</p>
-            <p className="text-sm text-gray-500">9,847 / 15,632</p>
+            <p className="text-3xl font-bold mt-2 text-gray-800">
+              {loading ? '...' : `${((overviewData.goalsCompleted / overviewData.totalGoals) * 100).toFixed(1)}%`}
+            </p>
+            <p className="text-sm text-gray-500">
+              {loading ? '...' : `${overviewData.goalsCompleted.toLocaleString()} / ${overviewData.totalGoals.toLocaleString()}`}
+            </p>
           </div>
-          <span className="text-green-600 font-semibold">+5.7%</span>
+          <span className="text-green-600 font-semibold">
+            {loading ? '...' : `+${overviewData.goalGrowthRate.toFixed(1)}%`}
+          </span>
         </div>
       </div>
 
@@ -85,36 +144,54 @@ const Overview = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {studentsAtRisk.slice(0, 4).map((s, i) => (
-              <div
-                key={i}
-                className="flex justify-between items-center bg-orange-50 px-4 py-2 rounded-lg"
-              >
-                <div>
-                  <p className="text-gray-800 font-medium">{s.name}</p>
-                  <p className="text-sm text-gray-500">{s.courses} courses</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-orange-600 font-semibold">{s.percent}%</p>
-                  <p className="text-xs text-red-500">{s.trend}% trend</p>
-                </div>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Loading students at risk...</p>
               </div>
-            ))}
+            ) : studentsAtRisk.length > 0 ? (
+              studentsAtRisk.slice(0, 4).map((s, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-center bg-orange-50 px-4 py-2 rounded-lg"
+                >
+                  <div>
+                    <p className="text-gray-800 font-medium">{s.name}</p>
+                    <p className="text-sm text-gray-500">{s.courses} courses</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-orange-600 font-semibold">{s.percent.toFixed(1)}%</p>
+                    <p className="text-xs text-red-500">{s.trend.toFixed(1)}% trend</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-4">No students at risk found.</p>
+            )}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
           <div className="space-y-3">
-            {activities.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 text-gray-700">
-                <div className="text-blue-600">{a.icon}</div>
-                <div className="flex flex-col">
-                  <p className="text-sm font-medium">{a.text}</p>
-                  <p className="text-xs text-gray-500">{a.time}</p>
-                </div>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Loading recent activities...</p>
               </div>
-            ))}
+            ) : activities.length > 0 ? (
+              activities.map((a, i) => (
+                <div key={i} className="flex items-center gap-3 text-gray-700">
+                  <div className="text-blue-600">{a.icon}</div>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium">{a.text}</p>
+                    <p className="text-xs text-gray-500">{a.time}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-4">No recent activities found.</p>
+            )}
           </div>
         </div>
       </div>
@@ -135,21 +212,25 @@ const Overview = () => {
       </h2>
 
       <div className="overflow-y-auto max-h-80">
-        {studentsAtRisk.map((s, i) => (
-          <div
-            key={i}
-            className="flex justify-between items-center bg-orange-50 px-4 py-3 rounded-lg mb-2"
-          >
-            <div>
-              <p className="text-black font-medium">{s.name}</p>
-              <p className="text-sm text-gray-500">{s.courses} courses</p>
+        {studentsAtRisk.length > 0 ? (
+          studentsAtRisk.map((s, i) => (
+            <div
+              key={i}
+              className="flex justify-between items-center bg-orange-50 px-4 py-3 rounded-lg mb-2"
+            >
+              <div>
+                <p className="text-black font-medium">{s.name}</p>
+                <p className="text-sm text-gray-500">{s.courses} courses</p>
+              </div>
+              <div className="text-right">
+                <p className="text-yellow-600 font-semibold">{s.percent.toFixed(1)}%</p>
+                <p className="text-xs text-red-400">{s.trend.toFixed(1)}% trend</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-yellow-600 font-semibold">{s.percent}%</p>
-              <p className="text-xs text-red-400">{s.trend}% trend</p>
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-center text-gray-500 py-4">No students at risk found.</p>
+        )}
       </div>
 
       <div className="flex justify-end mt-4">

@@ -154,7 +154,7 @@ export const getConversionDisplay = (goalType, courseId, targetValue, courses, i
       if (format === 'gpa') {
         // Input is GPA, show percentage conversion
         const percentage = gpaToPercentage(numValue, gpaScale);
-        return `(${percentage.toFixed(1)}%)`;
+        return `(${percentage.toFixed(2)}%)`;
       } else if (format === 'percentage') {
         // Input is percentage, show GPA conversion
         const gpa = percentageToGPA(numValue, gpaScale);
