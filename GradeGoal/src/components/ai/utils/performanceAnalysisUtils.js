@@ -249,7 +249,7 @@ export const generateRealisticPredictions = (patterns, categories, targetGPA, co
             (pattern.hasFinalTermAssessments && !pattern.hasMidtermAssessments));
   }).length;
   
-  let reasoning = `Based on your ${patterns.overall.consistency.toLowerCase()} consistency performance averaging ${averageBaseline.toFixed(1)}%`;
+  let reasoning = `Based on your ${patterns.overall.consistency.toLowerCase()} consistency performance averaging ${averageBaseline.toFixed(2)}%`;
   
   if (upcomingCount > 0 && singleTermCount > 0) {
     reasoning += `, predictions generated for ${upcomingCount} categories with upcoming assessments and ${singleTermCount} categories with single-term assessments`;
@@ -318,7 +318,7 @@ const generatePredictedScore = (baseline, consistency, trend, categoryName, maxS
   return {
     score: finalScore,
     confidence,
-    reasoning: `Predicted based on ${consistency.toLowerCase()} consistency (${baseline.toFixed(1)}% average) with ${trend.toLowerCase()} trend`
+    reasoning: `Predicted based on ${consistency.toLowerCase()} consistency (${baseline.toFixed(2)}% average) with ${trend.toLowerCase()} trend`
   };
 };
 
@@ -379,7 +379,7 @@ export const generateConsistencyRecommendations = (patterns, currentGPA, targetG
       recommendations: [
         {
           title: 'Focus on Improving Performance',
-          description: `You need to improve your average performance by ${(gap * 25).toFixed(1)}% to reach your target GPA.`,
+          description: `You need to improve your average performance by ${(gap * 25).toFixed(2)}% to reach your target GPA.`,
           action: 'Focus on weaker categories and seek additional help.'
         }
       ]

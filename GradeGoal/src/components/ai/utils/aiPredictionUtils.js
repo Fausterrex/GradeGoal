@@ -177,15 +177,15 @@ const generateIntelligentFocusIndicators = (categories, grades, gpaGap) => {
       priority = "MEDIUM";
     } else if (averageGrade < 70) {
       needsAttention = true;
-      reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(1)}%. Need improvement to reach target.`;
+      reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(2)}%. Need improvement to reach target.`;
       priority = "HIGH";
     } else if (averageGrade < 80) {
       needsAttention = true;
-      reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(1)}%. Room for improvement.`;
+      reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(2)}%. Room for improvement.`;
       priority = "MEDIUM";
     } else {
       needsAttention = false;
-      reason = `Good performance in ${categoryName} (${averageGrade.toFixed(1)}%). Keep it up!`;
+      reason = `Good performance in ${categoryName} (${averageGrade.toFixed(2)}%). Keep it up!`;
       priority = "LOW";
     }
     
@@ -345,15 +345,15 @@ const generateAssessmentGradeRecommendations = (categories, grades, gpaGap, conf
       
       if (averageGrade < 70) {
         recommendedScore = "85%";
-        reasoning = `Current average is ${averageGrade.toFixed(1)}%. Need significant improvement.`;
+        reasoning = `Current average is ${averageGrade.toFixed(2)}%. Need significant improvement.`;
         priority = "HIGH";
       } else if (averageGrade < 80) {
         recommendedScore = "85%";
-        reasoning = `Current average is ${averageGrade.toFixed(1)}%. Room for improvement.`;
+        reasoning = `Current average is ${averageGrade.toFixed(2)}%. Room for improvement.`;
         priority = "MEDIUM";
       } else {
         recommendedScore = "90%";
-        reasoning = `Good performance (${averageGrade.toFixed(1)}%). Keep it up!`;
+        reasoning = `Good performance (${averageGrade.toFixed(2)}%). Keep it up!`;
         priority = "LOW";
       }
     }

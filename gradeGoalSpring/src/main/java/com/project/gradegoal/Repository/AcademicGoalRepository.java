@@ -54,4 +54,16 @@ public interface AcademicGoalRepository extends JpaRepository<AcademicGoal, Long
     List<AcademicGoal> findGoalsAboveThreshold(@Param("userId") Long userId, @Param("threshold") java.math.BigDecimal threshold);
     
     List<AcademicGoal> findByCourseId(Long courseId);
+    
+    /**
+     * Count all academic goals
+     * @return total count of academic goals
+     */
+    long count();
+    
+    /**
+     * Count achieved academic goals
+     * @return count of achieved academic goals
+     */
+    long countByIsAchievedTrue();
 }

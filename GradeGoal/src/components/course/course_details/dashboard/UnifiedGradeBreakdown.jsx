@@ -255,7 +255,7 @@ function UnifiedGradeBreakdown({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-orange-100 rounded-2xl border border-orange-300 shadow-xl flex flex-col items-center justify-center">
               <div className="text-2xl font-bold text-gray-900">
-                {analysis.average ? `${analysis.average.toFixed(1)}%` : '--'}
+                {analysis.average ? `${analysis.average.toFixed(2)}%` : '--'}
               </div>
               <div className="text-sm text-gray-600">Average</div>
             </div>
@@ -312,7 +312,7 @@ function UnifiedGradeBreakdown({
                 <div className="text-xs text-gray-500">Based on weight and performance</div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{analysis.contribution.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-gray-900">{analysis.contribution.toFixed(2)}%</div>
                 <div className="text-sm text-gray-600">points</div>
               </div>
             </div>
@@ -358,7 +358,7 @@ function UnifiedGradeBreakdown({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
           <div className="text-center p-9 bg-orange-100 rounded-xl border border-orange-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
             <div className="text-3xl font-bold text-black">
-              {getOverallContribution().toFixed(1)}%
+              {getOverallContribution().toFixed(2)}%
             </div>
             <div className="text-sm text-gray-600">Weighted Average</div>
           </div>
@@ -371,7 +371,7 @@ function UnifiedGradeBreakdown({
               })()}
             </div>
             <div className="text-sm text-gray-500">
-              ({getOverallContribution().toFixed(1)}%)
+              ({getOverallContribution().toFixed(2)}%)
             </div>
             <div className="text-sm text-gray-600">Overall GPA</div>
           </div>
@@ -388,7 +388,7 @@ function UnifiedGradeBreakdown({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
             <div className="text-center p-6 bg-blue-100 rounded-xl border border-blue-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
               <div className="text-2xl font-bold text-gray-900">
-                {midtermData.contribution.toFixed(1)}%
+                {midtermData.contribution.toFixed(2)}%
               </div>
               <div className="text-sm text-gray-500">
                 (50% of total weight)
@@ -400,7 +400,7 @@ function UnifiedGradeBreakdown({
             </div>
             <div className="text-center p-6 bg-green-100 rounded-xl border border-green-300 shadow-xl flex flex-col justify-center transition-transform duration-300 hover:scale-105">
               <div className="text-2xl font-bold text-gray-900">
-                {finalTermData.contribution.toFixed(1)}%
+                {finalTermData.contribution.toFixed(2)}%
               </div>
               <div className="text-sm text-gray-500">
                 (50% of total weight)

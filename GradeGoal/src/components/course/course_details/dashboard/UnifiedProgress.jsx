@@ -4,7 +4,8 @@
 // Consolidated component that combines goal progress, grade progression chart, and trend indicators
 
 import React, { useMemo, useState } from "react";
-import { percentageToGPA } from "../../academic_goal/gpaConversionUtils";
+import { percentageToGPA, gpaToPercentage } from "../../academic_goal/gpaConversionUtils";
+import { calculateGPAFromPercentage } from "../../../ai/utils/gradeCalculationUtils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 function UnifiedProgress({ 
   currentGrade, 
@@ -31,7 +32,7 @@ function UnifiedProgress({
             {`Current GPA: ${gpaValue.toFixed(2)}`}
           </p>
           <p className="text-gray-300 text-sm">
-            {`Percentage: ${Math.round((gpaValue / 4.0) * 100)}%`}
+            {`Percentage: ${gpaToPercentage(gpaValue).toFixed(2)}%`}
           </p>
         </div>
       );
@@ -129,9 +130,22 @@ function UnifiedProgress({
          return; // Skip weeks without actual grades
        }
        
-       // Use current_grade directly as GPA (it's already in GPA format from database)
-       const currentGPA = group.latestCurrentGrade;
-       const currentGradePercentage = currentGPA * 25; // Convert GPA to percentage for display
+       // Convert to proper GPA format
+       const rawGrade = group.latestCurrentGrade;
+       let currentGPA;
+       
+       // Check if the value is already in percentage format (> 4.0) or GPA format (<= 4.0)
+       if (rawGrade > 4.0) {
+         // Value is in percentage format, apply proper GPA scaling directly
+         currentGPA = calculateGPAFromPercentage(rawGrade);
+       } else {
+         // Value is in GPA format but uses wrong scaling (division by 25)
+         // Convert back to percentage first, then apply proper GPA scaling
+         const percentage = rawGrade * 25; // Convert back to percentage
+         currentGPA = calculateGPAFromPercentage(percentage); // Apply proper GPA scaling
+       }
+       
+       const currentGradePercentage = gpaToPercentage(currentGPA); // Convert GPA to percentage using proper scaling
        
        const weekData = {
          weekNumber: index + 1,
@@ -147,11 +161,27 @@ function UnifiedProgress({
        weeklyData.push(weekData);
      });
 
-     // Calculate statistics from current grades (already in GPA format)
-     const allGPAs = sortedAnalytics.map(analytics => analytics.currentGrade);
+     // Calculate statistics from current grades (convert to proper GPA format)
+     const allGPAs = sortedAnalytics.map(analytics => {
+       // Check if the value is already in percentage format (> 4.0) or GPA format (<= 4.0)
+       if (analytics.currentGrade > 4.0) {
+         // Value is in percentage format, apply proper GPA scaling directly
+         return calculateGPAFromPercentage(analytics.currentGrade);
+       } else {
+         // Value is in GPA format but uses wrong scaling (division by 25)
+         // Convert back to percentage first, then apply proper GPA scaling
+         const percentage = analytics.currentGrade * 25; // Convert back to percentage
+         return calculateGPAFromPercentage(percentage); // Apply proper GPA scaling
+       }
+     });
 
+     // Calculate statistics properly - don't average GPAs directly, average percentages instead
+     const allPercentages = allGPAs.map(gpa => gpaToPercentage(gpa));
+     const averagePercentage = allPercentages.length > 0 ? allPercentages.reduce((sum, pct) => sum + pct, 0) / allPercentages.length : 0;
+     const averageGPA = calculateGPAFromPercentage(averagePercentage);
+     
      const statistics = {
-       average: allGPAs.length > 0 ? allGPAs.reduce((sum, gpa) => sum + gpa, 0) / allGPAs.length : 0,
+       average: averageGPA,
        best: allGPAs.length > 0 ? Math.max(...allGPAs) : 0,
        worst: allGPAs.length > 0 ? Math.min(...allGPAs) : 0,
        totalGrades: allGPAs.length,
@@ -215,7 +245,7 @@ function UnifiedProgress({
     } else if (change > 0) {
       direction = 'improving';
       if (changePercentage > 0) {
-        description = `GPA improved by ${changePercentage.toFixed(1)}%`;
+        description = `GPA improved by ${changePercentage.toFixed(2)}%`;
       } else {
         description = `GPA increased by ${absoluteChange.toFixed(2)} points`;
       }
@@ -224,7 +254,7 @@ function UnifiedProgress({
     } else {
       direction = 'declining';
       if (changePercentage < 0) {
-        description = `GPA declined by ${Math.abs(changePercentage).toFixed(1)}%`;
+        description = `GPA declined by ${Math.abs(changePercentage).toFixed(2)}%`;
       } else {
         description = `GPA decreased by ${absoluteChange.toFixed(2)} points`;
       }
@@ -313,7 +343,7 @@ function UnifiedProgress({
                 stroke="#6b7280"
                 fontSize={14}
                 tick={{ fill: "#374151", fontWeight: "500" }}
-                tickFormatter={(value) => `${value.toFixed(1)}`}
+                tickFormatter={(value) => `${value.toFixed(2)}`}
                 axisLine={{ stroke: "#d1d5db", strokeWidth: 2 }}
                 tickLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
                 label={{ 
@@ -383,7 +413,7 @@ function UnifiedProgress({
               </div>
               <div className="text-xl font-bold text-gray-900 mb-1">
                 {trendAnalysis.percentage > 0 
-                  ? `${trendAnalysis.percentage.toFixed(1)}%`
+                  ? `${trendAnalysis.percentage.toFixed(2)}%`
                   : trendAnalysis.absoluteChange 
                     ? `${trendAnalysis.absoluteChange.toFixed(2)} pts`
                     : '0%'
@@ -495,7 +525,7 @@ function UnifiedProgress({
                      <div className="space-y-3">
                        <div className="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm">
                          <span className="text-sm font-medium text-gray-600">Current Grade:</span>
-                         <span className="font-bold text-lg text-gray-800">{week.currentGradePercentage.toFixed(1)}%</span>
+                         <span className="font-bold text-lg text-gray-800">{week.currentGradePercentage.toFixed(2)}%</span>
                        </div>
                        <div className="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm">
                          <span className="text-sm font-medium text-gray-600">GPA:</span>
@@ -574,14 +604,17 @@ function UnifiedProgress({
                <div className="text-center bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                  <div className="text-3xl font-bold text-gray-900 mb-1">{statistics.average?.toFixed(2) || '0.00'}</div>
                  <div className="text-sm text-gray-600 font-medium">Average GPA</div>
+                 <div className="text-xs text-gray-500 mt-1">({gpaToPercentage(statistics.average || 0).toFixed(2)}%)</div>
                </div>
                <div className="text-center bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                  <div className="text-3xl font-bold text-green-600 mb-1">{statistics.best?.toFixed(2) || '0.00'}</div>
                  <div className="text-sm text-gray-600 font-medium">Best Performance</div>
+                 <div className="text-xs text-gray-500 mt-1">({gpaToPercentage(statistics.best || 0).toFixed(2)}%)</div>
                </div>
                <div className="text-center bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                  <div className="text-3xl font-bold text-red-600 mb-1">{statistics.worst?.toFixed(2) || '0.00'}</div>
                  <div className="text-sm text-gray-600 font-medium">Worst Performance</div>
+                 <div className="text-xs text-gray-500 mt-1">({gpaToPercentage(statistics.worst || 0).toFixed(2)}%)</div>
               </div>
           </div>
           </div>
