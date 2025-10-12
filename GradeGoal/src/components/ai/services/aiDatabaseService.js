@@ -2,15 +2,19 @@ import { saveAIAnalysis, getAIRecommendationsForCourse, markRecommendationAsRead
 /**
  * Save AI analysis data to recommendations table
  */
-export const saveAIAnalysisData = async (userId, courseId, analysisType, analysisData, aiModel = 'llama-3.1-8b-instant', confidence = 0.85) => {
+export const saveAIAnalysisData = async (userId, courseId, analysisType, analysisData, aiModel = import.meta.env.VITE_AI_MODEL || 'llama-3.1-8b-instant', confidence = null) => {
   const startTime = performance.now();
   console.log('💾 [DB DEBUG] Starting AI analysis database save');
+  // Calculate confidence if not provided
+  const finalConfidence = confidence !== null ? confidence : 0.7; // Default fallback
+  
   console.log('💾 [DB DEBUG] Save parameters:', {
     userId,
     courseId,
     analysisType,
     analysisDataKeys: Object.keys(analysisData || {}),
-    analysisDataSize: JSON.stringify(analysisData || {}).length
+    analysisDataSize: JSON.stringify(analysisData || {}).length,
+    confidence: finalConfidence
   });
   
   try {
@@ -22,7 +26,7 @@ export const saveAIAnalysisData = async (userId, courseId, analysisType, analysi
       analysisData,
       analysisType,
       aiModel,
-      confidence
+      finalConfidence
     );
     const apiCallTime = performance.now() - apiCallStart;
     console.log('📡 [DB DEBUG] API call took:', apiCallTime.toFixed(2), 'ms');

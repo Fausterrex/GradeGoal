@@ -398,7 +398,7 @@ public class UserController {
     }
 
     public static class UserLoginRequest {
-        private String email;
+        private String email; // Can be either email or username
         private String password;
 
         public String getEmail() {

@@ -5,6 +5,7 @@ import com.project.gradegoal.Entity.Recommendation;
 import com.project.gradegoal.Service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,7 @@ import java.util.Map;
 public class RecommendationController {
     
     private final RecommendationService recommendationService;
+    private final Environment environment;
     
     /**
      * Save AI analysis as recommendation
@@ -56,8 +58,9 @@ public class RecommendationController {
                 throw new IllegalArgumentException("Analysis data must be a Map or JSON string");
             }
             
-            String aiModel = request.getOrDefault("aiModel", "gemini-2.0-flash-exp").toString();
-            Double confidence = Double.valueOf(request.getOrDefault("confidence", "0.85").toString());
+            String aiModel = request.getOrDefault("aiModel", 
+                environment.getProperty("ai.model", "llama-3.1-8b-instant")).toString();
+            Double confidence = Double.valueOf(request.getOrDefault("confidence", "0.7").toString());
             
             log.info("Processing AI analysis for user: {}, course: {}, model: {}, confidence: {}", 
                     userId, courseId, aiModel, confidence);

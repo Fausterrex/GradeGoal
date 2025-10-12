@@ -18,11 +18,11 @@ const API_BASE_URL =
  * @param {number} courseId - Course ID
  * @param {Object} analysisData - Analysis data
  * @param {string} analysisType - Type of analysis (default: 'COURSE_ANALYSIS')
- * @param {string} aiModel - AI model used (default: 'gemini-2.0-flash-exp')
+ * @param {string} aiModel - AI model used (default: from VITE_AI_MODEL env var)
  * @param {number} confidence - Confidence level (default: 0.85)
  * @returns {Promise<Object>} Save result
  */
-export async function saveAIAnalysis(userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS', aiModel = 'gemini-2.0-flash-exp', confidence = 0.85) {
+export async function saveAIAnalysis(userId, courseId, analysisData, analysisType = 'COURSE_ANALYSIS', aiModel = import.meta.env.VITE_AI_MODEL, confidence = null) {
   const startTime = performance.now();
   console.log('🌐 [API DEBUG] Starting saveAIAnalysis API call');
   console.log('🌐 [API DEBUG] Request parameters:', {
@@ -36,12 +36,15 @@ export async function saveAIAnalysis(userId, courseId, analysisData, analysisTyp
     apiUrl: `${API_BASE_URL}/api/recommendations/save-ai-analysis`
   });
   
+  // Calculate confidence if not provided
+  const finalConfidence = confidence !== null ? confidence : 0.7; // Default fallback
+  
   const requestBody = {
     userId,
     courseId,
     analysisData: analysisData, // Pass as object, not string
     aiModel,
-    confidence
+    confidence: finalConfidence
   };
   
   console.log('🌐 [API DEBUG] Request body size:', JSON.stringify(requestBody).length, 'characters');
@@ -327,7 +330,8 @@ export async function getAIAnalysis(userId, courseId) {
           createdAt: latestAnalysis.createdAt,
           updatedAt: latestAnalysis.updatedAt,
           aiConfidence: latestAnalysis.aiConfidence || 0.85,
-          aiModel: latestAnalysis.aiModel || 'gemini-2.0-flash-exp'
+          aiModel: latestAnalysis.aiModel || import.meta.env.VITE_AI_MODEL || 'llama-3.1-8b-instant',
+          confidence: latestAnalysis.aiConfidence || 0.7
         }
       };
     }
