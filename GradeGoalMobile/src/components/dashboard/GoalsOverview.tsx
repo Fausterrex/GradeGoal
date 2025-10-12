@@ -38,18 +38,14 @@ import { apiClient } from '../../services/apiClient';
   // Fetch AI analysis data for a course (matching web version)
   const fetchAIAnalysisForCourse = async (userId: number, courseId: number) => {
     try {
-      console.log('🤖 Fetching AI analysis for userId:', userId, 'courseId:', courseId);
       const response = await apiClient.get(`/recommendations/user/${userId}/course/${courseId}/ai-analysis`);
-      console.log('🤖 AI analysis response:', response.data);
       
       // Extract the first AI analysis recommendation if available
       const responseData = response.data as any;
       if (responseData.success && responseData.recommendations && responseData.recommendations.length > 0) {
         const aiAnalysis = responseData.recommendations[0];
-        console.log('🤖 Found AI analysis:', aiAnalysis);
         return aiAnalysis;
       } else {
-        console.log('🤖 No AI analysis found for this course');
         return null;
       }
     } catch (error) {
@@ -60,7 +56,6 @@ import { apiClient } from '../../services/apiClient';
 
   // Calculate achievement probability (matching web version exactly)
   const calculateAchievementProbability = (currentValue: number, targetValue: number, goalType: string, targetDate?: string): number => {
-    console.log('🔍 calculateAchievementProbability called with:', { currentValue, targetValue, goalType, targetDate });
     
     if (!targetValue || targetValue <= 0) return 0;
     
@@ -72,7 +67,6 @@ import { apiClient } from '../../services/apiClient';
 
     // Base probability from current progress
     const baseProgress = (currentValue / targetValue) * 100;
-    console.log('🔍 baseProgress:', baseProgress);
     
     // Time factor (if target date is set) - more optimistic
     let timeFactor = 1;
@@ -89,7 +83,6 @@ import { apiClient } from '../../services/apiClient';
         timeFactor = 0.9; // Small penalty for very little time
       }
     }
-    console.log('🔍 timeFactor:', timeFactor);
 
     // Start with more optimistic baseline
     let probability = baseProgress;
@@ -107,32 +100,24 @@ import { apiClient } from '../../services/apiClient';
         modifier = 1.0; // Cumulative GPA is still achievable
         break;
     }
-    console.log('🔍 modifier:', modifier);
 
     // Apply time factor
     probability = probability * timeFactor;
-    console.log('🔍 probability after time factor:', probability);
     
     // Strong boosts for good progress
     if (baseProgress > 90) {
       probability = Math.min(probability * 1.3, 100); // 30% boost for excellent progress
-      console.log('🔍 applied 30% boost for >90% progress:', probability);
     } else if (baseProgress > 80) {
       probability = Math.min(probability * 1.2, 100); // 20% boost for very good progress
-      console.log('🔍 applied 20% boost for >80% progress:', probability);
     } else if (baseProgress > 70) {
       probability = Math.min(probability * 1.15, 100); // 15% boost for good progress
-      console.log('🔍 applied 15% boost for >70% progress:', probability);
     }
     
     // Ensure realistic minimum probability for reasonable progress
     const minimumProbability = Math.min(baseProgress * 0.85, 85); // Much more optimistic minimum
-    console.log('🔍 minimumProbability:', minimumProbability);
     probability = Math.max(probability * modifier, minimumProbability);
-    console.log('🔍 final probability after modifier and minimum:', probability);
 
     const finalResult = Math.min(Math.max(probability, 0), 100);
-    console.log('🔍 final result:', finalResult);
     return finalResult;
   };
 
@@ -145,6 +130,7 @@ interface Goal {
   progress: number;
   successRate: number | null; // Allow null to show "Get AI Analysis" message
   isAchieved: boolean;
+  isCourseCompleted?: boolean; // Add course completion status
   goalType: string;
   courseName?: string;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
@@ -175,15 +161,33 @@ const GoalCard: React.FC<{ goal: Goal; onPress: () => void }> = ({ goal, onPress
     return colors.status.needsImprovement;
   };
 
-  const getStatusInfo = (progress: number) => {
-    if (progress >= 100) return { text: 'Completed', color: colors.green[500], bgColor: colors.green[100] };
-    if (progress >= 80) return { text: 'So Close!', color: colors.purple[500], bgColor: colors.purple[100] };
-    if (progress >= 60) return { text: 'On Track', color: colors.blue[500], bgColor: colors.blue[100] };
-    if (progress >= 40) return { text: 'Needs Focus', color: colors.yellow[500], bgColor: colors.yellow[100] };
-    return { text: 'Needs Improvement', color: colors.red[500], bgColor: colors.red[100] };
+  const getStatusInfo = (progress: number, goal: Goal) => {
+    // Match web version's getStatusText() logic
+    const currentGPA = goal.currentValue || 0;
+    const targetGPA = goal.targetValue ? percentageToGPA(goal.targetValue) : 0;
+    const isCourseCompleted = goal.isCourseCompleted || false;
+    
+    // Goal is only achieved if course is completed AND GPA target is met
+    if (isCourseCompleted && currentGPA >= targetGPA) {
+      return { text: 'Goal Achieved! 🎉', color: colors.green[500], bgColor: colors.green[100] };
+    } else if (currentGPA >= targetGPA) {
+      // GPA target is met but course not completed yet
+      return { text: 'Achievable! 🎯', color: colors.blue[500], bgColor: colors.blue[100] };
+    } else if (isCourseCompleted) {
+      // Course is completed but goal not reached
+      return { text: 'Course Complete', color: colors.orange[500], bgColor: colors.orange[100] };
+    } else if (progress >= 90) {
+      return { text: 'Almost There!', color: colors.green[500], bgColor: colors.green[100] };
+    } else if (progress >= 70) {
+      return { text: 'Good Progress', color: colors.blue[500], bgColor: colors.blue[100] };
+    } else if (progress >= 50) {
+      return { text: 'Making Progress', color: colors.yellow[500], bgColor: colors.yellow[100] };
+    } else {
+      return { text: 'Needs Improvement', color: colors.red[500], bgColor: colors.red[100] };
+    }
   };
 
-  const statusInfo = getStatusInfo(goal.progress);
+  const statusInfo = getStatusInfo(goal.progress, goal);
   const getGoalTypeIcon = (goalType: string) => {
     switch (goalType) {
       case 'COURSE_GRADE': return '📚';
@@ -306,14 +310,10 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
     try {
       setIsLoading(true);
       
-      console.log('🎯 Loading REAL goals data from backend for user:', userId);
       
       if (userId) {
         // Fetch all goals from backend (more reliable than getActiveGoals)
-        console.log('🔍 Fetching all goals for userId:', userId);
         const allGoals = await GoalsService.getUserGoals(userId);
-        console.log('📋 All goals response:', allGoals);
-        console.log('📋 All goals count:', allGoals?.length || 0);
         
         // Filter for active goals on the client side (simpler and more reliable)
         const filteredActiveGoals = (allGoals || []).filter(goal => {
@@ -321,8 +321,6 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
           return !goal.isAchieved;
         });
         
-        console.log('📋 Filtered active goals count:', filteredActiveGoals.length);
-        console.log('📋 Active goals:', filteredActiveGoals);
         
         const goalsToUse = filteredActiveGoals;
         
@@ -340,25 +338,57 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
           const targetValue = parseFloat(backendGoal.targetValue.toString());
           
           if (backendGoal.goalType === 'COURSE_GRADE' && course) {
-            // For course goals, use courseGpa directly (already in GPA format) - matching web version
-            currentValue = course.courseGpa || course.course_gpa || 0; // Use GPA directly
+            // For course goals, use course GPA directly (matching web version's currentGrade prop)
+            currentValue = course.courseGpa || course.course_gpa || 0;
             
             // Convert target percentage to GPA for comparison (matching web version)
             const targetGPA = percentageToGPA(targetValue);
             
-            // Calculate progress as percentage of target achieved (GPA vs GPA)
-            progress = targetGPA > 0 ? Math.min((currentValue / targetGPA) * 100, 100) : 0;
+            // Calculate course completion progress (matching web version's calculateCourseCompletion logic)
+            let courseCompletion = 0;
+            if (course.categories && course.categories.length > 0) {
+              let totalExpectedAssessments = 0;
+              let completedAssessments = 0;
+              
+              course.categories.forEach((category: any) => {
+                const categoryGrades = course.grades?.[category.id] || [];
+                
+                // Each category should have at least 1 assessment for a complete course
+                const expectedInCategory = Math.max(categoryGrades.length, 1);
+                totalExpectedAssessments += expectedInCategory;
+                
+                // Count completed assessments in this category
+                categoryGrades.forEach((grade: any) => {
+                  if (grade.score !== null && grade.score !== undefined && grade.score > 0) {
+                    completedAssessments++;
+                  }
+                });
+              });
+              
+              courseCompletion = totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
+            }
+            
+            // Calculate progress percentage based on web version logic
+            let progressPercentage = courseCompletion;
+            
+            // Show 100% if GPA target is met or exceeded, regardless of completion status (matching web version)
+            if (currentValue >= targetGPA) {
+              progressPercentage = 100;
+            } else {
+              progressPercentage = courseCompletion;
+            }
+            
+            progress = progressPercentage;
+            
             
             // Try to get AI analysis success rate first (matching web version)
             try {
-              console.log('🤖 Fetching AI analysis for course goal:', backendGoal.goalTitle, 'Course ID:', course.id || course.courseId);
               const aiAnalysis = await fetchAIAnalysisForCourse(userId, course.id || course.courseId);
               if (aiAnalysis && (aiAnalysis as any).content) {
                 const content = typeof (aiAnalysis as any).content === 'string' 
                   ? JSON.parse((aiAnalysis as any).content) 
                   : (aiAnalysis as any).content;
                 
-                console.log('🤖 AI analysis content:', content);
                 
                 // Extract success rate from AI analysis (matching web version)
                 const aiSuccessRate = content.targetGoalProbability?.probability || 
@@ -370,16 +400,13 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
                   successRate = typeof aiSuccessRate === 'string' 
                     ? parseFloat(aiSuccessRate.replace('%', '')) 
                     : aiSuccessRate;
-                  console.log('✅ Using AI success rate:', successRate, 'for goal:', backendGoal.goalTitle);
                 } else {
                   // No AI success rate found - set to null to show "Get AI Analysis" message
                   successRate = null;
-                  console.log('⚠️ No AI success rate found, will show "Get AI Analysis" message for goal:', backendGoal.goalTitle);
                 }
               } else {
                 // No AI analysis found - set to null to show "Get AI Analysis" message
                 successRate = null;
-                console.log('⚠️ No AI analysis found, will show "Get AI Analysis" message for goal:', backendGoal.goalTitle);
               }
             } catch (aiError) {
               console.warn('❌ Error fetching AI analysis, will show "Get AI Analysis" message:', aiError);
@@ -421,6 +448,7 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
             progress: Math.min(progress, 100), // Cap at 100%
             successRate: successRate, // Add success rate
             isAchieved: backendGoal.isAchieved,
+            isCourseCompleted: backendGoal.goalType === 'COURSE_GRADE' ? (course?.isCompleted === true) : false, // Add course completion status
             goalType: backendGoal.goalType,
             courseName: backendGoal.goalType === 'COURSE_GRADE' ? courseName : backendGoal.goalType,
             priority: backendGoal.priority,
@@ -429,7 +457,6 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
         }));
 
         setGoals(convertedGoals);
-        console.log('✅ Real goals loaded from backend:', convertedGoals.length);
         
         // Calculate quick stats based on real data
         const activeCourses = courses.filter(course => course.isActive !== false);
@@ -444,14 +471,7 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
           activeGoals: activeGoalsCount,
         });
         
-        console.log('📊 Quick stats calculated:', {
-          totalCourses: activeCourses.length,
-          totalCredits,
-          achievements: achievedGoals,
-          activeGoals: activeGoalsCount,
-        });
       } else {
-        console.log('⚠️ No userId provided, showing empty goals');
         setGoals([]);
         setQuickStats({
           totalCourses: 0,

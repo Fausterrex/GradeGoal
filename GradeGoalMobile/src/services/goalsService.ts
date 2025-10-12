@@ -24,10 +24,7 @@ export class GoalsService {
    */
   static async getUserGoals(userId: number): Promise<AcademicGoal[]> {
     try {
-      console.log('🔍 GoalsService: Fetching all goals for userId:', userId);
       const response = await apiClient.get(`/academic-goals/user/${userId}`);
-      console.log('🔍 GoalsService: All goals API response status:', response.status);
-      console.log('🔍 GoalsService: All goals API response data:', response.data);
       return response.data as AcademicGoal[];
     } catch (error) {
       console.error('❌ GoalsService: Error fetching all user goals:', error);
@@ -44,10 +41,7 @@ export class GoalsService {
    */
   static async getActiveGoals(userId: number): Promise<AcademicGoal[]> {
     try {
-      console.log('🔍 GoalsService: Fetching active goals for userId:', userId);
       const response = await apiClient.get(`/academic-goals/user/${userId}/active`);
-      console.log('🔍 GoalsService: API response status:', response.status);
-      console.log('🔍 GoalsService: API response data:', response.data);
       return response.data as AcademicGoal[];
     } catch (error) {
       console.error('❌ GoalsService: Error fetching active goals:', error);

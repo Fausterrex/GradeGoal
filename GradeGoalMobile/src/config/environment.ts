@@ -23,7 +23,7 @@ import {
 
 // Environment variables (with fallbacks)
 const ENV = {
-  API_BASE_URL: API_BASE_URL || 'http://localhost:8080/api',
+  API_BASE_URL: API_BASE_URL || 'http://10.0.2.2:8080/api',
   API_TIMEOUT: parseInt(API_TIMEOUT || '10000'),
   ENABLE_DEBUG_LOGS: ENABLE_DEBUG_LOGS === 'true' || __DEV__,
   ENABLE_NETWORK_LOGGING: ENABLE_NETWORK_LOGGING === 'true' || __DEV__,

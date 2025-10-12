@@ -6,7 +6,6 @@ export class BackendTest {
   // Test basic connectivity to the backend
   static async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
-      console.log('Testing backend connection...');
       
       // Try to reach the backend with a simple request to an existing endpoint
       // Using /api/users since that's what exists in your Spring Boot app

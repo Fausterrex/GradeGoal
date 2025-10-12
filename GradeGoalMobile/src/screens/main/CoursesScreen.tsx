@@ -1,11 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CourseManager } from '../../components/course/CourseManager';
+import { colors } from '../../styles/colors';
 
-export const CoursesScreen: React.FC = () => {
+interface CoursesScreenProps {
+  navigation: any;
+}
+
+export const CoursesScreen: React.FC<CoursesScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  
+  const handleCourseSelect = (course: any) => {
+    // Handle course selection - could navigate to course details
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Courses</Text>
-      <Text style={styles.subtitle}>Your course management will be here</Text>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} translucent={false} />
+      <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
+        <CourseManager
+          onCourseSelect={handleCourseSelect}
+          navigation={navigation}
+        />
+      </View>
     </View>
   );
 };
@@ -13,18 +31,9 @@ export const CoursesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.primary,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  safeArea: {
+    flex: 1,
   },
 });

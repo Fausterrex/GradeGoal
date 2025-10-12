@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { DashboardScreen } from '../screens/main/DashboardScreen';
-import { CoursesScreen } from '../screens/main/CoursesScreen';
+import { CoursesStackNavigator } from './CoursesStackNavigator';
 import { GoalsScreen } from '../screens/main/GoalsScreen';
 import { ReportsScreen } from '../screens/main/ReportsScreen';
 import { CalendarScreen } from '../screens/main/CalendarScreen';
@@ -47,7 +47,7 @@ export const MainNavigator: React.FC = () => {
       />
       <Tab.Screen 
         name="Courses" 
-        component={CoursesScreen}
+        component={CoursesStackNavigator}
         options={{ tabBarLabel: 'Courses' }}
       />
       <Tab.Screen 

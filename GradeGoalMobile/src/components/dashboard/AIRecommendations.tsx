@@ -73,7 +73,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
   const loadRealRecommendations = async () => {
     try {
       setIsLoading(true);
-      console.log('🤖 Loading REAL AI recommendations...');
       
       // Create 6 recommendations to match the web version grid
       const realRecommendations: Recommendation[] = [
@@ -140,7 +139,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
       ];
 
       setRecommendations(realRecommendations);
-      console.log('✅ Real recommendations created:', realRecommendations.length);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ Error loading recommendations:', error);
@@ -156,7 +154,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
       `${recommendation.description}\n\nImpact: ${recommendation.impact}`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Learn More', onPress: () => console.log('Learn more pressed') },
+        { text: 'Learn More', onPress: () => {} },
       ]
     );
   };

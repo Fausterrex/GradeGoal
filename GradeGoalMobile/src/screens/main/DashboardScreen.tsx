@@ -7,7 +7,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../styles/colors';
 import { commonStyles } from '../../styles/commonStyles';
@@ -16,10 +18,12 @@ import { GoalsOverview } from '../../components/dashboard/GoalsOverview';
 import { AIRecommendations } from '../../components/dashboard/AIRecommendations';
 import { RecentActivities } from '../../components/dashboard/RecentActivities';
 import { DashboardService } from '../../services/dashboardService';
+import { CourseService } from '../../services/courseService';
 import { GoalsService } from '../../services/goalsService';
 
 export const DashboardScreen: React.FC = () => {
   const { currentUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [grades, setGrades] = useState<any>({});
@@ -47,17 +51,11 @@ export const DashboardScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔄 Loading REAL data from backend for user:', currentUser.email);
-
       // Get user profile first
-      console.log('📋 Step 1: Getting user profile...');
       const userProfile = await DashboardService.getUserProfile(currentUser.email) as any;
-      console.log('✅ User profile:', userProfile);
       const userId = userProfile.userId;
-      console.log('👤 User ID:', userId);
 
       // Fetch all data in parallel
-      console.log('📊 Step 2: Fetching courses, progress, GPAs, and goals...');
       const [coursesData, progressData, semesterGPAs, goalsData] = await Promise.all([
         DashboardService.getCoursesByUserId(userId).catch(err => {
           console.warn('❌ Failed to fetch courses:', err);
@@ -77,26 +75,17 @@ export const DashboardScreen: React.FC = () => {
         }),
       ]);
 
-      console.log('📚 Courses data:', coursesData);
-      console.log('📈 Progress data:', progressData);
-      console.log('🎓 Semester GPAs:', semesterGPAs);
-      console.log('🎯 Goals data:', goalsData);
-
-      // Set courses data
+      // Set courses data (will be updated with grades and categories below)
       setCourses((coursesData as any[]) || []);
-      console.log('✅ Courses set:', (coursesData as any[])?.length || 0, 'courses');
 
       // Set goals data
       setGoals((goalsData as any[]) || []);
-      console.log('✅ Goals set:', (goalsData as any[])?.length || 0, 'goals');
 
       // Set GPA data
       const progressDataTyped = progressData as any;
       const semesterGPAsTyped = semesterGPAs as any;
       const semesterGPA = progressDataTyped?.semesterGpa || progressDataTyped?.semester_gpa || 0;
       const cumulativeGPA = progressDataTyped?.cumulativeGpa || progressDataTyped?.cumulative_gpa || 0;
-      
-      console.log('📊 GPA values - Semester:', semesterGPA, 'Cumulative:', cumulativeGPA);
       
       setOverallGPA(semesterGPA);
       setGpaData({
@@ -112,31 +101,62 @@ export const DashboardScreen: React.FC = () => {
         }),
       });
 
-      // Load grades for each course
-      console.log('📝 Step 3: Loading grades for courses...');
+      // Load grades and categories for each course
       const coursesDataTyped = coursesData as any[];
-      const gradesPromises = (coursesDataTyped || []).map(async (course: any) => {
+      const gradesAndCategoriesPromises = (coursesDataTyped || []).map(async (course: any) => {
         try {
-          const courseGrades = await DashboardService.getGradesByCourseId(course.id || course.courseId);
-          console.log(`✅ Grades for course ${course.name}:`, (courseGrades as any[])?.length || 0, 'grades');
-          return { courseId: course.id || course.courseId, grades: courseGrades };
+          const [courseGrades, courseCategories] = await Promise.all([
+            DashboardService.getGradesByCourseId(course.id || course.courseId),
+            CourseService.getCourseCategories(course.id || course.courseId).catch(() => []) // Fallback to empty array if categories fail
+          ]);
+          return { 
+            courseId: course.id || course.courseId, 
+            grades: courseGrades,
+            categories: courseCategories
+          };
         } catch (error) {
-          console.warn(`❌ Failed to load grades for course ${course.id}:`, error);
-          return { courseId: course.id || course.courseId, grades: [] };
+          console.warn(`❌ Failed to load data for course ${course.id}:`, error);
+          return { 
+            courseId: course.id || course.courseId, 
+            grades: [],
+            categories: []
+          };
         }
       });
 
-      const gradesResults = await Promise.all(gradesPromises);
+      const gradesAndCategoriesResults = await Promise.all(gradesAndCategoriesPromises);
       const gradesMap: any = {};
-      gradesResults.forEach(({ courseId, grades }: { courseId: any; grades: any }) => {
+      const categoriesMap: any = {};
+      gradesAndCategoriesResults.forEach(({ courseId, grades, categories }: { courseId: any; grades: any; categories: any }) => {
         gradesMap[courseId] = grades;
+        categoriesMap[courseId] = categories;
       });
       setGrades(gradesMap);
-      console.log('✅ Grades map set:', Object.keys(gradesMap).length, 'courses with grades');
 
-      console.log('🎉 Real data loaded successfully!');
-      console.log('📊 Final state - Courses:', coursesDataTyped?.length || 0, 'GPA:', semesterGPA);
-      console.log('👤 Current user ID for goals:', currentUser?.userId);
+      // Attach grades and categories to course objects for GoalsOverview
+      const coursesWithData = (coursesDataTyped || []).map((course: any) => {
+        const courseGrades = gradesMap[course.id || course.courseId] || [];
+        const courseCategories = categoriesMap[course.id || course.courseId] || [];
+        
+        // Group grades by category for easier access
+        const gradesByCategory: any = {};
+        courseGrades.forEach((grade: any) => {
+          const categoryId = grade.categoryId || grade.category_id;
+          if (!gradesByCategory[categoryId]) {
+            gradesByCategory[categoryId] = [];
+          }
+          gradesByCategory[categoryId].push(grade);
+        });
+
+        return {
+          ...course,
+          grades: gradesByCategory,
+          categories: courseCategories
+        };
+      });
+
+      // Update courses with the enhanced data
+      setCourses(coursesWithData);
 
     } catch (error: any) {
       console.error('❌ Error loading real data:', error);
@@ -162,31 +182,44 @@ export const DashboardScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <View style={[commonStyles.container, styles.loadingContainer]}>
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      <View style={commonStyles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} translucent={false} />
+        <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading dashboard...</Text>
+          </View>
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[commonStyles.container, styles.errorContainer]}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadRealData}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
+      <View style={commonStyles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} translucent={false} />
+        <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadRealData}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={commonStyles.container}
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
+    <View style={commonStyles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} translucent={false} />
+      <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
 
       {/* Enhanced Grade Trends Section */}
       <EnhancedGradeTrends
@@ -214,11 +247,19 @@ export const DashboardScreen: React.FC = () => {
       {/* Recent Activities Section */}
       <RecentActivities courses={courses} />
 
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     paddingTop: 20,
     paddingHorizontal: 16,

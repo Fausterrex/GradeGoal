@@ -65,7 +65,4 @@ export const getNetworkInfo = () => {
 
 // Log network configuration (for debugging)
 export const logNetworkConfig = () => {
-  if (currentConfig.app.enableDebugLogs) {
-    console.log('🌐 Network Configuration:', getNetworkInfo());
-  }
 };

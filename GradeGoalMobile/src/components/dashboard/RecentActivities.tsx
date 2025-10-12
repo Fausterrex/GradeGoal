@@ -85,7 +85,6 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
   const loadRealActivities = async () => {
     try {
       setIsLoading(true);
-      console.log('📱 Loading REAL activities...');
       
       // Create activities that match the web version exactly
       const realActivities: Activity[] = [
@@ -117,7 +116,6 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
       ];
       
       setActivities(realActivities);
-      console.log('✅ Real activities created:', realActivities.length);
     } catch (error) {
       console.error('❌ Error loading activities:', error);
       setActivities([]);

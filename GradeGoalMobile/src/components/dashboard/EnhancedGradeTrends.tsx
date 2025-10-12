@@ -60,7 +60,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
       }
       
       setUserAnalytics(analytics);
-      console.log('📊 Loaded analytics data:', analytics);
     } catch (error) {
       console.error('Error loading analytics:', error);
       setUserAnalytics([]);
@@ -101,31 +100,14 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
 
   // Generate chart data based on real analytics data
   const chartData = useMemo(() => {
-    // Debug logging
-    console.log('📊 Enhanced Grade Trends - Data Generation:', {
-      viewMode,
-      selectedSemester,
-      selectedCourse: selectedCourse?.name,
-      currentGPA,
-      userAnalytics: userAnalytics.length,
-      gpaData: gpaData ? {
-        semesterGPA: gpaData.semesterGPA,
-        cumulativeGPA: gpaData.cumulativeGPA,
-        firstSemesterGPA: gpaData.firstSemesterGPA,
-        secondSemesterGPA: gpaData.secondSemesterGPA,
-        courseGPAs: gpaData.courseGPAs,
-      } : null,
-    });
     
     // Use real analytics data if available
     if (userAnalytics.length > 0) {
       const weeklyData = AnalyticsService.processAnalyticsToWeeklyData(userAnalytics, viewMode, currentGPA);
-      console.log('📈 Using REAL analytics data:', weeklyData);
       return weeklyData;
     }
     
     // Fallback to synthetic data if no analytics available
-    console.log('📈 Using FALLBACK synthetic data');
     const weeks = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11'];
     
     let chartData;
@@ -210,7 +192,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
       });
     }
     
-    console.log('📈 Generated FALLBACK Chart Data:', chartData);
     
     return chartData;
   }, [viewMode, selectedCourse, currentGPA, grades, selectedSemester, userAnalytics]);
@@ -585,12 +566,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
         >
           {(() => {
             const shouldShowNoData = chartData.length === 0 || (userAnalytics.length === 0 && !isLoadingAnalytics);
-            console.log('📊 No Data Check:', {
-              chartDataLength: chartData.length,
-              userAnalyticsLength: userAnalytics.length,
-              isLoadingAnalytics,
-              shouldShowNoData
-            });
             return shouldShowNoData;
           })() ? (
             <View style={styles.noDataContainer}>
