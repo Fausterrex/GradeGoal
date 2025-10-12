@@ -138,3 +138,4 @@ export const calculateGPAFromPercentage = (percentage: number) => {
   if (percentage >= 60) return 0.3;
   return 0.0;
 };
+

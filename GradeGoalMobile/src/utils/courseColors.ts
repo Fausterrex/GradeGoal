@@ -112,3 +112,4 @@ export const getCourseColorSchemeRN = (courseName: string, colorIndex: number = 
     gradeGradient: scheme.gradeGradient
   };
 };
+

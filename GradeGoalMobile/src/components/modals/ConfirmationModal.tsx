@@ -13,7 +13,7 @@ import { colors } from '../../styles/colors';
 const { width } = Dimensions.get('window');
 
 interface ConfirmationModalProps {
-  isOpen: boolean;
+  isVisible: boolean;
   onClose: () => void;
   onConfirm: () => void;
   type: 'delete' | 'archive' | 'incomplete' | 'edit';
@@ -28,7 +28,7 @@ interface ConfirmationModalProps {
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
-  isOpen,
+  isVisible,
   onClose,
   onConfirm,
   type,
@@ -69,7 +69,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return (
     <Modal
-      visible={isOpen}
+      visible={isVisible}
       animationType="fade"
       transparent
       onRequestClose={onClose}
@@ -267,3 +267,4 @@ const styles = StyleSheet.create({
     color: colors.text.white,
   },
 });
+

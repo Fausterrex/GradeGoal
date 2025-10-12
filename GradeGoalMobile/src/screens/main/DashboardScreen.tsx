@@ -19,7 +19,7 @@ import { AIRecommendations } from '../../components/dashboard/AIRecommendations'
 import { RecentActivities } from '../../components/dashboard/RecentActivities';
 import { DashboardService } from '../../services/dashboardService';
 import { CourseService } from '../../services/courseService';
-import { GoalsService } from '../../services/goalsService';
+import { getGoalsByUserId } from '../../services/goalsService';
 
 export const DashboardScreen: React.FC = () => {
   const { currentUser } = useAuth();
@@ -69,7 +69,7 @@ export const DashboardScreen: React.FC = () => {
           console.warn('❌ Failed to fetch semester GPAs:', err);
           return null;
         }),
-        GoalsService.getUserGoals(userId).catch(err => {
+        getGoalsByUserId(userId).catch((err: any) => {
           console.warn('❌ Failed to fetch goals:', err);
           return [];
         }),

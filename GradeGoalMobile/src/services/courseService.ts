@@ -14,6 +14,17 @@ export class CourseService {
     }
   }
 
+  // Get course by ID (includes calculated GPA)
+  static async getCourseById(courseId: number) {
+    try {
+      const response = await apiClient.get(`/courses/${courseId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching course by ID:', error);
+      throw error;
+    }
+  }
+
   // Create a new course
   static async createCourse(courseData: any) {
     try {

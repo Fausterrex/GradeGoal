@@ -88,3 +88,4 @@ export function getGPAScale(): GPAScale[] {
 export function isValidGPA(gpa: number): boolean {
   return GPA_SCALE.some(scale => scale.gpa === gpa);
 }
+

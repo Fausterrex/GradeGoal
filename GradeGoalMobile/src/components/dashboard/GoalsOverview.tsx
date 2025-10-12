@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { commonStyles } from '../../styles/commonStyles';
-import { GoalsService, AcademicGoal } from '../../services/goalsService';
+import { getGoalsByUserId, AcademicGoal } from '../../services/goalsService';
 import { apiClient } from '../../services/apiClient';
 
   const { width } = Dimensions.get('window');
@@ -313,10 +313,10 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
       
       if (userId) {
         // Fetch all goals from backend (more reliable than getActiveGoals)
-        const allGoals = await GoalsService.getUserGoals(userId);
+        const allGoals = await getGoalsByUserId(userId);
         
         // Filter for active goals on the client side (simpler and more reliable)
-        const filteredActiveGoals = (allGoals || []).filter(goal => {
+        const filteredActiveGoals = (allGoals || []).filter((goal: any) => {
           // A goal is active if it's not achieved
           return !goal.isAchieved;
         });

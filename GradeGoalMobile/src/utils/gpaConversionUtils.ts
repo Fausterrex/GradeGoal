@@ -7,30 +7,30 @@
  * Convert percentage (0-100) to GPA (0-4.0)
  * Uses standard 4.0 scale conversion
  */
-export const percentageToGPA = (percentage: number, gpaScale: number = 4.0): number => {
+export const percentageToGPA = (percentage: number | null | undefined, gpaScale: number = 4.0): string => {
   if (percentage === null || percentage === undefined || isNaN(percentage)) {
-    return 0;
+    return '0';
   }
   
   const percent = parseFloat(percentage.toString());
   
   // Custom GPA scale conversion based on provided table
-  if (percent >= 95.5) return 4.00;
-  if (percent >= 89.5) return 3.50;
-  if (percent >= 83.5) return 3.00;
-  if (percent >= 77.5) return 2.50;
-  if (percent >= 71.5) return 2.00;
-  if (percent >= 65.5) return 1.50;
-  if (percent >= 59.5) return 1.00;
+  if (percent >= 95.5) return '4.00';
+  if (percent >= 89.5) return '3.50';
+  if (percent >= 83.5) return '3.00';
+  if (percent >= 77.5) return '2.50';
+  if (percent >= 71.5) return '2.00';
+  if (percent >= 65.5) return '1.50';
+  if (percent >= 59.5) return '1.00';
   
-  return 0; // Below 59.5 = 0 (Remedial/Fail)
+  return 'R'; // Below 59.5 = R (Remedial/Fail)
 };
 
 /**
  * Convert GPA (0-4.0) to percentage (0-100)
  * Uses standard GPA to percentage conversion
  */
-export const gpaToPercentage = (gpa: number, gpaScale: number = 4.0): number => {
+export const gpaToPercentage = (gpa: number | null | undefined, gpaScale: number = 4.0): number => {
   if (gpa === null || gpa === undefined || isNaN(gpa)) {
     return 0;
   }
@@ -53,7 +53,7 @@ export const gpaToPercentage = (gpa: number, gpaScale: number = 4.0): number => 
 /**
  * Detect if a value is in GPA format (0-4.0 or 0-5.0) or percentage format (0-100)
  */
-export const detectValueFormat = (value: number, gpaScale: number = 4.0): 'gpa' | 'percentage' | 'invalid' => {
+export const detectValueFormat = (value: number | string, gpaScale: number = 4.0): string => {
   const numValue = parseFloat(value.toString());
   if (isNaN(numValue)) return 'invalid';
   
@@ -72,14 +72,14 @@ export const detectValueFormat = (value: number, gpaScale: number = 4.0): 'gpa' 
  * Convert any value to GPA format
  * Automatically detects format and converts if needed
  */
-export const convertToGPA = (value: number, gpaScale: number = 4.0): number => {
+export const convertToGPA = (value: number | string, gpaScale: number = 4.0): number => {
   const format = detectValueFormat(value, gpaScale);
   
   switch (format) {
     case 'gpa':
       return parseFloat(value.toString());
     case 'percentage':
-      return percentageToGPA(value, gpaScale);
+      return parseFloat(percentageToGPA(parseFloat(value.toString()), gpaScale));
     default:
       return 0;
   }
@@ -89,14 +89,14 @@ export const convertToGPA = (value: number, gpaScale: number = 4.0): number => {
  * Convert any value to percentage format
  * Automatically detects format and converts if needed
  */
-export const convertToPercentage = (value: number, gpaScale: number = 4.0): number => {
+export const convertToPercentage = (value: number | string, gpaScale: number = 4.0): number => {
   const format = detectValueFormat(value, gpaScale);
   
   switch (format) {
     case 'percentage':
       return parseFloat(value.toString());
     case 'gpa':
-      return gpaToPercentage(value, gpaScale);
+      return gpaToPercentage(parseFloat(value.toString()), gpaScale);
     default:
       return 0;
   }
@@ -106,14 +106,14 @@ export const convertToPercentage = (value: number, gpaScale: number = 4.0): numb
  * Get display text for conversion preview
  * Shows what the entered value converts to
  */
-export const getConversionPreview = (value: number, inputFormat: 'gpa' | 'percentage', gpaScale: number = 4.0): string => {
+export const getConversionPreview = (value: number | string, inputFormat: string, gpaScale: number = 4.0): string => {
   if (!value || isNaN(parseFloat(value.toString()))) return '';
   
   const numValue = parseFloat(value.toString());
   
   if (inputFormat === 'percentage') {
     const gpa = percentageToGPA(numValue, gpaScale);
-    return `(${parseFloat(gpa.toString()).toFixed(2)} GPA)`;
+    return `(${parseFloat(gpa).toFixed(2)} GPA)`;
   } else if (inputFormat === 'gpa') {
     const percentage = gpaToPercentage(numValue, gpaScale);
     return `(${percentage.toFixed(2)}%)`;

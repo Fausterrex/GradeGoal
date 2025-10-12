@@ -69,6 +69,7 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
     onClose: () => {}
   });
   
+  
   const [ratingModal, setRatingModal] = useState({
     isOpen: false,
     courseId: null as number | null,
@@ -522,7 +523,7 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
       />
 
       <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
+        isVisible={confirmationModal.isOpen}
         onClose={confirmationModal.onClose}
         onConfirm={confirmationModal.onConfirm}
         type={confirmationModal.type}

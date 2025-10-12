@@ -23,3 +23,4 @@ export const CoursesStackNavigator: React.FC = () => {
     </Stack.Navigator>
   );
 };
+
