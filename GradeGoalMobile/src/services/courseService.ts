@@ -125,6 +125,17 @@ export class CourseService {
       throw error;
     }
   }
+
+  // Add category to course
+  static async addCategoryToCourse(courseId: number, categoryData: any) {
+    try {
+      const response = await apiClient.post(`/courses/${courseId}/categories`, categoryData);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding category to course:', error);
+      throw error;
+    }
+  }
 }
 
 export default CourseService;

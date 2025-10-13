@@ -409,26 +409,27 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
         if (course.isActive === false) continue;
         
         try {
-          const response = await apiClient.get(`/ai-analysis/${userId}/${course.id || course.courseId}`);
+          const response = await apiClient.get(`/recommendations/user/${userId}/course/${course.id || course.courseId}/ai-analysis`);
           const analysisResponse = response.data as any;
           
-          if (analysisResponse.success && analysisResponse.hasAnalysis) {
-            const analysis = analysisResponse.analysis;
-            const createdAt = new Date(analysis.createdAt);
-            const updatedAt = new Date(analysis.updatedAt);
+          if (analysisResponse.success && analysisResponse.recommendations && analysisResponse.recommendations.length > 0) {
+            // Get the most recent AI analysis
+            const latestAnalysis = analysisResponse.recommendations[0];
+            const createdAt = new Date(latestAnalysis.createdAt);
+            const updatedAt = new Date(latestAnalysis.updatedAt);
             
             // Check if analysis was created or updated within the time range
             if ((createdAt >= startDate && createdAt <= endDate) || 
                 (updatedAt >= startDate && updatedAt <= endDate)) {
               
               aiAnalysisActivities.push({
-                id: `ai-analysis-${course.id}-${analysis.id}`,
+                id: `ai-analysis-${course.id}-${latestAnalysis.id}`,
                 type: 'ai_analysis',
                 title: 'AI Analysis Generated',
                 description: `New AI insights and recommendations for ${course.name}`,
                 timestamp: updatedAt > createdAt ? updatedAt : createdAt,
                 courseName: course.name,
-                analysisType: analysis.analysisType,
+                analysisType: latestAnalysis.recommendationType,
                 icon: 'TrendingUp',
                 color: 'indigo'
               });

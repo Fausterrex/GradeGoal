@@ -72,7 +72,7 @@ export class DashboardService {
   // Get AI analysis for course
   static async getAIAnalysis(userId: number, courseId: number) {
     try {
-      const response = await apiClient.get(`/ai-analysis/${userId}/${courseId}`);
+      const response = await apiClient.get(`/recommendations/user/${userId}/course/${courseId}/ai-analysis`);
       return response.data;
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
@@ -83,8 +83,11 @@ export class DashboardService {
   // Check if AI analysis exists
   static async checkAIAnalysisExists(userId: number, courseId: number) {
     try {
-      const response = await apiClient.get(`/ai-analysis/${userId}/${courseId}/exists`);
-      return response.data;
+      const response = await apiClient.get(`/recommendations/user/${userId}/course/${courseId}/ai-analysis`);
+      const data = response.data;
+      return {
+        exists: data.success && data.recommendations && data.recommendations.length > 0
+      };
     } catch (error) {
       console.error('Error checking AI analysis:', error);
       throw error;
@@ -94,7 +97,7 @@ export class DashboardService {
   // Get user login streak
   static async getUserLoginStreak(userId: number) {
     try {
-      const response = await apiClient.get(`/users/${userId}/login-streak`);
+      const response = await apiClient.get(`/users/${userId}/streak`);
       return response.data;
     } catch (error) {
       console.error('Error fetching login streak:', error);

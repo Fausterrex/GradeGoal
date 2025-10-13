@@ -49,14 +49,27 @@ export const MainNavigator: React.FC = () => {
           return <TabIcon name={iconName} focused={focused} />;
         },
         tabBarActiveTintColor: '#3B389f',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 2,
+        },
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 65,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 8,
         },
         headerShown: false,
       })}
@@ -97,21 +110,32 @@ export const MainNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 2,
   },
   tabIconFocused: {
-    backgroundColor: 'rgba(59, 56, 159, 0.1)',
+    backgroundColor: '#3B389F',
+    borderWidth: 2,
+    borderColor: '#3B389F',
+    shadowColor: '#3B389F',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   tabIconText: {
     fontSize: 18,
     fontWeight: 'normal',
   },
   tabIconTextFocused: {
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.15 }],
   },
 });

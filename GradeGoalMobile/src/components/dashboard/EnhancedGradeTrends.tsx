@@ -30,7 +30,7 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
   goals = [],
 }) => {
   const { currentUser } = useAuth();
-  const [viewMode, setViewMode] = useState<'semester' | 'cumulative' | 'individual'>('semester');
+  const [viewMode, setViewMode] = useState<'semester' | 'individual'>('semester');
   const [selectedSemester, setSelectedSemester] = useState('FIRST');
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [userAnalytics, setUserAnalytics] = useState<AnalyticsData[]>([]);
@@ -54,9 +54,8 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
           selectedSemester
         );
       } else {
-        // Semester/Cumulative mode: load analytics for all courses
-        const semester = viewMode === 'cumulative' ? undefined : selectedSemester;
-        analytics = await AnalyticsService.getAllUserAnalytics(currentUser.userId, semester);
+        // Semester mode: load analytics for all courses
+        analytics = await AnalyticsService.getAllUserAnalytics(currentUser.userId, selectedSemester);
       }
       
       setUserAnalytics(analytics);
@@ -78,7 +77,7 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
     if (viewMode === 'individual' && selectedCourse) {
       // For individual course, use course GPA directly from gpaData (already in GPA format)
       return gpaData?.courseGPAs?.[selectedCourse.id] || selectedCourse.courseGpa || selectedCourse.course_gpa || 0;
-    } else if (viewMode === 'semester') {
+    } else {
       // For semester view, use semester-specific GPA
       switch (selectedSemester) {
         case 'FIRST':
@@ -92,9 +91,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
         default:
           return gpaData?.semesterGPA || overallGPA || 0;
       }
-    } else {
-      // For cumulative view, use cumulative GPA
-      return gpaData?.cumulativeGPA || overallGPA || 0;
     }
   }, [viewMode, selectedCourse, selectedSemester, grades, gpaData, overallGPA]);
 
@@ -146,7 +142,7 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
           course: selectedCourse.name,
         };
       });
-    } else if (viewMode === 'semester') {
+    } else {
       // Generate semester data based on actual semester GPA
       chartData = weeks.map((week, index) => {
         // Create realistic semester progression
@@ -159,28 +155,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
         gpa += variation;
         
         // Ensure it ends at the current semester GPA
-        if (index === weeks.length - 1) {
-          gpa = currentGPA;
-        }
-        
-        return {
-          week,
-          gpa: Math.max(0, Math.min(4, parseFloat(gpa.toFixed(2)))),
-        };
-      });
-    } else {
-      // Generate cumulative data based on actual cumulative GPA
-      chartData = weeks.map((week, index) => {
-        // Create realistic cumulative progression
-        const progressRatio = index / (weeks.length - 1);
-        const startGPA = Math.max(0, currentGPA - 0.4); // Start closer to current
-        let gpa = startGPA + (progressRatio * (currentGPA - startGPA));
-        
-        // Add very small, predictable variation to prevent spikes
-        const variation = (index % 3 === 0 ? 0.02 : -0.02) * (index % 2 === 0 ? 1 : -1);
-        gpa += variation;
-        
-        // Ensure it ends at the current cumulative GPA
         if (index === weeks.length - 1) {
           gpa = currentGPA;
         }
@@ -211,10 +185,8 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
   const getGPACardTitle = () => {
     if (viewMode === 'individual' && selectedCourse) {
       return 'Current Course GPA';
-    } else if (viewMode === 'semester') {
-      return `${getSemesterName(selectedSemester)} GPA`;
     } else {
-      return 'Cumulative GPA';
+      return `${getSemesterName(selectedSemester)} GPA`;
     }
   };
 
@@ -222,10 +194,8 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
   const getGPACardSubtitle = () => {
     if (viewMode === 'individual' && selectedCourse) {
       return selectedCourse.name;
-    } else if (viewMode === 'semester') {
-      return 'Current semester only';
     } else {
-      return 'All semesters combined';
+      return 'Current semester only';
     }
   };
 
@@ -233,10 +203,8 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
   const getTargetGPACardTitle = () => {
     if (viewMode === 'individual' && selectedCourse) {
       return 'Course Target GPA';
-    } else if (viewMode === 'semester') {
-      return `${getSemesterName(selectedSemester)} Target GPA`;
     } else {
-      return 'Cumulative Target GPA';
+      return `${getSemesterName(selectedSemester)} Target GPA`;
     }
   };
 
@@ -258,7 +226,7 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
         return targetValue.toFixed(2);
       }
       return 'Not Set';
-    } else if (viewMode === 'semester') {
+    } else {
       // For semester view, find semester-specific goal
       const semesterGoal = goals.find(goal => 
         goal.goalType === 'SEMESTER_GPA' && 
@@ -266,17 +234,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
       );
       if (semesterGoal) {
         const targetValue = parseFloat(semesterGoal.targetValue.toString());
-        if (targetValue > 4) {
-          return (targetValue / 100 * 4).toFixed(2);
-        }
-        return targetValue.toFixed(2);
-      }
-      return 'Not Set';
-    } else {
-      // For cumulative view, find cumulative goal
-      const cumulativeGoal = goals.find(goal => goal.goalType === 'CUMMULATIVE_GPA');
-      if (cumulativeGoal) {
-        const targetValue = parseFloat(cumulativeGoal.targetValue.toString());
         if (targetValue > 4) {
           return (targetValue / 100 * 4).toFixed(2);
         }
@@ -292,10 +249,8 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
       return 'No targets set';
     } else if (viewMode === 'individual' && selectedCourse) {
       return selectedCourse.name;
-    } else if (viewMode === 'semester') {
-      return `${getSemesterName(selectedSemester)} target`;
     } else {
-      return 'Cumulative target';
+      return `${getSemesterName(selectedSemester)} target`;
     }
   };
 
@@ -469,25 +424,6 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.viewModeButton,
-            viewMode === 'cumulative' && styles.viewModeButtonActive,
-          ]}
-          onPress={() => {
-            setViewMode('cumulative');
-            setSelectedCourse(null);
-          }}
-        >
-          <Text
-            style={[
-              styles.viewModeButtonText,
-              viewMode === 'cumulative' && styles.viewModeButtonTextActive,
-            ]}
-          >
-            Cumulative Progress
-          </Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={[
@@ -545,9 +481,7 @@ export const EnhancedGradeTrends: React.FC<EnhancedGradeTrendsProps> = ({
           <Text style={styles.chartTitle}>
             {viewMode === 'individual' && selectedCourse
               ? `${selectedCourse.name} GPA`
-              : viewMode === 'semester'
-              ? `${getSemesterName(selectedSemester)} GPA`
-              : 'Cumulative GPA'}
+              : `${getSemesterName(selectedSemester)} GPA`}
           </Text>
           {isLoadingAnalytics && (
             <View style={styles.chartHint}>

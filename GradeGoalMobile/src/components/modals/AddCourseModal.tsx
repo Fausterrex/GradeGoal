@@ -300,11 +300,36 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
         userId: userId
       };
 
-      let response;
+      let response: any;
       if (editingCourse) {
         response = await CourseService.updateCourse(editingCourse.id, courseData);
       } else {
         response = await CourseService.createCourse(courseData);
+        
+        // Create assessment categories for new courses
+        if (response && response.id && formData.categories.length > 0) {
+          try {
+            const createdCategories = [];
+            for (const category of formData.categories) {
+              const categoryData = {
+                categoryName: category.name || "",
+                weightPercentage: parseFloat(category.weight.toString()) || 0,
+              };
+
+              const createdCategory = await CourseService.addCategoryToCourse(
+                response.id,
+                categoryData
+              );
+              createdCategories.push(createdCategory);
+            }
+            response.categories = createdCategories;
+          } catch (categoryError) {
+            console.error('Error creating categories:', categoryError);
+            response.categories = [];
+          }
+        } else {
+          response.categories = [];
+        }
       }
 
       // Refresh courses list

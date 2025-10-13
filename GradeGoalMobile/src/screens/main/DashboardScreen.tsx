@@ -17,12 +17,13 @@ import { EnhancedGradeTrends } from '../../components/dashboard/EnhancedGradeTre
 import { GoalsOverview } from '../../components/dashboard/GoalsOverview';
 import { AIRecommendations } from '../../components/dashboard/AIRecommendations';
 import { RecentActivities } from '../../components/dashboard/RecentActivities';
+import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { DashboardService } from '../../services/dashboardService';
 import { CourseService } from '../../services/courseService';
 import { getGoalsByUserId } from '../../services/goalsService';
 
 export const DashboardScreen: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, streakData } = useAuth();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
@@ -211,8 +212,15 @@ export const DashboardScreen: React.FC = () => {
 
   return (
     <View style={commonStyles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} translucent={false} />
-      <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
+      {/* Dashboard Header */}
+      <DashboardHeader 
+        streakCount={streakData?.streakDays || 0}
+        onNotificationPress={() => {
+          // Handle notification press if needed
+        }}
+      />
+      
+      <View style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -256,6 +264,7 @@ export const DashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
