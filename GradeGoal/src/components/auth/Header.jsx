@@ -7,6 +7,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Logo from "../../drawables/logo.svg";
+import { HashLink } from "react-router-hash-link";
 export default function Header() {
   return (
     <header className="bg-white border-b border-gray-200 py-2 fixed top-0 left-0 right-0 z-50 m-0 p-0">
@@ -37,12 +38,13 @@ export default function Header() {
           className="hidden md:flex items-center space-x-8"
           aria-label="Main navigation"
         >
-          <Link
-            to="/about"
-            className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-200"
+          <HashLink
+            smooth
+            to="#aboutUs"
+            className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-500"
           >
             About us
-          </Link>
+          </HashLink>
           <Link
             to="/help"
             className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-200"

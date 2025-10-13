@@ -87,6 +87,38 @@ export default function LandingPage() {
       iconBg: "from-[#3EA4AF] to-[#235C63]",
     },
   ];
+  const teamMembers = [
+    {
+      name: "Paul Emmerson E. Biag",
+      role: "Product Owner, Project Manager, Backend Developer, Business Analyst || Quality Assurance",
+      image: "src/drawables/paul (2).png",
+    },
+    {
+      name: "Daniela Filoteo",
+      role: "Team Developer || Front End - UX implementation",
+      image: "src/drawables/dani.png",
+    },
+    {
+      name: "Faust Jermey M. Panganiban",
+      role: "Team Developer || Front End - Functionality ",
+      image: "src/drawables/faust2.png",
+    },
+    {
+      name: "Prince Harvey S. Ramirez",
+      role: "Team Developer and Lead Developer || Full Stack - API Integrations",
+      image: "src/drawables/pin.png",
+    },
+    {
+      name: "Jonathan P. Romasanta",
+      role: "Team Developer || Front End - UI Implementation",
+      image: "src/drawables/jonathan.png",
+    },
+    {
+      name: "Ana Carmela P. Yonzon",
+      role: "Business Analyst and Documentation",
+      image: "src/drawables/ella.png",
+    }
+  ];
 
   return (
     <div>
@@ -362,6 +394,86 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      {/* About Us */}
+      <section id="aboutUs" className="bg-white text-gray-800 ">
+        <div
+          className="h-45 w-[97.1%] flex items-center justify-center mx-auto bg-center bg-cover bg-no-repeat"
+          style={{ backgroundImage: "url('/src/drawables/aboutusheader.png')" }}
+        >
+        </div>
+
+
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 items-center mb-20 px-8 py-16">
+          <div>
+            <h2 className="text-2xl font-bold mb-4 border-b border-gray-300 pb-2">
+              OUR STORY
+            </h2>
+            <p className="text-gray-700 mb-4">
+              GradeGoal started with one mission: to help students take control of
+              their academic journey. As NU students, we know the struggle of
+              tracking grades, setting goals, and staying motivated.
+            </p>
+            <p className="text-gray-700 mb-4">
+              That’s why we built GradeGoal — a goal-oriented grade management system
+              designed to make learning smarter and more empowering. With full
+              features on the web and essentials on mobile, GradeGoal helps students
+              track progress, set goals, and get strategies to succeed—anytime,
+              anywhere.
+            </p>
+            <p className="font-semibold mt-4">Made by students, for students.</p>
+          </div>
+          <div className="flex justify-center">
+            <div className=" rounded-xl flex items-center justify-center w-52 h-52">
+              <img
+                src="src/drawables/logoGG.png"
+                alt="GradeGoal Logo"
+                className="h-54 w-54 object-contain"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="p-14 rounded-3xl max-w-7xl mx-auto shadow-inner border-50 border-[#856DFF] overflow-visible bg-center bg-contain bg-no-repeat"
+          style={{ backgroundImage: "url('/src/drawables/teambg.png')" }}
+        >
+          <div className="text-center mb-10 relative ">
+            <h2 className="text-4xl font-semibold text-white bg-[#856DFF] py-4 rounded-lg inline-block px-6 absolute -top-32 left-90">
+              “MEET OUR TEAM”
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-12 gap-y-20 justify-center">
+            {teamMembers.map((member, index) => (
+              <div
+                key={index}
+                className="relative bg-[#25045A] rounded-t-[100px] shadow-md overflow-visible border border-gray-100 w-[280px] h-[350px] flex flex-col justify-between mx-auto"
+              >
+                <div className="bg-[#25045A] flex justify-center items-center h-56 relative rounded-t-xl overflow-visible">
+                  <img
+                    src={member.image}
+                    alt={member.name}
+                    className="h-90 w-[100%] object-cover absolute -top-28"
+                  />
+                </div>
+
+                {/* Name + Role */}
+                <div className="bg-white shadow-md px-4 py-3 text-center flex flex-col justify-center h-[100px] overflow-hidden">
+                  <h3 className="font-semibold text-gray-900 text-md">{member.name}</h3>
+                  <p className="text-gray-600 text-sm mt-1 overflow-hidden text-ellipsis line-clamp-3">
+                    {member.role.split("||").map((line, i) => (
+                      <span key={i}>
+                        {line.trim()}
+                        <br />
+                      </span>
+                    ))}
+                  </p>
+
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
 
       <footer className="bg-gradient-to-br from-[#6E52BC] via-[#5A4A9C] to-[#4A3A8C] text-white py-16 px-4 sm:px-6 lg:px-8 mt-20 w-full">
         <div className="max-w-4xl mx-auto text-center">

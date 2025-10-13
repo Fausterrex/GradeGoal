@@ -1,6 +1,8 @@
 package com.project.gradegoal.Controller;
 
+import com.project.gradegoal.Repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +17,32 @@ import java.util.*;
 public class ReportController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final CourseRepository courseRepository;
+    private final UserAchievementRepository userAchievementRepository;
+    private final AcademicGoalRepository goalRepository;
+
+
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Object>> getReportSummary(@RequestParam Long userId) {
+        Map<String, Object> summary = new HashMap<>();
+
+        try {
+            long totalCourses = courseRepository.countByUserId(userId);
+            long totalGoals = goalRepository.countByUserId(userId);
+            long totalAchievements = userAchievementRepository.countByUserId(userId);
+
+            summary.put("totalCourses", totalCourses);
+            summary.put("totalGoals", totalGoals);
+            summary.put("totalAchievements", totalAchievements);
+
+            return ResponseEntity.ok(summary);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            summary.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(summary);
+        }
+    }
 
     @GetMapping("/courses/grouped")
     public Map<String, Object> getGroupedData(@RequestParam Long userId) {
@@ -41,6 +69,7 @@ public class ReportController {
         Map<Long, Map<String, Object>> courseMap = new LinkedHashMap<>();
         String fullName = null;
 
+
         for (Map<String, Object> row : rows) {
             Long courseId = ((Number) row.get("course_id")).longValue();
 
@@ -56,12 +85,15 @@ public class ReportController {
                     "level", row.get("year_level"),
                     "calculatedGrade", row.get("calculated_course_grade"),
                     "currentGpa", row.get("course_gpa"),
-                    "goals", new LinkedHashMap<Long, Map<String, Object>>()
+                    "goals", new LinkedHashMap<Long, Map<String, Object>>(),
+                    "categories", new LinkedHashMap<Long, Map<String, Object>>()
             )));
 
             Map<String, Object> course = courseMap.get(courseId);
             @SuppressWarnings("unchecked")
             Map<Long, Map<String, Object>> goals = (Map<Long, Map<String, Object>>) course.get("goals");
+            @SuppressWarnings("unchecked")
+            Map<Long, Map<String, Object>> courseCategories = (Map<Long, Map<String, Object>>) course.get("categories");
 
             if (row.get("goal_id") != null) {
                 Long goalId = ((Number) row.get("goal_id")).longValue();
@@ -69,15 +101,14 @@ public class ReportController {
                         "goalId", goalId,
                         "goalTitle", row.get("goal_title"),
                         "priority", row.get("priority"),
-                        "targetGoal", row.get("target_value"), // ✅ renamed for frontend clarity
+                        "targetGoal", row.get("target_value"),
                         "goalType", row.get("goal_type"),
-                        "schoolYear", row.get("goal_school_year"), // ✅ comes from academic_goals table
+                        "schoolYear", row.get("goal_school_year"),
                         "categories", new LinkedHashMap<Long, Map<String, Object>>()
                 )));
 
                 Map<String, Object> goal = goals.get(goalId);
 
-                // Calculate progress %
                 Double calcGrade = row.get("calculated_course_grade") != null
                         ? ((Number) row.get("calculated_course_grade")).doubleValue() : null;
                 Double target = row.get("target_value") != null
@@ -87,12 +118,12 @@ public class ReportController {
                     goal.put("progress", progress);
                 }
 
-                // GPA values
                 goal.put("currentGpa", row.get("course_gpa"));
                 goal.put("targetGpa", row.get("target_value"));
 
                 @SuppressWarnings("unchecked")
-                Map<Long, Map<String, Object>> categories = (Map<Long, Map<String, Object>>) goal.get("categories");
+                Map<Long, Map<String, Object>> categories =
+                        (Map<Long, Map<String, Object>>) goal.get("categories");
 
                 if (row.get("category_id") != null) {
                     Long catId = ((Number) row.get("category_id")).longValue();
@@ -117,8 +148,33 @@ public class ReportController {
                         assessments.add(assessment);
                     }
                 }
+            } else {
+                if (row.get("category_id") != null) {
+                    Long catId = ((Number) row.get("category_id")).longValue();
+                    courseCategories.putIfAbsent(catId, new HashMap<>(Map.of(
+                            "categoryId", catId,
+                            "categoryName", row.get("category_name"),
+                            "assessments", new ArrayList<Map<String, Object>>()
+                    )));
+
+                    Map<String, Object> category = courseCategories.get(catId);
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> assessments = (List<Map<String, Object>>) category.get("assessments");
+
+                    if (row.get("assessment_id") != null) {
+                        Map<String, Object> assessment = new HashMap<>();
+                        assessment.put("assessmentId", row.get("assessment_id"));
+                        assessment.put("assessmentName", row.get("assessment_name"));
+                        assessment.put("status", row.get("status"));
+                        assessment.put("pointsEarned", row.get("points_earned"));
+                        assessment.put("pointsPossible", row.get("points_possible"));
+                        assessment.put("percentageScore", row.get("percentage_score"));
+                        assessments.add(assessment);
+                    }
+                }
             }
         }
+
 
         Map<String, Object> response = new HashMap<>();
         response.put("courses", new ArrayList<>(courseMap.values()));

@@ -33,7 +33,9 @@
   overflow-y: auto !important;
   overflow-x: hidden;
 }
-
+html{
+  scroll-behavior: smooth;
+}
 /**
  * Page Content Styles
  * 
@@ -42,4 +44,24 @@
  */
 .page > * {
   height: auto !important;
+}
+
+/* --- Prevent overlapping footer / enforce page breaks --- */
+
+/* This prevents elements from being split between pages */
+.pdf-section {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  margin-bottom: 20px;
+}
+
+/* This forces a new page before each element */
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+/* Optional: ensures the last section doesn’t hide behind footer */
+.pdf-content {
+  padding-bottom: 60px; /* same height as your footer area */
 }
