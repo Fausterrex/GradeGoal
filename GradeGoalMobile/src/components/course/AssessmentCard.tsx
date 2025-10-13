@@ -19,6 +19,7 @@ interface AssessmentCardProps {
   categoryName?: string;
   allGrades?: Record<number, any[]>;
   allCategories?: any[];
+  isCourseCompleted?: boolean;
 }
 
 export const AssessmentCard: React.FC<AssessmentCardProps> = ({
@@ -33,6 +34,7 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({
   categoryName,
   allGrades,
   allCategories,
+  isCourseCompleted = false,
 }) => {
   const [gpa, setGpa] = useState('0.00');
 
@@ -230,44 +232,56 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({
       <View style={styles.actionButtons}>
         {!hasScore ? (
           <TouchableOpacity
-            style={[styles.actionButton, styles.addButton]}
-            onPress={(e) => {
+            style={[styles.actionButton, styles.addButton, isCourseCompleted && styles.disabledButton]}
+            onPress={isCourseCompleted ? undefined : (e) => {
               e.stopPropagation();
               onAssessmentClick(grade);
             }}
+            disabled={isCourseCompleted}
           >
-            <Text style={styles.actionButtonText}>Add Score</Text>
+            <Text style={[styles.actionButtonText, isCourseCompleted && styles.disabledButtonText]}>
+              Add Score
+            </Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.actionButton, styles.editButton]}
-            onPress={(e) => {
+            style={[styles.actionButton, styles.editButton, isCourseCompleted && styles.disabledButton]}
+            onPress={isCourseCompleted ? undefined : (e) => {
               e.stopPropagation();
               onEditScore(grade);
             }}
+            disabled={isCourseCompleted}
           >
-            <Text style={styles.actionButtonText}>Edit Score</Text>
+            <Text style={[styles.actionButtonText, isCourseCompleted && styles.disabledButtonText]}>
+              Edit Score
+            </Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.editAssessmentButton]}
-          onPress={(e) => {
+          style={[styles.actionButton, styles.editAssessmentButton, isCourseCompleted && styles.disabledButton]}
+          onPress={isCourseCompleted ? undefined : (e) => {
             e.stopPropagation();
             onEditAssessment(grade);
           }}
+          disabled={isCourseCompleted}
         >
-          <Text style={styles.actionButtonText}>Edit</Text>
+          <Text style={[styles.actionButtonText, isCourseCompleted && styles.disabledButtonText]}>
+            Edit
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={(e) => {
+          style={[styles.actionButton, styles.deleteButton, isCourseCompleted && styles.disabledButton]}
+          onPress={isCourseCompleted ? undefined : (e) => {
             e.stopPropagation();
             onDeleteAssessment(grade.id, grade.categoryId);
           }}
+          disabled={isCourseCompleted}
         >
-          <Text style={styles.actionButtonText}>Delete</Text>
+          <Text style={[styles.actionButtonText, isCourseCompleted && styles.disabledButtonText]}>
+            Delete
+          </Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -476,5 +490,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.blue[700],
     lineHeight: 16,
+  },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: colors.gray[200],
+  },
+  disabledButtonText: {
+    opacity: 0.7,
   },
 });

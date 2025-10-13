@@ -605,6 +605,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               userId={userId}
               activeSemesterTerm={activeSemesterTerm}
               isMidtermCompleted={isMidtermCompleted}
+              isCourseCompleted={localCourse?.isCompleted}
               onSetGoal={() => {
                 // Clear the selected course and close course manager first, then navigate
                 if (onClearSelectedCourse) {
@@ -625,6 +626,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               isMidtermCompleted={isMidtermCompleted}
               colorScheme={colorScheme}
               setConfirmationModal={setConfirmationModal}
+              isCourseCompleted={localCourse?.isCompleted}
             />
             <AssessmentCategories
               categories={categories}
@@ -640,6 +642,7 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
               targetGrade={targetGrade}
               activeSemesterTerm={activeSemesterTerm}
               isMidtermCompleted={isMidtermCompleted}
+              isCourseCompleted={localCourse?.isCompleted}
             />
           </div>
         )}

@@ -21,6 +21,7 @@ interface AssessmentCategoriesProps {
   targetGrade?: number;
   activeSemesterTerm: string;
   isMidtermCompleted: boolean;
+  isCourseCompleted?: boolean;
 }
 
 export const AssessmentCategories: React.FC<AssessmentCategoriesProps> = ({
@@ -36,6 +37,7 @@ export const AssessmentCategories: React.FC<AssessmentCategoriesProps> = ({
   targetGrade,
   activeSemesterTerm,
   isMidtermCompleted,
+  isCourseCompleted = false,
 }) => {
   const [categoryAverages, setCategoryAverages] = useState<Record<number, number | null>>({});
 
@@ -118,6 +120,7 @@ export const AssessmentCategories: React.FC<AssessmentCategoriesProps> = ({
             targetGrade={targetGrade}
             activeSemesterTerm={activeSemesterTerm}
             isMidtermCompleted={isMidtermCompleted}
+            isCourseCompleted={isCourseCompleted}
           />
         );
       })}

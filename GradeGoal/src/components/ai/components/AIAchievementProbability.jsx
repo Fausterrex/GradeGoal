@@ -5,6 +5,7 @@
 
 import React from "react";
 import { Target, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { percentageToGPA } from "../../course/academic_goal/gpaConversionUtils";
 const AIAchievementProbability = ({ probability, confidence, factors = [], bestPossibleGPA, isVisible = true, isCompact = false, currentGPA, targetGPA, courseProgress = 0 }) => {
   if (!isVisible || !probability) return null;
 
@@ -41,12 +42,17 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
         {getProbabilityIcon(probabilityValue)}
         <div>
           <h4 className={`${isCompact ? 'text-lg' : 'text-xl'} font-bold text-gray-900`}>
-            {isCourseComplete ? 'Goal Achievement Result' : 'GPA Goal Probability'}
+            {isCourseComplete 
+              ? (isGoalAchieved ? 'Goal Achievement Result' : 'Goal Analysis Result')
+              : 'GPA Goal Probability'
+            }
           </h4>
           {!isCompact && (
             <p className="text-base text-gray-600 mt-1">
               {isCourseComplete 
-                ? 'Final results of your academic goal achievement'
+                ? (isGoalAchieved 
+                  ? 'Final results of your academic goal achievement'
+                  : 'Analysis of your performance against your goal')
                 : 'Based on current performance and remaining assessments'
               }
             </p>
@@ -61,8 +67,14 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
             // Course Complete - Show Achievement Result
             <div className="space-y-4">
               <div className="flex items-center justify-center space-x-4 mb-4">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <span className="text-lg font-semibold text-gray-700">Goal Achievement</span>
+                {isGoalAchieved ? (
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <Target className="w-6 h-6 text-orange-600" />
+                )}
+                <span className="text-lg font-semibold text-gray-700">
+                  {isGoalAchieved ? 'Goal Achievement' : 'Goal Analysis'}
+                </span>
               </div>
               
               {/* Achievement Status */}
@@ -94,7 +106,11 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                     <div className="text-sm font-medium text-purple-700 mb-1">Target GPA</div>
                     <div className="text-2xl font-bold text-purple-600">
-                      {targetGPA.toFixed(2)}
+                      {(() => {
+                        // Convert percentage to GPA for display in Goal Achievement Result
+                        const gpaValue = percentageToGPA(targetGPA);
+                        return typeof gpaValue === 'string' ? gpaValue : gpaValue.toFixed(2);
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -103,28 +119,21 @@ const AIAchievementProbability = ({ probability, confidence, factors = [], bestP
           ) : (
             // Course In Progress - Show Success Probability
             <div>
-              <div className="flex items-center justify-center space-x-4 mb-4">
-                <Target className="w-6 h-6 text-gray-600" />
-                <span className="text-lg font-semibold text-gray-700">Success Probability</span>
-              </div>
-              
               {/* Large Progress Bar */}
-              <div className="relative mb-4">
-                <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Success Probability</span>
+                  <span className="text-sm font-bold text-gray-900">{probabilityValue}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                   <div
-                    className={`h-4 rounded-full transition-all duration-500 ease-out shadow-sm ${
+                    className={`h-3 rounded-full transition-all duration-500 ease-out shadow-sm ${
                       probabilityValue >= 70 ? 'bg-gradient-to-r from-green-400 to-green-600' :
                       probabilityValue >= 40 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 
                       'bg-gradient-to-r from-red-400 to-red-600'
                     }`}
                     style={{ width: `${Math.min(probabilityValue, 100)}%` }}
                   ></div>
-                </div>
-                {/* Progress percentage overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={`text-2xl font-bold ${getProbabilityColor(probabilityValue).split(' ')[0]} drop-shadow-sm`}>
-                    {probabilityValue}%
-                  </span>
                 </div>
               </div>
             </div>

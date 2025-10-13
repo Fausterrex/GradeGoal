@@ -19,7 +19,8 @@ function AssessmentCategories({
   course, // Add course prop for AI analysis
   targetGrade, // Add target grade for AI analysis
   activeSemesterTerm, // Add active semester term prop
-  isMidtermCompleted // Add midterm completion status
+  isMidtermCompleted, // Add midterm completion status
+  isCourseCompleted = false // Add course completion status
 }) {
   const [categoryAverages, setCategoryAverages] = useState({});
 
@@ -124,6 +125,7 @@ function AssessmentCategories({
             targetGrade={targetGrade}
             activeSemesterTerm={activeSemesterTerm}
             isMidtermCompleted={isMidtermCompleted}
+            isCourseCompleted={isCourseCompleted}
           />
         );
       })}

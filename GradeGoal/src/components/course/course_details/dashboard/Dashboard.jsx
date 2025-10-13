@@ -23,6 +23,7 @@ function Dashboard({
   userId,
   activeSemesterTerm,
   isMidtermCompleted,
+  isCourseCompleted = false,
   onSetGoal = () => {} // Callback for setting goals
 }) {
   const [aiAnalysisRefreshTrigger, setAiAnalysisRefreshTrigger] = useState(0);
@@ -30,6 +31,27 @@ function Dashboard({
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100">
       <div className="w-full px-4 lg:px-6 py-8">
+        
+        {/* Course Completion Indicator */}
+        {isCourseCompleted && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xl">✓</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-800">
+                  Course Completed
+                </h3>
+                <p className="text-sm text-green-700">
+                  This course has been completed. Assessment modifications are disabled to preserve academic records.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* AI Analysis Indicator */}
         <AIAnalysisIndicator
@@ -39,6 +61,7 @@ function Dashboard({
           targetGrade={targetGrade}
           currentGrade={currentGrade}
           activeSemesterTerm={activeSemesterTerm}
+          isCourseCompleted={isCourseCompleted}
           onAnalysisComplete={(result) => {
             console.log('AI Analysis completed:', result);
             // Trigger refresh of AI recommendations

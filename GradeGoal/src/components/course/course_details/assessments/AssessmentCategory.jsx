@@ -31,7 +31,8 @@ function AssessmentCategory({
   allCategories, // Add all categories for AI analysis
   targetGrade, // Add target grade for AI analysis
   activeSemesterTerm, // Add active semester term prop
-  isMidtermCompleted // Add midterm completion status
+  isMidtermCompleted, // Add midterm completion status
+  isCourseCompleted = false // Add course completion status
 }) {
 
   return (
@@ -74,14 +75,16 @@ function AssessmentCategory({
           
           <button
             onClick={() => onAddAssessment(category.id)}
-            disabled={isMidtermCompleted && activeSemesterTerm === 'MIDTERM'}
+            disabled={(isMidtermCompleted && activeSemesterTerm === 'MIDTERM') || isCourseCompleted}
             className={`backdrop-blur-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all duration-300 font-medium border text-sm sm:text-base self-start sm:self-auto transform ${
-              isMidtermCompleted && activeSemesterTerm === 'MIDTERM'
+              (isMidtermCompleted && activeSemesterTerm === 'MIDTERM') || isCourseCompleted
                 ? 'bg-white/10 text-white/50 border-white/20 cursor-not-allowed'
                 : 'bg-white/20 text-white border-white/30 hover:bg-white hover:text-gray-800 hover:scale-105'
             }`}
             title={
-              isMidtermCompleted && activeSemesterTerm === 'MIDTERM'
+              isCourseCompleted
+                ? 'Cannot add assessments when course is completed'
+                : isMidtermCompleted && activeSemesterTerm === 'MIDTERM'
                 ? 'Cannot add midterm assessments when midterm is already completed'
                 : 'Add new assessment'
             }
@@ -166,6 +169,7 @@ function AssessmentCategory({
                 categoryName={category.categoryName || category.name}
                 allGrades={allGrades}
                 allCategories={allCategories}
+                isCourseCompleted={isCourseCompleted}
               />
             ))
           ) : (

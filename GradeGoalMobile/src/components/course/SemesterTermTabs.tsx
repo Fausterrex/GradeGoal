@@ -14,6 +14,7 @@ interface SemesterTermTabsProps {
   isMidtermCompleted: boolean;
   onMarkMidtermAsDone: () => void;
   setConfirmationModal: (modal: any) => void;
+  isCourseCompleted?: boolean;
 }
 
 export const SemesterTermTabs: React.FC<SemesterTermTabsProps> = ({
@@ -22,6 +23,7 @@ export const SemesterTermTabs: React.FC<SemesterTermTabsProps> = ({
   isMidtermCompleted,
   onMarkMidtermAsDone,
   setConfirmationModal,
+  isCourseCompleted = false,
 }) => {
   const handleTermChange = (term: string) => {
     // Only allow switching to final term if midterm is completed
@@ -106,13 +108,16 @@ export const SemesterTermTabs: React.FC<SemesterTermTabsProps> = ({
       </View>
 
       {/* Mark Midterm as Done Button */}
-      {activeTerm === 'MIDTERM' && !isMidtermCompleted && (
+      {activeTerm === 'MIDTERM' && !isMidtermCompleted && !isCourseCompleted && (
         <View style={styles.markDoneContainer}>
           <TouchableOpacity
-            style={styles.markDoneButton}
-            onPress={handleMarkMidtermAsDone}
+            style={[styles.markDoneButton, isCourseCompleted && styles.disabledButton]}
+            onPress={isCourseCompleted ? undefined : handleMarkMidtermAsDone}
+            disabled={isCourseCompleted}
           >
-            <Text style={styles.markDoneButtonText}>Mark Midterm as Done</Text>
+            <Text style={[styles.markDoneButtonText, isCourseCompleted && styles.disabledButtonText]}>
+              Mark Midterm as Done
+            </Text>
           </TouchableOpacity>
           <Text style={styles.markDoneSubtext}>
             Click this when you've completed all midterm assessments
@@ -166,7 +171,7 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
   },
   activeTabText: {
-    color: colors.white,
+    color: colors.text.white,
   },
   disabledTabText: {
     color: colors.gray[400],
@@ -179,7 +184,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   doneBadgeText: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   lockedBadgeText: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -215,7 +220,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   markDoneButtonText: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -224,5 +229,12 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     marginTop: 8,
     textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: colors.gray[400],
+  },
+  disabledButtonText: {
+    opacity: 0.7,
   },
 });

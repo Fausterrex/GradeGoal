@@ -265,15 +265,25 @@ const GoalCard = ({
         <div className="absolute top-3 right-3 flex space-x-1">
           <button
             onClick={() => onEdit(goal)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white/60 rounded-lg transition-all duration-200"
+            className={`p-1.5 rounded-lg transition-all duration-200 ${
+              isCourseCompleted 
+                ? 'text-gray-300 cursor-not-allowed opacity-50' 
+                : 'text-white hover:text-blue-200 hover:bg-white/20 bg-white/10'
+            }`}
             title="Edit Goal"
+            disabled={isCourseCompleted}
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(goal)}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white/60 rounded-lg transition-all duration-200"
+            className={`p-1.5 rounded-lg transition-all duration-200 ${
+              isCourseCompleted 
+                ? 'text-gray-300 cursor-not-allowed opacity-50' 
+                : 'text-white hover:text-red-200 hover:bg-white/20 bg-white/10'
+            }`}
             title="Delete Goal"
+            disabled={isCourseCompleted}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -300,9 +310,17 @@ const GoalCard = ({
           
           {/* Goal Type & Due Date */}
           <div className="space-y-1">
-            <div className="text-sm text-gray-600 font-medium">{getGoalTypeLabel(goal.goalType)}</div>
-            <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
-              <Calendar className="w-3 h-3" />
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+              goal.goalType === 'COURSE_GRADE' 
+                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                : goal.goalType === 'SEMESTER_GPA'
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-purple-100 text-purple-700 border border-purple-200'
+            }`}>
+              {getGoalTypeLabel(goal.goalType)}
+            </div>
+            <div className="flex items-center justify-center space-x-2 text-sm font-medium text-gray-700">
+              <Calendar className="w-4 h-4 text-gray-600" />
               <span>
                 {goal.isAchieved && goal.achievedDate 
                   ? `Achieved: ${formatGoalDate(goal.achievedDate)}`
@@ -374,74 +392,44 @@ const GoalCard = ({
             <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
               progressData.isAchieved 
                 ? 'bg-green-100 text-green-700' 
+                : progressData.isCourseCompleted
+                ? 'bg-purple-100 text-purple-700'
                 : progressData.isOnTrack 
                 ? 'bg-blue-100 text-blue-700' 
                 : 'bg-orange-100 text-orange-700'
             }`}>
               <span className="text-sm">
-                {progressData.isAchieved ? '✅' : progressData.isOnTrack ? '📈' : '⚠️'}
+                {progressData.isAchieved ? '✅' : progressData.isCourseCompleted ? '📊' : progressData.isOnTrack ? '📈' : '⚠️'}
               </span>
               <span className="text-sm font-semibold">
-                {progressData.isAchieved ? 'Goal Achieved!' : progressData.isOnTrack ? 'On Track' : 'Needs Focus'}
+                {progressData.isAchieved 
+                  ? 'Goal Achieved!' 
+                  : progressData.isCourseCompleted
+                  ? 'Course Completed'
+                  : progressData.isOnTrack 
+                  ? 'On Track' 
+                  : 'Needs Focus'
+                }
               </span>
             </div>
             
             {!progressData.isAchieved && (
               <div className="text-sm text-gray-600">
-                <span className="font-bold text-orange-600">{(progressData.targetValue - progressData.currentValue).toFixed(2)}</span> points needed to reach your goal
+                {progressData.isCourseCompleted ? (
+                  <>
+                    <span className="font-bold text-purple-600">{(progressData.targetValue - progressData.currentValue).toFixed(2)}</span> GPA gap from target
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold text-orange-600">{(progressData.targetValue - progressData.currentValue).toFixed(2)}</span> points needed to reach your goal
+                  </>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Course Completion Status */}
-        {progressData.isCourseCompleted && (
-          <div className={`mt-4 p-4 rounded-xl ${
-            progressData.status === 'achieved' 
-              ? 'bg-green-50 border border-green-200' 
-              : progressData.status === 'close_to_goal'
-              ? 'bg-purple-50 border border-purple-200'
-              : 'bg-orange-50 border border-orange-200'
-          }`}>
-            <div className="text-center">
-              <div className={`text-2xl mb-2`}>
-                {progressData.status === 'achieved' ? '🎉' : progressData.status === 'close_to_goal' ? '✨' : '💪'}
-              </div>
-              <div className={`text-sm font-semibold mb-1 ${
-                progressData.status === 'achieved' 
-                  ? 'text-green-800' 
-                  : progressData.status === 'close_to_goal'
-                  ? 'text-purple-800'
-                  : 'text-orange-800'
-              }`}>
-                Course Completed!
-              </div>
-              <div className={`text-xs ${
-                progressData.status === 'achieved' 
-                  ? 'text-green-700' 
-                  : progressData.status === 'close_to_goal'
-                  ? 'text-purple-700'
-                  : 'text-orange-700'
-              }`}>
-                {progressData.status === 'achieved' 
-                  ? `Amazing! You exceeded your target with ${progressData.currentValue} GPA!`
-                  : progressData.status === 'close_to_goal'
-                  ? `So close! You achieved ${progressData.currentValue} GPA`
-                  : `Great effort! Final GPA: ${progressData.currentValue}`
-                }
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Motivational Message */}
-        {!progressData.isCourseCompleted && (
-          <div className="mt-4 text-center">
-            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2 inline-block">
-              🚀 Every journey starts with a single step!
-            </div>
-          </div>
-        )}
 
 
         {/* AI Analysis Section - Clean & Centered */}
@@ -561,31 +549,33 @@ const GoalCard = ({
                 );
               })()}
               
-              <AIAnalysisIndicator
-                course={
-                  goal.goalType === 'CUMMULATIVE_GPA' 
-                    ? { id: 0, courseName: 'Cumulative GPA' } 
-                    : goal.goalType === 'SEMESTER_GPA'
-                    ? { id: 0, courseName: 'Semester GPA' }
-                    : courses.find(c => c.id === goal.courseId)
-                }
-                grades={grades}
-                categories={categories}
-                targetGrade={goal}
-                currentGrade={progressData.currentValue}
-                courses={courses}
-                onAnalysisComplete={async (recommendations) => {
-                  // Handle the AI analysis completion
-                  // Get AI achievement probability after analysis completion
-                  try {
-                    const probability = getAchievementProbability();
-                    if (probability) {
-                      setAiAchievementProbability(probability);
-                    }
-                  } catch (error) {
-                    }
-                }}
-              />
+              {!isCourseCompleted && (
+                <AIAnalysisIndicator
+                  course={
+                    goal.goalType === 'CUMMULATIVE_GPA' 
+                      ? { id: 0, courseName: 'Cumulative GPA' } 
+                      : goal.goalType === 'SEMESTER_GPA'
+                      ? { id: 0, courseName: 'Semester GPA' }
+                      : courses.find(c => c.id === goal.courseId)
+                  }
+                  grades={grades}
+                  categories={categories}
+                  targetGrade={goal}
+                  currentGrade={progressData.currentValue}
+                  courses={courses}
+                  onAnalysisComplete={async (recommendations) => {
+                    // Handle the AI analysis completion
+                    // Get AI achievement probability after analysis completion
+                    try {
+                      const probability = getAchievementProbability();
+                      if (probability) {
+                        setAiAchievementProbability(probability);
+                      }
+                    } catch (error) {
+                      }
+                  }}
+                />
+              )}
             </div>
           </div>
         )}

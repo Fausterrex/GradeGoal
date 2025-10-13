@@ -23,6 +23,7 @@ interface AssessmentCategoryProps {
   targetGrade?: number;
   activeSemesterTerm: string;
   isMidtermCompleted: boolean;
+  isCourseCompleted?: boolean;
 }
 
 export const AssessmentCategory: React.FC<AssessmentCategoryProps> = ({
@@ -40,6 +41,7 @@ export const AssessmentCategory: React.FC<AssessmentCategoryProps> = ({
   targetGrade,
   activeSemesterTerm,
   isMidtermCompleted,
+  isCourseCompleted = false,
 }) => {
   const getGradeColor = (percentage: number) => {
     if (percentage >= 90) return colors.green[600];
@@ -97,14 +99,14 @@ export const AssessmentCategory: React.FC<AssessmentCategoryProps> = ({
           <TouchableOpacity
             style={[
               styles.addButton,
-              isMidtermCompleted && activeSemesterTerm === 'MIDTERM' && styles.disabledButton,
+              (isMidtermCompleted && activeSemesterTerm === 'MIDTERM') || isCourseCompleted ? styles.disabledButton : null,
             ]}
             onPress={() => onAddAssessment(category.id)}
-            disabled={isMidtermCompleted && activeSemesterTerm === 'MIDTERM'}
+            disabled={(isMidtermCompleted && activeSemesterTerm === 'MIDTERM') || isCourseCompleted}
           >
             <Text style={[
               styles.addButtonText,
-              isMidtermCompleted && activeSemesterTerm === 'MIDTERM' && styles.disabledButtonText,
+              (isMidtermCompleted && activeSemesterTerm === 'MIDTERM') || isCourseCompleted ? styles.disabledButtonText : null,
             ]}>
               + Add Assessment
             </Text>
@@ -177,6 +179,7 @@ export const AssessmentCategory: React.FC<AssessmentCategoryProps> = ({
                 categoryName={category.categoryName || category.name || 'Unknown Category'}
                 allGrades={allGrades}
                 allCategories={allCategories}
+                isCourseCompleted={isCourseCompleted}
               />
             ))
           ) : (
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.white,
     borderRadius: 16,
-    shadowColor: colors.black,
+    shadowColor: colors.text.primary,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -245,7 +248,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   categoryIcon: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.white,
+    color: colors.text.white,
     marginBottom: 6,
     flexShrink: 1,
   },
@@ -293,7 +296,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   addButtonText: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -324,7 +327,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    shadowColor: colors.black,
+    shadowColor: colors.text.primary,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -418,7 +421,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyIconBadgeText: {
-    color: colors.white,
+    color: colors.text.white,
     fontSize: 12,
     fontWeight: 'bold',
   },

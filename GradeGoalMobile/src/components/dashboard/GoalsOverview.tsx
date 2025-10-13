@@ -198,7 +198,11 @@ const GoalCard: React.FC<{ goal: Goal; onPress: () => void }> = ({ goal, onPress
   };
 
   return (
-    <TouchableOpacity style={styles.goalCard} onPress={onPress}>
+    <TouchableOpacity 
+      style={[styles.goalCard, goal.isCourseCompleted && styles.disabledGoalCard]} 
+      onPress={goal.isCourseCompleted ? undefined : onPress}
+      disabled={goal.isCourseCompleted}
+    >
       <View style={styles.goalCardHeader}>
         <View style={styles.goalCardLeft}>
           <View style={styles.goalTypeIcon}>
@@ -250,7 +254,7 @@ const GoalCard: React.FC<{ goal: Goal; onPress: () => void }> = ({ goal, onPress
               {Math.round(goal.successRate)}%
             </Text>
           ) : (
-            <Text style={styles.getAIAnalysisText}>
+            <Text style={[styles.getAIAnalysisText, goal.isCourseCompleted && styles.disabledText]}>
               Get AI Analysis
             </Text>
           )}
@@ -1219,5 +1223,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  disabledGoalCard: {
+    opacity: 0.6,
+    backgroundColor: colors.gray[100],
+  },
+  disabledText: {
+    opacity: 0.5,
+    color: colors.gray[500],
   },
 });

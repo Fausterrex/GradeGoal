@@ -124,15 +124,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         <View style={styles.actionButtons}>
           <TouchableOpacity
             onPress={() => onEdit(goal)}
-            style={styles.actionButton}
+            style={[styles.actionButton, progressData.isCourseCompleted && styles.disabledButton]}
+            disabled={progressData.isCourseCompleted}
           >
-            <Text style={styles.actionButtonText}>✏️</Text>
+            <Text style={[styles.actionButtonText, progressData.isCourseCompleted && styles.disabledButtonText]}>✏️</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelete}
-            style={styles.actionButton}
+            style={[styles.actionButton, progressData.isCourseCompleted && styles.disabledButton]}
+            disabled={progressData.isCourseCompleted}
           >
-            <Text style={styles.actionButtonText}>🗑️</Text>
+            <Text style={[styles.actionButtonText, progressData.isCourseCompleted && styles.disabledButtonText]}>🗑️</Text>
           </TouchableOpacity>
         </View>
 
@@ -530,5 +532,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+  },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: colors.gray[200],
+  },
+  disabledButtonText: {
+    opacity: 0.5,
   },
 });

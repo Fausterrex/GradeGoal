@@ -27,7 +27,8 @@ function AssessmentCard({
   targetGrade,
   categoryName,
   allGrades,
-  allCategories
+  allCategories,
+  isCourseCompleted = false
 }) {
   const [gpa, setGpa] = React.useState("0.00");
   const [scorePrediction, setScorePrediction] = React.useState(null);
@@ -96,42 +97,66 @@ function AssessmentCard({
       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col sm:flex-row gap-1 sm:gap-2">
         {!hasScore ? (
           <button
-            onClick={(e) => {
+            onClick={isCourseCompleted ? undefined : (e) => {
               e.stopPropagation();
               onAssessmentClick(grade);
             }}
-            className="bg-green-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+            disabled={isCourseCompleted}
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl ${
+              isCourseCompleted 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            title="Add Score"
           >
             Add Score
           </button>
         ) : (
           <button
-            onClick={(e) => {
+            onClick={isCourseCompleted ? undefined : (e) => {
               e.stopPropagation();
               onEditScore(grade);
             }}
-            className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+            disabled={isCourseCompleted}
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl ${
+              isCourseCompleted 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            title="Edit Score"
           >
             Edit Score
           </button>
         )}
 
         <button
-          onClick={(e) => {
+          onClick={isCourseCompleted ? undefined : (e) => {
             e.stopPropagation();
             onEditAssessment(grade);
           }}
-          className="bg-gray-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+          disabled={isCourseCompleted}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl ${
+            isCourseCompleted 
+              ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+              : 'bg-gray-600 text-white hover:bg-gray-700'
+          }`}
+          title="Edit"
         >
           Edit
         </button>
 
         <button
-          onClick={(e) => {
+          onClick={isCourseCompleted ? undefined : (e) => {
             e.stopPropagation();
             onDeleteAssessment(grade.id, grade.categoryId);
           }}
-          className="bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl"
+          disabled={isCourseCompleted}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs shadow-lg hover:shadow-xl ${
+            isCourseCompleted 
+              ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+              : 'bg-red-600 text-white hover:bg-red-700'
+          }`}
+          title="Delete"
         >
           Delete
         </button>

@@ -202,6 +202,7 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
           isMidtermCompleted={isMidtermCompleted}
           onMarkMidtermAsDone={handleMarkMidtermAsDone}
           setConfirmationModal={setConfirmationModal}
+          isCourseCompleted={course?.isCompleted}
         />
 
         {/* Assessment Categories */}
@@ -218,6 +219,7 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
           targetGrade={course?.targetGrade}
           activeSemesterTerm={activeSemesterTerm}
           isMidtermCompleted={isMidtermCompleted}
+          isCourseCompleted={course?.isCompleted}
         />
 
         {categories.length === 0 && (

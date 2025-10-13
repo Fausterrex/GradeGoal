@@ -9,7 +9,8 @@ function SemesterTermTabs({
   onTermChange, 
   isMidtermCompleted, 
   colorScheme,
-  setConfirmationModal
+  setConfirmationModal,
+  isCourseCompleted = false
 }) {
   const handleTermChange = (term) => {
     // Only allow switching to final term if midterm is completed
@@ -63,10 +64,10 @@ function SemesterTermTabs({
       </div>
       
       {/* Mark Midterm as Done Button */}
-      {activeTerm === 'MIDTERM' && !isMidtermCompleted && (
+      {activeTerm === 'MIDTERM' && !isMidtermCompleted && !isCourseCompleted && (
         <div className="mt-4 text-center">
           <button
-            onClick={() => {
+            onClick={isCourseCompleted ? undefined : () => {
               setConfirmationModal({
                 isOpen: true,
                 type: "confirm",
@@ -92,7 +93,13 @@ function SemesterTermTabs({
                 onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false })),
               });
             }}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-green-600 hover:border-green-700 cursor-pointer"
+            disabled={isCourseCompleted}
+            className={`px-6 py-3 rounded-lg font-semibold shadow-md transition-all duration-200 border-2 ${
+              isCourseCompleted 
+                ? 'bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700 text-white hover:shadow-lg transform hover:scale-105 border-green-600 hover:border-green-700 cursor-pointer'
+            }`}
+            title="Mark Midterm as Done"
           >
             Mark Midterm as Done
           </button>

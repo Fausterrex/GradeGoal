@@ -230,18 +230,50 @@ const Report = () => {
     totalGoals: 0,
     totalAchievements: 0,
   });
+  const [achievements, setAchievements] = useState([]);
 
+  // Fetch achievements separately
   useEffect(() => {
     if (!currentUser?.userId || loading) return;
 
     axios
-      .get(`http://localhost:8080/api/dashboard/summary?userId=${currentUser.userId}`)
+      .get(`http://localhost:8080/api/user-progress/${currentUser.userId}/recent-achievements`)
       .then((res) => {
-        console.log("Summary Response:", res.data);
-        setSummary(res.data);
+        setAchievements(res.data || []);
       })
-      .catch((err) => console.error("Summary fetch failed:", err));
+      .catch((err) => {
+        console.error("Achievements fetch failed:", err);
+        setAchievements([]);
+      });
   }, [currentUser?.userId, loading]);
+
+  // Calculate summary from filtered courses data instead of separate API call
+  useEffect(() => {
+    if (!courses || courses.length === 0) {
+      setSummary({
+        totalCourses: 0,
+        totalGoals: 0,
+        totalAchievements: achievements.length,
+      });
+      return;
+    }
+
+    // Calculate counts from the filtered courses data
+    let totalGoals = 0;
+
+    courses.forEach(course => {
+      // Count goals for this course
+      if (course.goals && Object.values(course.goals).length > 0) {
+        totalGoals += Object.values(course.goals).length;
+      }
+    });
+
+    setSummary({
+      totalCourses: courses.length,
+      totalGoals: totalGoals,
+      totalAchievements: achievements.length,
+    });
+  }, [courses, achievements]);
 
   return (
     <div className="p-6 relative">

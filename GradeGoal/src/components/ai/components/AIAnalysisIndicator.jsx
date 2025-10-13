@@ -24,7 +24,8 @@ const AIAnalysisIndicator = ({
   currentGrade,
   activeSemesterTerm,
   onAnalysisComplete,
-  courses = [] // Add courses prop for cumulative GPA semester counting
+  courses = [], // Add courses prop for cumulative GPA semester counting
+  isCourseCompleted = false // Add course completion status
 }) => {
   
   const { currentUser } = useAuth();
@@ -329,7 +330,9 @@ const AIAnalysisIndicator = ({
                  }
                </h3>
                <p className="text-sm text-gray-600 mt-1">
-                 {!hasGoal
+                 {isCourseCompleted
+                   ? 'Course has been completed. AI analysis is no longer available.'
+                   : !hasGoal
                    ? 'Set a goal first to enable AI analysis.'
                    : !hasEnoughAssessments 
                      ? targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA'
@@ -348,10 +351,10 @@ const AIAnalysisIndicator = ({
           <div className="flex-shrink-0">
              <button
                onClick={handleAnalysisClick}
-               disabled={isAnalyzing || !hasEnoughAssessments || !hasGoal}
+               disabled={isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted}
                className={`
                  inline-flex items-center px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
-                 ${isAnalyzing || !hasEnoughAssessments || !hasGoal
+                 ${isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted
                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                    : hasExistingAnalysis
                      ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg'
@@ -363,6 +366,11 @@ const AIAnalysisIndicator = ({
                  <>
                    <FaSpinner className="w-4 h-4 mr-2 animate-spin" />
                    Analyzing...
+                 </>
+               ) : isCourseCompleted ? (
+                 <>
+                   <FaRobot className="w-4 h-4 mr-2" />
+                   Course Completed
                  </>
                ) : !hasEnoughAssessments || !hasGoal ? (
                  <>
