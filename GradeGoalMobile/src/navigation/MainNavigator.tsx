@@ -10,14 +10,35 @@ import { SettingsScreen } from '../screens/main/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Tab Icons (you can replace these with actual icons)
-const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => (
-  <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-    <Text style={[styles.tabIconText, focused && styles.tabIconTextFocused]}>
-      {name.charAt(0).toUpperCase()}
-    </Text>
-  </View>
-);
+// Tab Icons with emoji icons
+const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
+  const getIcon = (tabName: string) => {
+    switch (tabName) {
+      case 'Dashboard':
+        return '📊';
+      case 'Courses':
+        return '📚';
+      case 'Goals':
+        return '🎯';
+      case 'Reports':
+        return '📈';
+      case 'Calendar':
+        return '📅';
+      case 'Settings':
+        return '⚙️';
+      default:
+        return '📱';
+    }
+  };
+
+  return (
+    <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+      <Text style={[styles.tabIconText, focused && styles.tabIconTextFocused]}>
+        {getIcon(name)}
+      </Text>
+    </View>
+  );
+};
 
 export const MainNavigator: React.FC = () => {
   return (
@@ -76,22 +97,21 @@ export const MainNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   tabIconFocused: {
-    backgroundColor: '#3B389f',
+    backgroundColor: 'rgba(59, 56, 159, 0.1)',
   },
   tabIconText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666',
+    fontSize: 18,
+    fontWeight: 'normal',
   },
   tabIconTextFocused: {
-    color: '#ffffff',
+    transform: [{ scale: 1.1 }],
   },
 });
