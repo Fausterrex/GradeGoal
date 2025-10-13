@@ -4,7 +4,6 @@ import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Entity.Achievement;
 import com.project.gradegoal.Entity.UserActivityLog;
-import com.project.gradegoal.Entity.UserAchievement;
 import com.project.gradegoal.Repository.UserRepository;
 import com.project.gradegoal.Repository.CourseRepository;
 import com.project.gradegoal.Repository.AcademicGoalRepository;

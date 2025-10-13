@@ -197,6 +197,10 @@ export const colors = {
     medium: 'rgba(0, 0, 0, 0.15)',
     dark: 'rgba(0, 0, 0, 0.25)',
   },
+  
+  // Basic Colors
+  black: '#000000',
+  white: '#ffffff',
 };
 
 export default colors;

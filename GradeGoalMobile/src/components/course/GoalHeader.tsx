@@ -30,7 +30,7 @@ export const GoalHeader: React.FC<GoalHeaderProps> = ({
               onPress={onRefresh}
               style={[styles.button, styles.refreshButton]}
             >
-              <Text style={styles.buttonText}>🔄 Refresh</Text>
+              <Text style={styles.buttonText}>↻ Refresh</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity

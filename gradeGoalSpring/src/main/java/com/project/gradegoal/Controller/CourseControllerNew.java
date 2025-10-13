@@ -3,6 +3,7 @@ package com.project.gradegoal.Controller;
 import com.project.gradegoal.Entity.Course;
 import com.project.gradegoal.Entity.AssessmentCategory;
 import com.project.gradegoal.Entity.User;
+import com.project.gradegoal.Repository.CourseRepository;
 import com.project.gradegoal.Service.CourseService;
 import com.project.gradegoal.Service.AssessmentCategoryService;
 import com.project.gradegoal.Service.UserService;
@@ -21,6 +22,9 @@ public class CourseControllerNew {
 
     @Autowired
     private CourseService courseService;
+
+    @Autowired
+    private CourseRepository courseRepository;
 
     @Autowired
     private AssessmentCategoryService assessmentCategoryService;
@@ -76,7 +80,7 @@ public class CourseControllerNew {
     @GetMapping("/all")
     public ResponseEntity<List<Course>> getAllCourses() {
         try {
-            List<Course> courses = courseService.getAllCourses();
+            List<Course> courses = courseRepository.findAll();
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(null);
@@ -87,7 +91,7 @@ public class CourseControllerNew {
     public ResponseEntity<?> getCourseStatistics() {
         try {
             // Create basic course statistics
-            List<Course> allCourses = courseService.getAllCourses();
+            List<Course> allCourses = courseRepository.findAll();
             long totalCourses = allCourses.size();
             long activeCourses = allCourses.stream()
                 .filter(course -> course.getIsActive() != null && course.getIsActive())
@@ -119,6 +123,7 @@ public class CourseControllerNew {
             Course course = new Course();
 
             if (courseData instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> data = (java.util.Map<String, Object>) courseData;
 
                 Long userId = null;
@@ -270,6 +275,7 @@ public class CourseControllerNew {
             Course existingCourse = existingCourseOpt.get();
 
             if (courseData instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> dataMap = (java.util.Map<String, Object>) courseData;
 
                 if (dataMap.containsKey("name")) {
@@ -418,7 +424,7 @@ public class CourseControllerNew {
     @GetMapping("/ai-ratings")
     public ResponseEntity<List<Course>> getCoursesWithAIRatings() {
         try {
-            List<Course> courses = courseService.getAllCourses();
+            List<Course> courses = courseRepository.findAll();
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
             return ResponseEntity.status(500).build();

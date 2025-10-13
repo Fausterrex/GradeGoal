@@ -393,7 +393,7 @@ function Login() {
                 disabled={loading}
               >
                 <img
-                  src="https://developers.google.com/identity/images/g-logo.png"
+                  src="/src/drawables/googlelogo.png"
                   alt="Google"
                   className="w-6 h-6"
                 />
@@ -408,7 +408,7 @@ function Login() {
                 disabled={loading}
               >
                 <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg"
+                  src="/src/drawables/facebook.png"
                   alt="Facebook"
                   className="w-5 h-5"
                 />

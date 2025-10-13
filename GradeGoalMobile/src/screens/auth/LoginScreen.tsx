@@ -120,22 +120,23 @@ export const LoginScreen: React.FC = () => {
 
               {/* Divider */}
               <View style={styles.dividerContainer}>
-                <View style={commonStyles.divider} />
-                <Text style={commonStyles.dividerText}>or</Text>
-                <View style={commonStyles.divider} />
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
               </View>
 
               {/* Social Login Buttons */}
               <View style={styles.socialButtonsContainer}>
                 {/* Google Login Button */}
                 <TouchableOpacity
-                  style={commonStyles.socialButton}
+                  style={[commonStyles.socialButton, styles.googleButton]}
                   onPress={handleGoogleLogin}
                   disabled={isLoading}
                 >
                   <Image
-                    source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                    source={require('../../../assets/google.png')}
                     style={styles.socialIcon}
+                    resizeMode="contain"
                   />
                 </TouchableOpacity>
 
@@ -146,8 +147,9 @@ export const LoginScreen: React.FC = () => {
                   disabled={isLoading}
                 >
                   <Image
-                    source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg' }}
+                    source={require('../../../assets/facebook.png')}
                     style={styles.socialIcon}
+                    resizeMode="contain"
                   />
                 </TouchableOpacity>
               </View>
@@ -267,7 +269,22 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
+  },
+  
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border.light,
+  },
+  
+  dividerText: {
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: 16,
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
   },
   
   socialButtonsContainer: {
@@ -275,10 +292,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
+    gap: 12,
+  },
+  
+  googleButton: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
   },
   
   facebookButton: {
-    marginLeft: 12,
+    backgroundColor: '#1877F2',
+    borderWidth: 1,
+    borderColor: '#1877F2',
   },
   
   socialIcon: {

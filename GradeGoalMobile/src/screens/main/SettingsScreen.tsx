@@ -17,6 +17,7 @@ import { UserService } from '../../services/userService';
 import { ProfileEditModal } from '../../components/modals/ProfileEditModal';
 import { PasswordChangeModal } from '../../components/modals/PasswordChangeModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
+import { NotificationService } from '../../services/notificationService';
 
 export const SettingsScreen: React.FC = () => {
   const { logout, currentUser } = useAuth();
@@ -26,7 +27,6 @@ export const SettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   
   // Profile data
   const [profileData, setProfileData] = useState({
@@ -55,17 +55,16 @@ export const SettingsScreen: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const user = await UserService.getUserProfile(currentUser.email);
+      const user = await UserService.getUserProfile(currentUser.email) as any;
       
-      setEmailNotificationsEnabled(user.emailNotificationsEnabled ?? true);
-      setPushNotificationsEnabled(user.pushNotificationsEnabled ?? false);
+      setEmailNotificationsEnabled(user?.emailNotificationsEnabled ?? true);
       
       const newProfileData = {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username || '',
-        profilePictureUrl: user.profilePictureUrl || currentUser.photoURL || '',
-        currentYearLevel: user.currentYearLevel || '1',
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        username: user?.username || '',
+        profilePictureUrl: user?.profilePictureUrl || '',
+        currentYearLevel: user?.currentYearLevel || '1',
       };
       
       setProfileData(newProfileData);
@@ -87,9 +86,6 @@ export const SettingsScreen: React.FC = () => {
     setEmailNotificationsEnabled(enabled);
   };
 
-  const handlePushNotificationToggle = (enabled: boolean) => {
-    setPushNotificationsEnabled(enabled);
-  };
 
   const handleSaveSettings = async () => {
     if (!currentUser?.email) return;
@@ -98,7 +94,6 @@ export const SettingsScreen: React.FC = () => {
     try {
       await UserService.updateUserPreferences(currentUser.email, {
         emailNotificationsEnabled,
-        pushNotificationsEnabled,
       });
 
       Alert.alert('Success', 'Settings saved successfully!');
@@ -234,21 +229,29 @@ export const SettingsScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.settingItem}>
-              <View style={styles.settingItemLeft}>
-                <Text style={styles.settingIcon}>📱</Text>
-                <View>
-                  <Text style={styles.settingText}>Push Notifications</Text>
-                  <Text style={styles.settingSubtext}>Receive notifications in app</Text>
+
+            {emailNotificationsEnabled && currentUser?.email && (
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={async () => {
+                  try {
+                    await NotificationService.sendTestEmailNotification(
+                      currentUser.userId,
+                      currentUser.email
+                    );
+                    Alert.alert('Success', 'Test email notification sent!');
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to send test email notification');
+                  }
+                }}
+              >
+                <View style={styles.settingItemLeft}>
+                  <Text style={styles.settingIcon}>📧</Text>
+                  <Text style={styles.settingText}>Test Email Notification</Text>
                 </View>
-              </View>
-              <Switch
-                value={pushNotificationsEnabled}
-                onValueChange={handlePushNotificationToggle}
-                trackColor={{ false: colors.gray[300], true: colors.primary }}
-                thumbColor={pushNotificationsEnabled ? colors.background.primary : colors.gray[100]}
-              />
-            </View>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingItemLeft}>
@@ -310,7 +313,7 @@ export const SettingsScreen: React.FC = () => {
         onConfirm={handleSaveConfirm}
         type="edit"
         title="Save Settings"
-        message="Are you sure you want to save your settings? This will update your notification preferences."
+        message="Are you sure you want to save your settings? This will update your email notification preferences."
         confirmText="Save Changes"
         cancelText="Cancel"
       />

@@ -2,7 +2,6 @@ package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Repository.UserRepository;
-import com.project.gradegoal.Service.LoginStreakService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

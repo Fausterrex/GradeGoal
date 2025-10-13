@@ -11,11 +11,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.HashMap;
-
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -30,8 +27,26 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
         try {
+            // Basic input validation
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is required");
+            }
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password cannot be null or empty");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password is required");
+            }
+            if (request.getPassword().length() < 6) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password must be at least 6 characters");
+            }
+            if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("First name is required");
+            }
+            if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Last name is required");
+            }
+            
+            // Basic email format validation
+            if (!request.getEmail().contains("@") || !request.getEmail().contains(".")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please enter a valid email address");
             }
 
             User createdUser = userService.createUser(
@@ -51,6 +66,22 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody UserLoginRequest request) {
         try {
+            // Basic input validation
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is required");
+            }
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password is required");
+            }
+            if (request.getPassword().length() < 6) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password must be at least 6 characters");
+            }
+            
+            // Basic email format validation
+            if (!request.getEmail().contains("@") || !request.getEmail().contains(".")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please enter a valid email address");
+            }
+
             User user = userService.authenticateUser(request.getEmail(), request.getPassword());
 
             if (user != null) {

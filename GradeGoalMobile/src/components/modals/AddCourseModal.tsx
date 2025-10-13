@@ -56,6 +56,10 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [gpaScaleWarning, setGpaScaleWarning] = useState<string | null>(null);
+  
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [touchedFields, setTouchedFields] = useState<{[key: string]: boolean}>({});
 
   // Generate academic years dynamically (matching web version)
   const generateAcademicYears = () => {
@@ -183,6 +187,15 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
       [field]: value
     }));
 
+    // Mark field as touched
+    setTouchedFields(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Real-time validation
+    validateFieldRealTime(field, value);
+
     // Check GPA scale consistency when GPA scale changes
     if (field === 'gpaScale') {
       checkGpaScaleConsistency(value as string);
@@ -197,6 +210,15 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
         i === index ? { ...category, [field]: value } : category
       )
     }));
+
+    // Validate categories after update
+    setTimeout(() => {
+      const categoryError = validateCategories();
+      setValidationErrors(prev => ({
+        ...prev,
+        categories: categoryError
+      }));
+    }, 100);
   };
 
   const addCategory = () => {
@@ -256,21 +278,115 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
     }));
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      Alert.alert('Validation Error', 'Course name is required');
+  // Validation functions
+  const validateField = (field: string, value: any): string => {
+    switch (field) {
+      case 'name':
+        if (!value || !value.trim()) return 'Course name is required';
+        if (value.trim().length < 3) return 'Course name must be at least 3 characters';
+        if (value.trim().length > 100) return 'Course name must be less than 100 characters';
+        return '';
+      
+      case 'courseCode':
+        if (!value || !value.trim()) return 'Course code is required';
+        if (value.trim().length < 2) return 'Course code must be at least 2 characters';
+        if (value.trim().length > 20) return 'Course code must be less than 20 characters';
+        if (!/^[A-Z0-9\s\-]+$/.test(value.trim())) return 'Course code can only contain letters, numbers, spaces, and hyphens';
+        return '';
+      
+      case 'credits':
+        if (!value || isNaN(value)) return 'Credits must be a valid number';
+        if (value < 1) return 'Credits must be at least 1';
+        if (value > 10) return 'Credits cannot exceed 10';
+        return '';
+      
+      case 'creditHours':
+        if (!value || isNaN(value)) return 'Credit hours must be a valid number';
+        if (value < 1) return 'Credit hours must be at least 1';
+        if (value > 10) return 'Credit hours cannot exceed 10';
+        return '';
+      
+      case 'maxPoints':
+        if (!value || isNaN(value)) return 'Max points must be a valid number';
+        if (value < 1) return 'Max points must be at least 1';
+        if (value > 10000) return 'Max points cannot exceed 10,000';
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  const validateCategories = (): string => {
+    if (formData.categories.length === 0) return 'At least one category is required';
+    
+    let totalWeight = 0;
+    for (let i = 0; i < formData.categories.length; i++) {
+      const category = formData.categories[i];
+      
+      if (!category.name || !category.name.trim()) {
+        return `Category ${i + 1} name is required`;
+      }
+      
+      if (category.weight < 0 || category.weight > 100) {
+        return `Category ${i + 1} weight must be between 0 and 100`;
+      }
+      
+      totalWeight += category.weight;
+    }
+    
+    if (Math.abs(totalWeight - 100) > 0.1) {
+      return `Total category weight must equal 100% (currently ${totalWeight.toFixed(1)}%)`;
+    }
+    
+    return '';
+  };
+
+  const validateForm = (): boolean => {
+    const errors: {[key: string]: string} = {};
+    
+    // Validate individual fields
+    const fieldsToValidate = ['name', 'courseCode', 'credits', 'creditHours', 'maxPoints'];
+    fieldsToValidate.forEach(field => {
+      const error = validateField(field, formData[field as keyof typeof formData]);
+      if (error) errors[field] = error;
+    });
+    
+    // Validate categories
+    const categoryError = validateCategories();
+    if (categoryError) errors['categories'] = categoryError;
+    
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      Alert.alert('Validation Error', firstError);
       return false;
     }
-    if (!formData.courseCode.trim()) {
-      Alert.alert('Validation Error', 'Course code is required');
-      return false;
-    }
-    if (formData.credits < 1 || formData.credits > 10) {
-      Alert.alert('Validation Error', 'Credits must be between 1 and 10');
-      return false;
-    }
+    
     return true;
   };
+
+  const validateFieldRealTime = (field: string, value: any) => {
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({
+      ...prev,
+      [field]: error
+    }));
+  };
+
+  // Helper function to get input styling based on validation state
+  const getInputStyle = (field: string) => {
+    const hasError = validationErrors[field] && touchedFields[field];
+    const hasSuccess = !validationErrors[field] && touchedFields[field] && formData[field as keyof typeof formData];
+    
+    return [
+      styles.input,
+      hasError ? styles.inputError : null,
+      hasSuccess ? styles.inputSuccess : null
+    ].filter(Boolean);
+  };
+
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -384,37 +500,46 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Course Name *</Text>
               <TextInput
-                style={styles.input}
+                style={getInputStyle('name')}
                 value={formData.name}
                 onChangeText={(value) => handleInputChange('name', value)}
                 placeholder="e.g., Data Structures and Algorithms"
                 placeholderTextColor={colors.gray[400]}
               />
+              {validationErrors.name && touchedFields.name && (
+                <Text style={styles.errorText}>{validationErrors.name}</Text>
+              )}
             </View>
 
             {/* Course Code */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Course Code *</Text>
               <TextInput
-                style={styles.input}
+                style={getInputStyle('courseCode')}
                 value={formData.courseCode}
                 onChangeText={(value) => handleInputChange('courseCode', value.toUpperCase())}
                 placeholder="e.g., CS 201"
                 placeholderTextColor={colors.gray[400]}
               />
+              {validationErrors.courseCode && touchedFields.courseCode && (
+                <Text style={styles.errorText}>{validationErrors.courseCode}</Text>
+              )}
             </View>
 
             {/* Credits */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Credits</Text>
+              <Text style={styles.label}>Units</Text>
               <TextInput
-                style={styles.input}
+                style={getInputStyle('credits')}
                 value={formData.credits.toString()}
                 onChangeText={(value) => handleInputChange('credits', parseInt(value) || 3)}
                 placeholder="3"
                 keyboardType="numeric"
                 placeholderTextColor={colors.gray[400]}
               />
+              {validationErrors.credits && touchedFields.credits && (
+                <Text style={styles.errorText}>{validationErrors.credits}</Text>
+              )}
             </View>
 
             {/* Year Level */}
@@ -565,7 +690,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
               {gpaScaleWarning ? (
                 <View style={styles.warningBanner}>
                   <Text style={styles.warningBannerText}>
-                    ⚠️ GPA Scale Inconsistency Warning
+                    ! GPA Scale Inconsistency Warning
                   </Text>
                   <Text style={styles.warningBannerMessage}>
                     {gpaScaleWarning}
@@ -601,8 +726,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
                 {[
                   { value: '3_categories', label: '3 Categories (Assignments, Quizzes, Exam)' },
                   { value: '4_categories', label: '4 Categories (Assignments, Quizzes, Midterm, Final)' },
-                  { value: '5_categories', label: '5 Categories (Assignments, Quizzes, Midterm, Final, Project)' },
-                  { value: 'custom', label: 'Custom Categories' }
+                  { value: '5_categories', label: '5 Categories (Assignments, Quizzes, Midterm, Final, Project)' }
                 ].map((system) => (
                   <TouchableOpacity
                     key={system.value}
@@ -633,12 +757,6 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
               <View style={styles.categoriesHeader}>
                 <Text style={styles.label}>Categories</Text>
                 <View style={styles.categoryActions}>
-                  <TouchableOpacity
-                    style={styles.templateButton}
-                    onPress={() => useTemplate(formData.categorySystem)}
-                  >
-                    <Text style={styles.templateButtonText}>Use Template</Text>
-                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.addCategoryButton}
                     onPress={addCategory}
@@ -674,9 +792,17 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
                 </View>
               ))}
               
-              <Text style={styles.helperText}>
-                Total Weight: {formData.categories.reduce((sum, cat) => sum + cat.weight, 0)}%
-              </Text>
+              <View style={styles.categorySummary}>
+                <Text style={[
+                  styles.helperText,
+                  Math.abs(formData.categories.reduce((sum, cat) => sum + cat.weight, 0) - 100) > 0.1 && styles.helperTextError
+                ]}>
+                  Total Weight: {formData.categories.reduce((sum, cat) => sum + cat.weight, 0)}%
+                </Text>
+                {validationErrors.categories && (
+                  <Text style={styles.errorText}>{validationErrors.categories}</Text>
+                )}
+              </View>
             </View>
 
             {/* Handle Missing Grades */}
@@ -685,8 +811,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
               <View style={styles.pickerContainer}>
                 {[
                   { value: 'exclude', label: 'Exclude from calculation' },
-                  { value: 'zero', label: 'Treat as zero' },
-                  { value: 'average', label: 'Use category average' }
+                  { value: 'zero', label: 'Treat as zero' }
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -759,6 +884,31 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  // Enhanced validation styles
+  inputError: {
+    borderColor: colors.red[500],
+    borderWidth: 2,
+    backgroundColor: colors.red[50],
+  },
+  inputSuccess: {
+    borderColor: colors.green[500],
+    borderWidth: 2,
+    backgroundColor: colors.green[50],
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.red[600],
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  helperTextError: {
+    color: colors.red[600],
+    fontWeight: '600',
+  },
+  categorySummary: {
+    marginTop: 8,
+  },
+  // Enhanced design styles
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
@@ -767,135 +917,180 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
     backgroundColor: colors.background.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   closeButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: colors.gray[100],
   },
   closeButtonText: {
     fontSize: 16,
     color: colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text.primary,
   },
   saveButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonDisabled: {
     backgroundColor: colors.gray[400],
+    shadowOpacity: 0,
+    elevation: 0,
   },
   saveButtonText: {
     fontSize: 16,
     color: colors.text.white,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   content: {
     flex: 1,
   },
   form: {
-    padding: 16,
+    padding: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text.primary,
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border.medium,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
     color: colors.text.primary,
     backgroundColor: colors.background.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   textArea: {
-    height: 80,
+    height: 100,
     textAlignVertical: 'top',
   },
   pickerContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   pickerOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: colors.border.medium,
     backgroundColor: colors.background.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   pickerOptionSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pickerOptionText: {
     fontSize: 14,
     color: colors.text.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   pickerOptionTextSelected: {
     color: colors.text.white,
+    fontWeight: '700',
   },
   helperText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.gray[500],
-    marginTop: 4,
+    marginTop: 6,
     fontStyle: 'italic',
   },
   infoBanner: {
     backgroundColor: colors.green[50],
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 8,
-    borderLeftWidth: 3,
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    borderLeftWidth: 4,
     borderLeftColor: colors.green[400],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   infoBannerText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.green[700],
-    fontWeight: '500',
+    fontWeight: '600',
   },
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    gap: 12,
+    marginTop: 10,
   },
   colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   colorSwatchSelected: {
     borderColor: colors.gray[800],
     borderWidth: 3,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 4,
   },
   colorCheckmark: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 1, height: 1 },
@@ -903,81 +1098,101 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: colors.yellow[50],
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 10,
     borderLeftWidth: 4,
     borderLeftColor: colors.yellow[400],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   warningBannerText: {
     fontSize: 14,
     color: colors.yellow[800],
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   warningBannerMessage: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.yellow[700],
-    lineHeight: 16,
+    lineHeight: 18,
   },
   categoriesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   categoryActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   templateButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1.5,
     borderColor: colors.green[400],
     backgroundColor: colors.background.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   templateButtonText: {
     fontSize: 12,
     color: colors.green[600],
-    fontWeight: '500',
+    fontWeight: '600',
   },
   addCategoryButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addCategoryButtonText: {
     fontSize: 12,
     color: colors.text.white,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   categoryRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: 10,
+    marginBottom: 12,
     alignItems: 'center',
   },
   categoryNameInput: {
     flex: 1,
   },
   categoryWeightInput: {
-    width: 80,
+    width: 90,
   },
   removeCategoryButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: colors.red[50],
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.red[200],
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   removeCategoryButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     color: colors.red[600],
     fontWeight: 'bold',
   },

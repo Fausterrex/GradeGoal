@@ -9,6 +9,7 @@ import {
   Dimensions,
   RefreshControl,
   StatusBar,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +19,12 @@ import { AddCourseModal } from '../modals/AddCourseModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AIPredictionRatingModal } from '../modals/AIPredictionRatingModal';
 import { colors } from '../../styles/colors';
+
+// Import icon images
+const EditIcon = require('../../../assets/edit.png');
+const CheckIcon = require('../../../assets/check.png');
+const ArchiveIcon = require('../../../assets/archive.png');
+const DeleteIcon = require('../../../assets/delete.png');
 
 const { width } = Dimensions.get('window');
 
@@ -97,7 +104,6 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
       setArchivedCourses(archived);
       setCompletedCourses(completed);
     } catch (error) {
-      console.error('Error loading courses:', error);
       Alert.alert('Error', 'Failed to load courses. Please try again.');
     } finally {
       setIsLoading(false);
@@ -149,7 +155,6 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
       setRatingModal({ isOpen: false, courseId: null, courseName: '', isLoading: false });
       Alert.alert('Success', 'Course marked as complete!');
     } catch (error) {
-      console.error('Error completing course:', error);
       Alert.alert('Error', 'Failed to complete course. Please try again.');
     } finally {
       setRatingModal(prev => ({ ...prev, isLoading: false }));
@@ -237,6 +242,8 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
         'Course can be restored from archive anytime',
         'No data loss occurs'
       ],
+      showTip: false,
+      tipMessage: '',
       onConfirm: async () => {
         try {
           await CourseService.archiveCourse(courseId);
@@ -313,8 +320,10 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
         >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={styles.headerSpacer} />
+          <Text style={styles.title}>Course List</Text>
+          <Text style={styles.subtitle}>Manage your academic courses</Text>
+          
+          <View style={styles.addButtonContainer}>
             <TouchableOpacity
               onPress={() => setShowAddCourse(true)}
               style={styles.addButton}
@@ -322,9 +331,6 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
               <Text style={styles.addButtonText}>+ Add Course</Text>
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.title}>Course List</Text>
-          <Text style={styles.subtitle}>Manage your academic courses</Text>
         </View>
 
         {/* Active Courses Section */}
@@ -334,7 +340,9 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
             onPress={() => setShowCourses(!showCourses)}
           >
             <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionIcon}>📚</Text>
+              <View style={styles.sectionIconContainer}>
+                <Text style={styles.sectionIcon}>📖</Text>
+              </View>
               <Text style={styles.sectionTitle}>COURSES</Text>
             </View>
             <View style={styles.sectionHeaderRight}>
@@ -374,7 +382,9 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
             onPress={() => setShowArchived(!showArchived)}
           >
             <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionIcon}>📦</Text>
+              <View style={styles.sectionIconContainer}>
+                <Image source={ArchiveIcon} style={styles.sectionIconImage} />
+              </View>
               <Text style={styles.sectionTitle}>ARCHIVED COURSES</Text>
             </View>
             <View style={styles.sectionHeaderRight}>
@@ -410,7 +420,9 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
             onPress={() => setShowCompleted(!showCompleted)}
           >
             <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionIcon}>✅</Text>
+              <View style={styles.sectionIconContainer}>
+                <Image source={CheckIcon} style={[styles.sectionIconImage, { tintColor: colors.green[500] }]} />
+              </View>
               <Text style={styles.sectionTitle}>COMPLETED COURSES</Text>
             </View>
             <View style={styles.sectionHeaderRight}>
@@ -624,32 +636,32 @@ const CourseCard: React.FC<CourseCardProps> = ({
         <View style={styles.courseActions}>
           {onEdit && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.blue[500] }]} onPress={onEdit}>
-              <Text style={styles.actionButtonText}>✏️</Text>
+              <Image source={EditIcon} style={styles.actionButtonImage} />
             </TouchableOpacity>
           )}
           {onComplete && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.green[500] }]} onPress={onComplete}>
-              <Text style={styles.actionButtonText}>✅</Text>
+              <Image source={CheckIcon} style={styles.actionButtonImage} />
             </TouchableOpacity>
           )}
           {onIncomplete && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.orange[500] }]} onPress={onIncomplete}>
-              <Text style={styles.actionButtonText}>↩️</Text>
+              <Text style={styles.actionButtonText}>↶</Text>
             </TouchableOpacity>
           )}
           {onRestore && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.green[500] }]} onPress={onRestore}>
-              <Text style={styles.actionButtonText}>🔄</Text>
+              <Text style={styles.actionButtonText}>↻</Text>
             </TouchableOpacity>
           )}
           {onArchive && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.gray[500] }]} onPress={onArchive}>
-              <Text style={styles.actionButtonText}>📦</Text>
+              <Image source={ArchiveIcon} style={styles.actionButtonImage} />
             </TouchableOpacity>
           )}
           {onDelete && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.red[500] }]} onPress={onDelete}>
-              <Text style={styles.actionButtonText}>🗑️</Text>
+              <Image source={DeleteIcon} style={styles.actionButtonImage} />
             </TouchableOpacity>
           )}
         </View>
@@ -686,14 +698,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerSpacer: {
-    flex: 1,
+  addButtonContainer: {
+    alignItems: 'flex-end',
+    marginTop: 16,
   },
   addButton: {
     backgroundColor: colors.primary,
@@ -735,9 +742,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sectionIcon: {
-    fontSize: 20,
+  sectionIconContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
+  },
+  sectionIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  sectionIconImage: {
+    width: 16,
+    height: 16,
+    tintColor: colors.text.primary,
   },
   sectionTitle: {
     fontSize: 16,
@@ -848,9 +867,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionButtonImage: {
+    width: 18,
+    height: 18,
+    tintColor: colors.text.white,
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text.white,
   },
   filtersContainer: {
     paddingHorizontal: 16,

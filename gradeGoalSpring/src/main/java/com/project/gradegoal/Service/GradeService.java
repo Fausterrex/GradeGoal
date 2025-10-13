@@ -10,7 +10,6 @@ import com.project.gradegoal.Repository.AssessmentRepository;
 import com.project.gradegoal.Repository.AssessmentCategoryRepository;
 import com.project.gradegoal.Repository.CourseRepository;
 import com.project.gradegoal.Repository.UserRepository;
-import com.project.gradegoal.Service.DatabaseCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +33,6 @@ public class GradeService {
 
     @Autowired
     private AssessmentService assessmentService;
-    
-    
-    @Autowired
-    private DatabaseCalculationService databaseCalculationService;
     
     @Autowired
     private EmailNotificationService emailNotificationService;
@@ -121,8 +116,6 @@ public class GradeService {
             String notes = getMapValue(gradeData, "note", String.class);
             Boolean isExtraCredit = getMapValue(gradeData, "isExtraCredit", Boolean.class);
             Double extraCreditPoints = getMapValue(gradeData, "extraCreditPoints", Double.class);
-            Long categoryId = getMapValue(gradeData, "categoryId", Long.class);
-
 
             if (score != null) {
                 existingGrade.setPointsEarned(BigDecimal.valueOf(score));
@@ -303,7 +296,6 @@ public class GradeService {
             String name = getMapValue(assessmentData, "name", String.class);
             Double maxScore = getMapValue(assessmentData, "maxScore", Double.class);
             Long categoryId = getMapValue(assessmentData, "categoryId", Long.class);
-            String assessmentType = getMapValue(assessmentData, "assessmentType", String.class);
             String date = getMapValue(assessmentData, "date", String.class);
             String semesterTerm = getMapValue(assessmentData, "semesterTerm", String.class);
 
@@ -408,10 +400,6 @@ public class GradeService {
         }
     }
 
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
 
     private Assessment.AssessmentStatus determineAssessmentStatus(LocalDate dueDate, boolean hasScore) {
 
@@ -434,51 +422,7 @@ public class GradeService {
         }
     }
     
-    // Helper methods to get userId and courseId from assessmentId
-    private Long getUserIdFromAssessment(Long assessmentId) {
-        try {
-            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
-            if (assessmentOpt.isPresent()) {
-                Assessment assessment = assessmentOpt.get();
-                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
-                if (categoryOpt.isPresent()) {
-                    // We need to get userId from course table
-                    return getUserIdFromCourse(categoryOpt.get().getCourseId());
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting userId from assessment: " + e.getMessage());
-        }
-        return null;
-    }
     
-    private Long getCourseIdFromAssessment(Long assessmentId) {
-        try {
-            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
-            if (assessmentOpt.isPresent()) {
-                Assessment assessment = assessmentOpt.get();
-                Optional<AssessmentCategory> categoryOpt = assessmentCategoryRepository.findById(assessment.getCategoryId());
-                if (categoryOpt.isPresent()) {
-                    return categoryOpt.get().getCourseId();
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting courseId from assessment: " + e.getMessage());
-        }
-        return null;
-    }
-    
-    private Long getUserIdFromCourse(Long courseId) {
-        try {
-            Optional<Course> courseOpt = courseRepository.findById(courseId);
-            if (courseOpt.isPresent()) {
-                return courseOpt.get().getUserId();
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting userId from course: " + e.getMessage());
-        }
-        return null;
-    }
     
     /**
      * Send email and push notifications when an assessment is created

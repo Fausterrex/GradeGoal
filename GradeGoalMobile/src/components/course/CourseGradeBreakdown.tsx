@@ -33,9 +33,8 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
            grade.score !== null && 
            grade.score !== undefined && 
            grade.maxScore && 
-           grade.maxScore > 0 &&
-           grade.score > 0; // Exclude grades with 0% scores
-    
+           grade.maxScore > 0;
+           // Note: Include grades with 0% scores to match web version behavior
     
     return isValid;
   };
@@ -56,6 +55,18 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
     return calculateAssessmentPercentage(grade.score, grade.maxScore);
   };
 
+  // Convert percentage to GPA using the same scale as database CalculateGPA function
+  const convertPercentageToGPA = (percentage: number): number => {
+    if (percentage >= 95.5) return 4.0;
+    if (percentage >= 89.5) return 3.5;
+    if (percentage >= 83.5) return 3.0;
+    if (percentage >= 77.5) return 2.5;
+    if (percentage >= 71.5) return 2.0;
+    if (percentage >= 65.5) return 1.5;
+    if (percentage >= 59.5) return 1.0;
+    return 0.0; // Below 59.5% = 0.0 GPA
+  };
+
   // Convert grades array to object structure (matching web version)
   const gradesByCategory = (() => {
     const gradesObj: any = {};
@@ -71,6 +82,109 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
     }
     return gradesObj;
   })();
+
+  // Calculate likelihood analysis (matching web version logic)
+  const calculateLikelihoodAnalysis = () => {
+    // Handle targetGrade conversion - it might be a string like 'R', '1.00', etc.
+    let targetGPA = null;
+    if (targetGrade) {
+      if (typeof targetGrade === 'string') {
+        // If it's already a GPA string (like 'R', '1.00', '2.50'), use it directly
+        if (targetGrade === 'R') {
+          targetGPA = 0; // R grade = 0 GPA
+        } else {
+          targetGPA = parseFloat(targetGrade);
+        }
+      } else if (typeof targetGrade === 'number') {
+        // If it's a number, convert from percentage to GPA (assuming 4.0 scale)
+        targetGPA = targetGrade / 25;
+      }
+    }
+    
+    // Get current GPA
+    const currentGPA = (() => {
+      const gpa = course?.courseGpa || currentGrade;
+      if (typeof gpa === 'string' && gpa === 'R') {
+        return 0; // R grade = 0 GPA
+      } else {
+        return parseFloat(gpa) || 0;
+      }
+    })();
+
+    if (!targetGPA) {
+      return {
+        likelihood: 0,
+        status: 'No Goal Set',
+        description: 'Set a target GPA to calculate achievement likelihood',
+        metrics: {
+          currentGPA,
+          targetGPA: 0,
+          gpaGap: 0,
+          completionRate: 0,
+          remainingAssessments: 0,
+          totalAssessments: 0
+        }
+      };
+    }
+
+    // Calculate completion rate
+    let totalAssessments = 0;
+    let completedAssessments = 0;
+    categories.forEach(category => {
+      const categoryGrades = gradesByCategory[category.id] || [];
+      totalAssessments += categoryGrades.length;
+      completedAssessments += categoryGrades.filter((grade: any) => hasValidScore(grade)).length;
+    });
+
+    const completionRate = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
+    const remainingAssessments = totalAssessments - completedAssessments;
+    const gpaGap = targetGPA - currentGPA;
+
+    // Calculate likelihood based on current progress and gap (matching web version logic)
+    let likelihood = 50; // Default
+    let status = 'Unknown';
+    let description = 'Goal achievement analysis in progress';
+
+    if (currentGPA >= targetGPA) {
+      likelihood = 100;
+      status = 'Achieved';
+      description = 'Goal already achieved!';
+    } else if (completionRate >= 100) {
+      likelihood = 0;
+      status = 'Not Achievable';
+      description = 'Course completed but goal not reached';
+    } else if (gpaGap <= 0.5 && completionRate >= 75) {
+      likelihood = 85;
+      status = 'Very Likely';
+      description = 'Strong progress toward goal';
+    } else if (gpaGap <= 1.0 && completionRate >= 50) {
+      likelihood = 65;
+      status = 'Likely';
+      description = 'Good progress toward goal';
+    } else if (gpaGap <= 2.0 && completionRate >= 25) {
+      likelihood = 40;
+      status = 'Possible';
+      description = 'Challenging but achievable';
+    } else {
+      likelihood = 20;
+      status = 'Unlikely';
+      description = 'Very challenging to achieve goal';
+    }
+
+    return {
+      likelihood,
+      status,
+      description,
+      metrics: {
+        currentGPA,
+        targetGPA,
+        gpaGap,
+        completionRate,
+        remainingAssessments,
+        totalAssessments
+      }
+    };
+  };
 
   const calculateCategoryStats = () => {
     if (!categories || !Array.isArray(categories)) {
@@ -105,7 +219,9 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
       }
       
       const contribution = average !== null && weight ? (average * weight) / 100 : 0;
-      const gpa = average !== null ? (average >= 97 ? 4.0 : average >= 93 ? 3.7 : average >= 90 ? 3.3 : average >= 87 ? 3.0 : average >= 83 ? 2.7 : average >= 80 ? 2.3 : average >= 77 ? 2.0 : average >= 73 ? 1.7 : average >= 70 ? 1.3 : average >= 67 ? 1.0 : average >= 63 ? 0.7 : average >= 60 ? 0.3 : 0.0) : 0;
+      
+      // Use database GPA conversion function instead of custom scale
+      const gpa = average !== null ? convertPercentageToGPA(average) : 0;
       
       return {
         id: category.id,
@@ -203,7 +319,16 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
             <Text style={styles.overallLabel}>Weighted Average</Text>
           </View>
           <View style={[styles.overallCard, { backgroundColor: colors.purple?.[100] || '#FCE7F3' }]}>
-            <Text style={styles.overallValue}>2.00</Text>
+            <Text style={styles.overallValue}>
+              {(() => {
+                const gpa = course?.courseGpa || currentGrade;
+                console.log('🔍 [DEBUG] CourseGradeBreakdown - course?.courseGpa:', course?.courseGpa);
+                console.log('🔍 [DEBUG] CourseGradeBreakdown - currentGrade:', currentGrade);
+                console.log('🔍 [DEBUG] CourseGradeBreakdown - final gpa value:', gpa);
+                if (typeof gpa === 'string' && gpa === 'R') return 'R';
+                return parseFloat(gpa).toFixed(2);
+              })()}
+            </Text>
             <Text style={styles.overallLabel}>
               ({totalContribution !== null && totalContribution !== undefined ? totalContribution.toFixed(2) : '0.00'}%)
             </Text>
@@ -228,7 +353,7 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
             <Text style={styles.termWeight}>(50% of total weight)</Text>
             <Text style={styles.termName}>Midterm</Text>
             <View style={styles.termStatus}>
-              <Text style={styles.termStatusIcon}>✅</Text>
+              <Text style={styles.termStatusIcon}>✓</Text>
               <Text style={styles.termStatusText}>Completed</Text>
             </View>
           </View>
@@ -246,28 +371,65 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
         </View>
       </View>
 
-      {/* Calculation Verification */}
-      <View style={[styles.calculationSection, { backgroundColor: colors.yellow?.[100] || '#FEF3C7' }]}>
-        <Text style={styles.calculationText}>
-          Midterm: {midtermData.contribution !== null && midtermData.contribution !== undefined ? midtermData.contribution.toFixed(2) : '0.00'}% + Final Term: {finalTermData.contribution !== null && finalTermData.contribution !== undefined ? finalTermData.contribution.toFixed(2) : '0.00'}% = {totalContribution !== null && totalContribution !== undefined ? totalContribution.toFixed(2) : '0.00'}%
-        </Text>
-        <Text style={styles.calculationText}>
-          Weighted Average: {totalContribution !== null && totalContribution !== undefined ? totalContribution.toFixed(2) : '0.00'}%
-        </Text>
-        <Text style={styles.calculationText}>Difference: 0.00%</Text>
-      </View>
 
       {/* Goal Achievement Likelihood */}
-      <View style={styles.goalSection}>
-        <Text style={styles.sectionTitle}>Goal Achievement Likelihood</Text>
-        <Text style={styles.goalSubtitle}>Challenging but achievable</Text>
-        <View style={styles.goalProgress}>
-          <View style={[styles.goalCircle, { borderColor: colors.orange?.[500] || '#F97316' }]}>
-            <Text style={styles.goalPercentage}>40%</Text>
-            <Text style={styles.goalLabel}>Possible</Text>
+      {(() => {
+        const likelihoodAnalysis = calculateLikelihoodAnalysis();
+        const getStatusColor = (likelihood: number) => {
+          if (likelihood >= 80) return colors.green?.[500] || '#22C55E';
+          if (likelihood >= 60) return colors.blue?.[500] || '#3B82F6';
+          if (likelihood >= 40) return colors.orange?.[500] || '#F97316';
+          return colors.red?.[500] || '#EF4444';
+        };
+        
+        return (
+          <View style={styles.goalSection}>
+            <Text style={styles.sectionTitle}>Goal Achievement Likelihood</Text>
+            <Text style={styles.goalSubtitle}>{likelihoodAnalysis.description}</Text>
+            <View style={styles.goalProgress}>
+              <View style={[styles.goalCircle, { borderColor: getStatusColor(likelihoodAnalysis.likelihood) }]}>
+                <Text style={styles.goalPercentage}>{likelihoodAnalysis.likelihood}%</Text>
+                <Text style={styles.goalLabel}>{likelihoodAnalysis.status}</Text>
+              </View>
+            </View>
+        
+        {/* Key Metrics - Same as web version */}
+        <View style={styles.keyMetricsContainer}>
+          <View style={[styles.keyMetricCard, { backgroundColor: colors.blue?.[200] || '#DBEAFE', borderColor: colors.blue?.[500] || '#3B82F6' }]}>
+            <Text style={styles.keyMetricIcon}>📈</Text>
+            <Text style={styles.keyMetricTitle}>Current GPA</Text>
+            <Text style={styles.keyMetricValue}>
+              {typeof likelihoodAnalysis.metrics.currentGPA === 'string' ? likelihoodAnalysis.metrics.currentGPA : likelihoodAnalysis.metrics.currentGPA.toFixed(2)}
+            </Text>
+          </View>
+          
+          <View style={[styles.keyMetricCard, { backgroundColor: colors.green?.[200] || '#DCFCE7', borderColor: colors.green?.[500] || '#22C55E' }]}>
+            <Text style={styles.keyMetricIcon}>🎯</Text>
+            <Text style={styles.keyMetricTitle}>Target GPA</Text>
+            <Text style={styles.keyMetricValue}>
+              {typeof likelihoodAnalysis.metrics.targetGPA === 'string' ? likelihoodAnalysis.metrics.targetGPA : likelihoodAnalysis.metrics.targetGPA.toFixed(2)}
+            </Text>
+          </View>
+          
+          <View style={[styles.keyMetricCard, { backgroundColor: colors.orange?.[200] || '#FED7AA', borderColor: colors.orange?.[500] || '#F97316' }]}>
+            <Text style={styles.keyMetricIcon}>📊</Text>
+            <Text style={styles.keyMetricTitle}>Gap to Close</Text>
+            <Text style={styles.keyMetricValue}>
+              {Math.abs(typeof likelihoodAnalysis.metrics.gpaGap === 'string' ? parseFloat(likelihoodAnalysis.metrics.gpaGap) : likelihoodAnalysis.metrics.gpaGap).toFixed(2)}
+            </Text>
+          </View>
+          
+          <View style={[styles.keyMetricCard, { backgroundColor: colors.purple?.[200] || '#E9D5FF', borderColor: colors.purple?.[500] || '#8B5CF6' }]}>
+            <Text style={styles.keyMetricIcon}>✔️</Text>
+            <Text style={styles.keyMetricTitle}>Completion</Text>
+            <Text style={styles.keyMetricValue}>
+              {typeof likelihoodAnalysis.metrics.completionRate === 'string' ? likelihoodAnalysis.metrics.completionRate : likelihoodAnalysis.metrics.completionRate.toFixed(0)}%
+            </Text>
           </View>
         </View>
       </View>
+        );
+      })()}
 
       {/* Category Breakdown */}
         {categoryStats && categoryStats.length > 0 && (
@@ -438,17 +600,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
   },
-  calculationSection: {
-    backgroundColor: colors.yellow[100],
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  calculationText: {
-    fontSize: 12,
-    color: colors.text.primary,
-    marginBottom: 2,
-  },
   goalSection: {
     marginBottom: 16,
   },
@@ -478,6 +629,47 @@ const styles = StyleSheet.create({
   goalLabel: {
     fontSize: 10,
     color: colors.text.secondary,
+  },
+  keyMetricsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 8,
+  },
+  keyMetricCard: {
+    flex: 1,
+    minWidth: '48%',
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  keyMetricIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  keyMetricTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  keyMetricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text.primary,
+    textAlign: 'center',
   },
   categoriesSection: {
     gap: 16,

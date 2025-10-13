@@ -5,10 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { calculateGoalProgress, getProgressStatusInfo, getProgressBarColor } from '../../utils/goalProgress';
 import { getGoalTypeLabel, getPriorityColors, getCourseName, formatGoalDate, getGoalTypeIcon, getGoalTypeColors } from '../../utils/goalUtils';
+
+// Import icon images
+const EditIcon = require('../../../assets/edit.png');
+const DeleteIcon = require('../../../assets/delete.png');
 
 interface GoalCardProps {
   goal: any;
@@ -127,14 +132,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             style={[styles.actionButton, progressData.isCourseCompleted && styles.disabledButton]}
             disabled={progressData.isCourseCompleted}
           >
-            <Text style={[styles.actionButtonText, progressData.isCourseCompleted && styles.disabledButtonText]}>✏️</Text>
+            <Image source={EditIcon} style={[styles.actionButtonImage, progressData.isCourseCompleted && styles.disabledButtonImage]} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelete}
             style={[styles.actionButton, progressData.isCourseCompleted && styles.disabledButton]}
             disabled={progressData.isCourseCompleted}
           >
-            <Text style={[styles.actionButtonText, progressData.isCourseCompleted && styles.disabledButtonText]}>🗑️</Text>
+            <Image source={DeleteIcon} style={[styles.actionButtonImage, progressData.isCourseCompleted && styles.disabledButtonImage]} />
           </TouchableOpacity>
         </View>
 
@@ -243,7 +248,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               }
             ]}>
               <Text style={styles.statusIcon}>
-                {progressData.isAchieved ? '✅' : progressData.isOnTrack ? '📈' : '⚠️'}
+                {progressData.isAchieved ? '✓' : progressData.isOnTrack ? '↑' : '!'}
               </Text>
               <Text style={[
                 styles.statusText,
@@ -353,6 +358,14 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  actionButtonImage: {
+    width: 18,
+    height: 18,
+    tintColor: 'white',
+  },
+  disabledButtonImage: {
+    tintColor: 'rgba(255, 255, 255, 0.5)',
   },
   actionButtonText: {
     fontSize: 16,

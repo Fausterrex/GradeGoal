@@ -115,7 +115,7 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
           title="Overdue"
           value={metrics.overdueAssessments.length}
           subtitle="Past due assessments"
-          icon="⚠️"
+          icon="!"
           urgent={metrics.overdueAssessments.length > 0}
         />
 
@@ -124,7 +124,7 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
           title="Recent"
           value={metrics.recentCompletions.length}
           subtitle="Completed this week"
-          icon="✅"
+          icon="✓"
         />
       </View>
 
@@ -153,19 +153,19 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
         
         <View style={styles.performanceMetrics}>
           <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>✅</Text>
+            <Text style={styles.performanceIcon}>✓</Text>
             <Text style={styles.performanceValue}>{statistics.change || 77.78}%</Text>
             <Text style={styles.performanceLabel}>Change</Text>
           </View>
           
           <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>ℹ️</Text>
+            <Text style={styles.performanceIcon}>i</Text>
             <Text style={styles.performanceValue}>GPA improved by {statistics.change || 77.78}%</Text>
             <Text style={styles.performanceLabel}>Trend Analysis</Text>
           </View>
           
           <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>✅</Text>
+            <Text style={styles.performanceIcon}>✓</Text>
             <Text style={styles.performanceValue}>{statistics.confidence || 'High'}</Text>
             <Text style={styles.performanceLabel}>Confidence</Text>
           </View>

@@ -42,6 +42,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
+                // Allow public access to registration and login
+                .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                // Allow public access to health check endpoints
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // Allow all API endpoints for now (since you're using Firebase Auth)
+                .requestMatchers("/api/**").permitAll()
+                // Allow all other requests (static resources, etc.)
                 .anyRequest().permitAll()
             )
             .httpBasic(httpBasic -> httpBasic.disable())

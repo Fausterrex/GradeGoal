@@ -37,9 +37,6 @@ public class AchievementService {
     private AcademicGoalRepository academicGoalRepository;
     
     @Autowired
-    private UserActivityLogRepository userActivityLogRepository;
-    
-    @Autowired
     private NotificationService notificationService;
     
     @Autowired

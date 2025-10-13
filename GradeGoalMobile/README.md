@@ -11,8 +11,7 @@ Before running this app, make sure you have the following installed:
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
 - **Expo CLI**: `npm install -g @expo/cli`
-- **Android Studio** (for Android development)
-- **Xcode** (for iOS development, macOS only)
+- **Expo Go app** on your mobile device (Android/iOS)
 
 ### Installation
 
@@ -49,23 +48,13 @@ Before running this app, make sure you have the following installed:
 
 ### Android
 
-1. **Using Android Emulator**
-   ```bash
-   npm run android
-   ```
-
-2. **Using Physical Device**
+1. **Using Physical Device**
    - Install Expo Go app from Play Store
    - Scan QR code from terminal/browser
 
 ### iOS
 
-1. **Using iOS Simulator** (macOS only)
-   ```bash
-   npm run ios
-   ```
-
-2. **Using Physical Device**
+1. **Using Physical Device**
    - Install Expo Go app from App Store
    - Scan QR code from terminal/browser
 
@@ -132,9 +121,8 @@ src/
 ### Available Scripts
 
 - `npm start` - Start Expo development server
-- `npm run android` - Run on Android emulator/device
-- `npm run ios` - Run on iOS simulator/device
 - `npm run web` - Run on web browser
+- `npm run clear` - Start Expo with cleared cache
 
 ### Code Style
 
@@ -151,22 +139,7 @@ This project uses:
 
 ## 📦 Building for Production
 
-### Android APK
-
-```bash
-# Build development APK
-expo build:android
-
-# Build production APK
-expo build:android --type apk
-```
-
-### iOS IPA
-
-```bash
-# Build for iOS
-expo build:ios
-```
+This app is configured to run with Expo Go. For production builds, you would need to configure EAS Build or eject to a bare React Native project.
 
 ## 🚨 Troubleshooting
 
@@ -177,13 +150,9 @@ expo build:ios
    npx expo start --clear
    ```
 
-2. **Android build issues**
-   - Make sure Android Studio and SDK are properly installed
-   - Check `ANDROID_HOME` environment variable
-
-3. **iOS build issues**
-   - Make sure Xcode is installed (macOS only)
-   - Check iOS simulator is available
+2. **Expo Go issues**
+   - Make sure you have the latest version of Expo Go installed
+   - Try clearing the cache with `npm run clear`
 
 4. **API connection issues**
    - Verify backend server is running

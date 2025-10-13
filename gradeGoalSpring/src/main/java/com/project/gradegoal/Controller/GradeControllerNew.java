@@ -62,6 +62,7 @@ public class GradeControllerNew {
     private boolean hasField(Object obj, String fieldName) {
         try {
             if (obj instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> map = (java.util.Map<String, Object>) obj;
                 return map.containsKey(fieldName);
             } else {
@@ -88,10 +89,9 @@ public class GradeControllerNew {
                 Grade updatedGrade = gradeService.updateGradeFromFrontend(gradeId, gradeData);
                 return ResponseEntity.ok(updatedGrade);
             } else {
-
-                Grade grade = (Grade) gradeData;
-                grade.setGradeId(gradeId);
-                Grade updatedGrade = gradeService.updateGrade(grade);
+                // Handle the case where gradeData is a LinkedHashMap (JSON object)
+                // Convert it to a proper Grade object using the service method
+                Grade updatedGrade = gradeService.updateGradeFromFrontend(gradeId, gradeData);
                 return ResponseEntity.ok(updatedGrade);
             }
         } catch (Exception e) {

@@ -17,7 +17,7 @@ interface EditScoreModalProps {
   visible: boolean;
   onClose: () => void;
   grade?: any;
-  onScoreUpdated: () => void;
+  onScoreUpdated?: () => void;
 }
 
 export const EditScoreModal: React.FC<EditScoreModalProps> = ({
@@ -31,17 +31,25 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
     maxScore: '',
     date: '',
     notes: '',
+    extraCredit: false,
+    extraCreditPoints: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
     if (visible && grade) {
+      const dateValue = grade.date ? new Date(grade.date) : new Date();
       setFormData({
         score: grade.score?.toString() || '',
         maxScore: grade.maxScore?.toString() || '100',
         date: grade.date ? grade.date.split('T')[0] : new Date().toISOString().split('T')[0],
         notes: grade.notes || '',
+        extraCredit: grade.extraCredit || false,
+        extraCreditPoints: grade.extraCreditPoints?.toString() || '',
       });
+      setSelectedDate(dateValue);
     }
   }, [visible, grade]);
 
@@ -50,6 +58,26 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleExtraCreditToggle = () => {
+    setFormData(prev => ({
+      ...prev,
+      extraCredit: !prev.extraCredit,
+      extraCreditPoints: !prev.extraCredit ? '' : prev.extraCreditPoints,
+    }));
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setFormData(prev => ({
+        ...prev,
+        date: dateString,
+      }));
+    }
   };
 
   const validateForm = () => {
@@ -93,19 +121,42 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
         maxScore: parseFloat(formData.maxScore),
         date: formData.date,
         notes: formData.notes.trim(),
+        extraCredit: formData.extraCredit,
+        extraCreditPoints: formData.extraCredit ? parseFloat(formData.extraCreditPoints) || 0 : 0,
       };
+
+      console.log('🔄 [DEBUG] EditScoreModal - Submitting grade update:', {
+        gradeId: grade.id,
+        gradeData,
+        originalGrade: grade
+      });
 
       await GradeService.updateGrade(grade.id, gradeData);
       
+      console.log('✅ [DEBUG] EditScoreModal - Grade updated successfully');
       Alert.alert('Success', 'Score updated successfully!');
-      onScoreUpdated();
+      if (onScoreUpdated && typeof onScoreUpdated === 'function') {
+        onScoreUpdated();
+      }
       onClose();
     } catch (error: any) {
-      console.error('Error updating score:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to update score. Please try again.'
-      );
+      console.error('❌ [DEBUG] EditScoreModal - Error updating score:', error);
+      console.error('❌ [DEBUG] EditScoreModal - Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      
+      let errorMessage = 'Failed to update score. Please try again.';
+      
+      if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+        errorMessage = 'Network error: Please check your internet connection and ensure the backend server is running.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -147,14 +198,23 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      transparent={true}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <TouchableOpacity 
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
       >
+        <TouchableOpacity 
+          style={styles.container}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Cancel</Text>
@@ -166,27 +226,27 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
             disabled={isLoading}
           >
             <Text style={styles.saveButtonText}>
-              {isLoading ? 'Updating...' : 'Update'}
+              {isLoading ? 'Updating...' : 'Update Score'}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          {/* Grade Info */}
+          {/* Assessment Info - Like Web Version */}
           {grade && (
-            <View style={styles.gradeInfo}>
-              <Text style={styles.gradeLabel}>
-                {grade.assessmentName || grade.assessment?.name || 'Score'}
+            <View style={styles.assessmentInfo}>
+              <Text style={styles.assessmentName}>
+                {grade.assessmentName || grade.assessment?.name || 'Assessment'}
               </Text>
-              {grade.assessment?.description && (
-                <Text style={styles.gradeDescription}>{grade.assessment.description}</Text>
-              )}
+              <Text style={styles.maxScoreText}>
+                Maximum Score: {grade.maxScore || formData.maxScore}
+              </Text>
             </View>
           )}
 
-          {/* Score Input */}
+          {/* Score Obtained - Like Web Version */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Score *</Text>
+            <Text style={styles.label}>Score Obtained</Text>
             <TextInput
               style={styles.input}
               value={formData.score}
@@ -197,74 +257,79 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
             />
           </View>
 
-          {/* Max Score Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Max Score *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.maxScore}
-              onChangeText={(value) => handleInputChange('maxScore', value)}
-              placeholder="Enter max score"
-              keyboardType="numeric"
-              placeholderTextColor={colors.gray[400]}
-            />
-          </View>
+          {/* Extra Credit Section - Like Web Version */}
+          <View style={styles.extraCreditSection}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={handleExtraCreditToggle}
+            >
+              <View style={[styles.checkbox, formData.extraCredit && styles.checkboxChecked]}>
+                {formData.extraCredit && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Extra Credit</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.extraCreditDescription}>
+              Check this if this score includes extra credit points
+            </Text>
 
-          {/* Date Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Date *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.date}
-              onChangeText={(value) => handleInputChange('date', value)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.gray[400]}
-            />
+            {formData.extraCredit && (
+              <>
+                <Text style={styles.label}>Extra Credit Points</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.extraCreditPoints}
+                  onChangeText={(value) => handleInputChange('extraCreditPoints', value)}
+                  placeholder="Enter extra credit points"
+                  keyboardType="numeric"
+                  placeholderTextColor={colors.gray[400]}
+                />
+                <Text style={styles.extraCreditHelpText}>
+                  Enter the number of extra credit points to add to your score
+                </Text>
+              </>
+            )}
           </View>
-
-          {/* Notes Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={formData.notes}
-              onChangeText={(value) => handleInputChange('notes', value)}
-              placeholder="Add any notes about this score..."
-              placeholderTextColor={colors.gray[400]}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </View>
-
-          {/* Delete Button */}
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDelete}
-            disabled={isLoading}
-          >
-            <Text style={styles.deleteButtonText}>Delete Score</Text>
-          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  container: {
     backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: colors.green[500] || '#22C55E',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   closeButton: {
     paddingVertical: 8,
@@ -272,16 +337,16 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 16,
-    color: colors.text.secondary,
+    color: colors.text.white,
     fontWeight: '500',
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text.primary,
+    color: colors.text.white,
   },
   saveButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.green[600] || '#16A34A',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -295,24 +360,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   content: {
-    flex: 1,
-    padding: 16,
+    padding: 20,
   },
-  gradeInfo: {
-    backgroundColor: colors.background.secondary,
-    padding: 12,
-    borderRadius: 8,
+  assessmentInfo: {
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.border.light,
   },
-  gradeLabel: {
-    fontSize: 16,
+  assessmentName: {
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text.primary,
     marginBottom: 4,
   },
-  gradeDescription: {
+  maxScoreText: {
     fontSize: 14,
     color: colors.text.secondary,
   },
@@ -338,6 +397,94 @@ const styles = StyleSheet.create({
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  dateInput: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  dateIcon: {
+    fontSize: 16,
+  },
+  datePickerContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text.primary,
+    marginBottom: 8,
+  },
+  datePickerButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  datePickerButtonText: {
+    fontSize: 14,
+    color: colors.text.white,
+    fontWeight: '500',
+  },
+  extraCreditSection: {
+    marginTop: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.blue[500] || '#3B82F6',
+    borderRadius: 4,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.blue[500] || '#3B82F6',
+  },
+  checkmark: {
+    color: colors.text.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text.primary,
+  },
+  extraCreditDescription: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  extraCreditHelpText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   deleteButton: {
     backgroundColor: colors.red[50],

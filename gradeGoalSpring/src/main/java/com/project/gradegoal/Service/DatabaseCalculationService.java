@@ -1,10 +1,8 @@
 package com.project.gradegoal.Service;
 
 import com.project.gradegoal.Entity.Course;
-import com.project.gradegoal.Entity.Grade;
 import com.project.gradegoal.Entity.UserProgress;
 import com.project.gradegoal.Repository.CourseRepository;
-import com.project.gradegoal.Repository.GradeRepository;
 import com.project.gradegoal.Repository.UserProgressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,9 +13,7 @@ import jakarta.persistence.PersistenceContext;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -29,9 +25,6 @@ public class DatabaseCalculationService {
 
     @Autowired
     private CourseRepository courseRepository;
-
-    @Autowired
-    private GradeRepository gradeRepository;
 
     @Autowired
     private UserProgressRepository userProgressRepository;
@@ -300,6 +293,7 @@ public class DatabaseCalculationService {
                               "INNER JOIN assessments a ON ac.category_id = a.category_id " +
                               "WHERE a.assessment_id = ?";
             
+            @SuppressWarnings("unchecked")
             List<Object> userResult = entityManager.createNativeQuery(userQuery)
                 .setParameter(1, assessmentId)
                 .getResultList();
@@ -312,6 +306,7 @@ public class DatabaseCalculationService {
             
             // Check if a grade already exists for this assessment
             String checkQuery = "SELECT grade_id FROM grades WHERE assessment_id = ?";
+            @SuppressWarnings("unchecked")
             List<Object> existingGrade = entityManager.createNativeQuery(checkQuery)
                 .setParameter(1, assessmentId)
                 .getResultList();

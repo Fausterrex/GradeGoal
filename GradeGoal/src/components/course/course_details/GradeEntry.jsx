@@ -115,6 +115,11 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const [userProgress, setUserProgress] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);
   const [courseGrade, setCourseGrade] = useState(0);
+  
+  // Debug logging for courseGrade changes
+  useEffect(() => {
+    console.log('🔍 [DEBUG] courseGrade state changed to:', courseGrade);
+  }, [courseGrade]);
   const [activeSemesterTerm, setActiveSemesterTerm] = useState('MIDTERM');
   const [isMidtermCompleted, setIsMidtermCompleted] = useState(false);
   
@@ -411,12 +416,19 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     try {
       // Get the course GPA directly from the course_gpa column
       const courseData = await getCourseById(course.id);
+      console.log('🔍 [DEBUG] Course data from getCourseById:', courseData);
+      console.log('🔍 [DEBUG] courseData.courseGpa:', courseData?.courseGpa);
+      console.log('🔍 [DEBUG] courseData.calculatedCourseGrade:', courseData?.calculatedCourseGrade);
+      
       if (courseData && courseData.courseGpa !== null && courseData.courseGpa !== undefined) {
+        console.log('🔍 [DEBUG] Setting courseGrade to:', courseData.courseGpa);
         setCourseGrade(courseData.courseGpa);
       } else {
+        console.log('🔍 [DEBUG] courseGpa is null/undefined, falling back to calculation');
         // Fallback: trigger calculation if course_gpa is null
         const result = await calculateAndStoreCourseGrade(course.id);
         if (result.success && result.gpa !== undefined) {
+          console.log('🔍 [DEBUG] Setting courseGrade from calculation result:', result.gpa);
           setCourseGrade(result.gpa);
         }
         }

@@ -135,11 +135,6 @@ public class NotificationService {
      */
     private void sendLegendaryPushNotification(String userEmail, Achievement achievement) {
         try {
-            String title = "🏆 LEGENDARY Achievement!";
-            String body = String.format("You unlocked '%s'! +%d points", 
-                achievement.getAchievementName(), 
-                achievement.getPointsValue());
-            
             pushNotificationService.sendAchievementNotification(userEmail, 
                 achievement.getAchievementName(), 
                 achievement.getDescription(), 

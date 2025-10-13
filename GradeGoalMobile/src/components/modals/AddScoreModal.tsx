@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { GradeService } from '../../services/gradeService';
+import { NotificationService } from '../../services/notificationService';
+import { useAuth } from '../../context/AuthContext';
 
 interface AddScoreModalProps {
   visible: boolean;
@@ -26,24 +28,25 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
   assessment,
   onScoreAdded,
 }) => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     score: '',
-    maxScore: assessment?.maxScore?.toString() || '100',
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-    notes: '',
+    extraCredit: false,
+    extraCreditPoints: '',
   });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (visible && assessment) {
-      setFormData(prev => ({
-        ...prev,
-        maxScore: assessment.maxScore?.toString() || '100',
-      }));
+    if (visible) {
+      setFormData({
+        score: '',
+        extraCredit: false,
+        extraCreditPoints: '',
+      });
     }
-  }, [visible, assessment]);
+  }, [visible]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -57,21 +60,22 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
     }
 
     const score = parseFloat(formData.score);
-    const maxScore = parseFloat(formData.maxScore);
-
-    if (isNaN(score) || isNaN(maxScore)) {
-      Alert.alert('Validation Error', 'Please enter valid numbers for score and max score');
+    if (isNaN(score) || score < 0) {
+      Alert.alert('Validation Error', 'Please enter a valid score');
       return false;
     }
 
-    if (score < 0 || maxScore <= 0) {
-      Alert.alert('Validation Error', 'Score and max score must be positive numbers');
+    if (score > (assessment?.maxScore || 100)) {
+      Alert.alert('Validation Error', 'Score cannot be greater than maximum score');
       return false;
     }
 
-    if (score > maxScore) {
-      Alert.alert('Validation Error', 'Score cannot be greater than max score');
-      return false;
+    if (formData.extraCredit) {
+      const extraPoints = parseFloat(formData.extraCreditPoints);
+      if (isNaN(extraPoints) || extraPoints < 0) {
+        Alert.alert('Validation Error', 'Please enter valid extra credit points');
+        return false;
+      }
     }
 
     return true;
@@ -89,23 +93,41 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
       const gradeData = {
         assessmentId: assessment.id,
         score: parseFloat(formData.score),
-        maxScore: parseFloat(formData.maxScore),
-        date: formData.date,
-        notes: formData.notes.trim(),
+        maxScore: assessment.maxScore || 100,
+        extraCredit: formData.extraCredit,
+        extraCreditPoints: formData.extraCredit ? parseFloat(formData.extraCreditPoints) || 0 : 0,
+        date: new Date().toISOString().split('T')[0], // Current date
+        notes: '', // Empty notes as per web version
       };
 
       await GradeService.createGrade(gradeData);
       
       Alert.alert('Success', 'Score added successfully!');
+      
+      // Send notification for grade added
+      if (currentUser?.userId && assessment?.name) {
+        try {
+          await NotificationService.notifyGradeAdded(
+            currentUser.userId,
+            assessment.name,
+            parseFloat(formData.score),
+            assessment.maxScore || 100,
+            'Course', // You might want to pass course name here
+            currentUser.email
+          );
+        } catch (notificationError) {
+          console.error('Error sending grade notification:', notificationError);
+        }
+      }
+      
       onScoreAdded();
       onClose();
       
       // Reset form
       setFormData({
         score: '',
-        maxScore: assessment?.maxScore?.toString() || '100',
-        date: new Date().toISOString().split('T')[0],
-        notes: '',
+        extraCredit: false,
+        extraCreditPoints: '',
       });
     } catch (error: any) {
       console.error('Error adding score:', error);
@@ -121,149 +143,168 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      transparent={true}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <TouchableOpacity 
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Add Score</Text>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
-            disabled={isLoading}
+        <TouchableOpacity 
+          style={styles.container}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
-            <Text style={styles.saveButtonText}>
-              {isLoading ? 'Adding...' : 'Add'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.modalContent}>
+              {/* Modal Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>Add Your Score</Text>
+              </View>
 
-        <View style={styles.content}>
-          {/* Assessment Info */}
-          {assessment && (
-            <View style={styles.assessmentInfo}>
-              <Text style={styles.assessmentName}>{assessment.name}</Text>
-              {assessment.description && (
-                <Text style={styles.assessmentDescription}>{assessment.description}</Text>
-              )}
+              <View style={styles.content}>
+                {/* Assessment Info */}
+                {assessment && (
+                  <View style={styles.assessmentInfo}>
+                    <Text style={styles.assessmentName}>{assessment.name}</Text>
+                    <Text style={styles.assessmentMaxScore}>
+                      Maximum Score: {assessment.maxScore}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Score Obtained */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Score Obtained</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.score}
+                    onChangeText={(value) => handleInputChange('score', value)}
+                    placeholder="Enter your score"
+                    keyboardType="numeric"
+                    placeholderTextColor={colors.gray[400]}
+                  />
+                </View>
+
+                {/* Extra Credit Checkbox */}
+                <View style={styles.checkboxContainer}>
+                  <TouchableOpacity
+                    style={styles.checkboxRow}
+                    onPress={() => {
+                      const newExtraCredit = !formData.extraCredit;
+                      handleInputChange('extraCredit', newExtraCredit);
+                      if (!newExtraCredit) {
+                        handleInputChange('extraCreditPoints', '');
+                      }
+                    }}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.extraCredit && styles.checkboxChecked
+                    ]}>
+                      {formData.extraCredit && (
+                        <Text style={styles.checkmark}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Extra Credit</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.checkboxHelperText}>
+                    Check this if this score includes extra credit points
+                  </Text>
+                </View>
+
+                {/* Extra Credit Points */}
+                {formData.extraCredit && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Extra Credit Points</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formData.extraCreditPoints}
+                      onChangeText={(value) => handleInputChange('extraCreditPoints', value)}
+                      placeholder="Enter extra credit points"
+                      keyboardType="numeric"
+                      placeholderTextColor={colors.gray[400]}
+                    />
+                    <Text style={styles.helperText}>
+                      Enter the number of extra credit points to add to your score
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Modal Footer */}
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  onPress={onClose}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSubmit}
+                  style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isLoading ? 'Saving...' : 'Save Score'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-
-          {/* Score Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Score *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.score}
-              onChangeText={(value) => handleInputChange('score', value)}
-              placeholder="Enter score"
-              keyboardType="numeric"
-              placeholderTextColor={colors.gray[400]}
-            />
-          </View>
-
-          {/* Max Score Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Max Score *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.maxScore}
-              onChangeText={(value) => handleInputChange('maxScore', value)}
-              placeholder="Enter max score"
-              keyboardType="numeric"
-              placeholderTextColor={colors.gray[400]}
-            />
-          </View>
-
-          {/* Date Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Date *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.date}
-              onChangeText={(value) => handleInputChange('date', value)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.gray[400]}
-            />
-          </View>
-
-          {/* Notes Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={formData.notes}
-              onChangeText={(value) => handleInputChange('notes', value)}
-              placeholder="Add any notes about this score..."
-              placeholderTextColor={colors.gray[400]}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  container: {
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '90%',
+  },
+  modalContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
-  },
-  closeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: colors.text.secondary,
-    fontWeight: '500',
+    backgroundColor: colors.green[500],
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  saveButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: colors.gray[400],
-  },
-  saveButtonText: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: 'bold',
     color: colors.text.white,
-    fontWeight: '600',
+    textAlign: 'center',
   },
   content: {
-    flex: 1,
-    padding: 16,
+    padding: 24,
   },
   assessmentInfo: {
     backgroundColor: colors.background.secondary,
-    padding: 12,
+    padding: 16,
     borderRadius: 8,
     marginBottom: 20,
     borderWidth: 1,
@@ -275,7 +316,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: 4,
   },
-  assessmentDescription: {
+  assessmentMaxScore: {
     fontSize: 14,
     color: colors.text.secondary,
   },
@@ -283,10 +324,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   input: {
     backgroundColor: colors.background.secondary,
@@ -298,9 +339,83 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.primary,
   },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
+  helperText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  checkboxContainer: {
+    marginBottom: 16,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.border.medium,
+    borderRadius: 4,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.primary,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.green[500],
+    borderColor: colors.green[500],
+  },
+  checkmark: {
+    color: colors.text.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: colors.text.primary,
+    fontWeight: '500',
+  },
+  checkboxHelperText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    padding: 24,
+    paddingTop: 0,
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+    borderRadius: 8,
+    backgroundColor: colors.background.primary,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  submitButton: {
+    backgroundColor: colors.green[500],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  submitButtonDisabled: {
+    backgroundColor: colors.gray[400],
+  },
+  submitButtonText: {
+    fontSize: 16,
+    color: colors.text.white,
+    fontWeight: '600',
   },
 });
-

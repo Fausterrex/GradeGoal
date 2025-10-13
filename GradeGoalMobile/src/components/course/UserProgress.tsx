@@ -95,9 +95,6 @@ export const UserProgress: React.FC<UserProgressProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.pointsButton}>
-        <Text style={styles.pointsButtonText}>View Points System</Text>
-      </TouchableOpacity>
 
       {/* Recent Achievements */}
       <View style={styles.achievementsSection}>
@@ -237,19 +234,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
     textAlign: 'center',
-  },
-  pointsButton: {
-    backgroundColor: colors.purple[500],
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  pointsButtonText: {
-    fontSize: 14,
-    color: colors.text.white,
-    fontWeight: '600',
   },
   achievementsSection: {
     marginBottom: 16,

@@ -41,13 +41,17 @@ public class RecommendationController {
             Map<String, Object> analysisData;
             Object analysisDataObj = request.get("analysisData");
             if (analysisDataObj instanceof Map) {
-                analysisData = (Map<String, Object>) analysisDataObj;
+                @SuppressWarnings("unchecked")
+                Map<String, Object> tempAnalysisData = (Map<String, Object>) analysisDataObj;
+                analysisData = tempAnalysisData;
                 log.info("Analysis data received as Map with {} keys", analysisData.size());
             } else if (analysisDataObj instanceof String) {
                 // Parse JSON string to Map
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
-                    analysisData = objectMapper.readValue((String) analysisDataObj, Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> tempAnalysisData = objectMapper.readValue((String) analysisDataObj, Map.class);
+                    analysisData = tempAnalysisData;
                     log.info("Analysis data parsed from JSON string with {} keys", analysisData.size());
                 } catch (Exception e) {
                     log.error("Failed to parse analysis data JSON string: {}", e.getMessage());

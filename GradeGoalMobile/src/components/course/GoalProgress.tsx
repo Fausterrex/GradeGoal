@@ -18,6 +18,7 @@ interface GoalProgressProps {
   isCompact?: boolean;
   aiAnalysis?: any; // AI analysis data
   successRate?: number | null; // Success rate from AI analysis
+  bestPossibleGPA?: number | null; // Best possible GPA from AI analysis
 }
 
 export const GoalProgress: React.FC<GoalProgressProps> = ({
@@ -31,10 +32,50 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
   isCompact = false,
   aiAnalysis,
   successRate,
+  bestPossibleGPA,
 }) => {
+  // Calculate course completion progress (matching web version logic)
+  const calculateCourseCompletion = () => {
+    if (!categories || categories.length === 0) return 0;
+    
+    let totalExpectedAssessments = 0;
+    let completedAssessments = 0;
+    
+    categories.forEach((category: any) => {
+      const categoryGrades = grades.filter((grade: any) => grade.categoryId === category.id);
+      
+      // Each category should have at least 1 assessment for a complete course
+      // If category has assessments, count them; if empty, expect at least 1
+      const expectedInCategory = Math.max(categoryGrades.length, 1);
+      totalExpectedAssessments += expectedInCategory;
+      
+      // Count completed assessments in this category
+      categoryGrades.forEach((grade: any) => {
+        // Only count as completed if there's a meaningful score (> 0)
+        if (grade.score !== null && grade.score !== undefined && grade.score > 0) {
+          completedAssessments++;
+        }
+      });
+    });
+    
+    return totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
+  };
+
   const getProgressPercentage = () => {
     if (!targetGrade || targetGrade === 0) return 0;
-    return Math.min((currentGrade / targetGrade) * 100, 100);
+    
+    // Convert targetGrade from percentage to GPA for comparison
+    const targetGPA = targetGrade / 25; // Convert percentage to GPA
+    
+    // Match web version logic exactly:
+    // Show 100% if GPA target is met or exceeded, regardless of completion status
+    if (currentGrade >= targetGPA) {
+      return 100;
+    }
+    
+    // Otherwise, use course completion progress (same as web version)
+    const courseProgress = calculateCourseCompletion();
+    return courseProgress;
   };
 
   const getProgressColor = (progress: number) => {
@@ -45,17 +86,8 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
     return colors.red[500];
   };
 
-  const getProgressStatus = (progress: number) => {
-    if (progress >= 90) return 'Excellent Progress';
-    if (progress >= 80) return 'Good Progress';
-    if (progress >= 70) return 'Satisfactory Progress';
-    if (progress >= 60) return 'Needs Improvement';
-    return 'Poor Progress';
-  };
-
   const progressPercentage = getProgressPercentage();
   const progressColor = getProgressColor(progressPercentage);
-  const progressStatus = getProgressStatus(progressPercentage);
 
   if (isCompact) {
     return (
@@ -66,11 +98,6 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
               <Text style={styles.goalIconText}>G</Text>
             </View>
             <Text style={styles.compactHeaderText}>Goal Progress</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getProgressColor(progressPercentage) === colors.green[500] ? colors.green[100] : colors.blue[100] }]}>
-            <Text style={[styles.statusText, { color: getProgressColor(progressPercentage) === colors.green[500] ? colors.green[700] : colors.blue[700] }]}>
-              {progressStatus}
-            </Text>
           </View>
         </View>
         
@@ -114,7 +141,9 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
 
             <View style={styles.bestPossibleSection}>
               <Text style={styles.bestPossibleLabel}>Best Possible GPA</Text>
-              <Text style={styles.bestPossibleValue}>3.50</Text>
+              <Text style={styles.bestPossibleValue}>
+                {bestPossibleGPA ? bestPossibleGPA.toFixed(2) : (targetGrade ? (targetGrade / 25).toFixed(2) : '4.00')}
+              </Text>
               <Text style={styles.bestPossibleSubtext}>With perfect performance on remaining assessments.</Text>
             </View>
           </View>
@@ -150,11 +179,6 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
     <View style={styles.container}>
       <View style={[styles.header, { backgroundColor: colorScheme.primary }]}>
         <Text style={styles.headerText}>🎯 Goal Progress</Text>
-        <View style={[styles.statusBadge, { backgroundColor: colors.green[100] }]}>
-          <Text style={[styles.statusText, { color: colors.green[700] }]}>
-            {progressStatus}
-          </Text>
-        </View>
       </View>
       
       <View style={styles.content}>
@@ -215,13 +239,13 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   compactHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
   },
@@ -235,23 +259,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.white,
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
   content: {
     padding: 16,
   },
   compactContent: {
     padding: 12,
+    alignItems: 'center',
   },
   progressSection: {
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   progressCircle: {
@@ -360,6 +377,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
+    textAlign: 'center',
   },
   successProbabilityBar: {
     height: 8,
@@ -385,26 +403,33 @@ const styles = StyleSheet.create({
   },
   bestPossibleSection: {
     marginTop: 12,
+    alignItems: 'center',
+    width: '100%',
   },
   bestPossibleLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
     marginBottom: 4,
+    textAlign: 'center',
   },
   bestPossibleValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.blue[600],
     marginBottom: 4,
+    textAlign: 'center',
   },
   bestPossibleSubtext: {
     fontSize: 12,
     color: '#6B7280',
+    textAlign: 'center',
   },
   gpaStatsGrid: {
     marginTop: 16,
     gap: 12,
+    alignItems: 'center',
+    width: '100%',
   },
   gpaStatCard: {
     backgroundColor: 'white',
@@ -412,6 +437,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    alignItems: 'center',
+    width: '100%',
   },
   gpaStatIcon: {
     fontSize: 16,
@@ -422,15 +449,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#374151',
     marginBottom: 4,
+    textAlign: 'center',
   },
   gpaStatLabel: {
     fontSize: 12,
     color: '#6B7280',
+    textAlign: 'center',
   },
   gpaStatSubtext: {
     fontSize: 12,
     color: '#6B7280',
     marginTop: 4,
+    textAlign: 'center',
   },
   targetGpaIcon: {
     width: 20,

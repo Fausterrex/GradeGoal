@@ -4,7 +4,9 @@ export class AssessmentService {
   // Create a new assessment
   static async createAssessment(assessmentData: any) {
     try {
-      const response = await apiClient.post('/assessments', assessmentData);
+      console.log('Creating assessment with data:', assessmentData);
+      const response = await apiClient.post('/grades', assessmentData);
+      console.log('Assessment created successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error creating assessment:', error);
@@ -15,7 +17,9 @@ export class AssessmentService {
   // Update an existing assessment
   static async updateAssessment(assessmentId: number, assessmentData: any) {
     try {
-      const response = await apiClient.put(`/assessments/${assessmentId}`, assessmentData);
+      console.log('Updating assessment with data:', assessmentData);
+      const response = await apiClient.put(`/grades/${assessmentId}`, assessmentData);
+      console.log('Assessment updated successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error updating assessment:', error);
@@ -26,7 +30,7 @@ export class AssessmentService {
   // Delete an assessment
   static async deleteAssessment(assessmentId: number) {
     try {
-      const response = await apiClient.delete(`/assessments/${assessmentId}`);
+      const response = await apiClient.delete(`/grades/${assessmentId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting assessment:', error);
@@ -37,7 +41,7 @@ export class AssessmentService {
   // Get assessments by course ID
   static async getAssessmentsByCourseId(courseId: number) {
     try {
-      const response = await apiClient.get(`/assessments/course/${courseId}`);
+      const response = await apiClient.get(`/grades/course/${courseId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching assessments by course:', error);
@@ -48,7 +52,7 @@ export class AssessmentService {
   // Get assessments by category ID
   static async getAssessmentsByCategoryId(categoryId: number) {
     try {
-      const response = await apiClient.get(`/assessments/category/${categoryId}`);
+      const response = await apiClient.get(`/grades/category/${categoryId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching assessments by category:', error);
@@ -59,7 +63,7 @@ export class AssessmentService {
   // Get assessment by ID
   static async getAssessmentById(assessmentId: number) {
     try {
-      const response = await apiClient.get(`/assessments/${assessmentId}`);
+      const response = await apiClient.get(`/grades/${assessmentId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching assessment by ID:', error);

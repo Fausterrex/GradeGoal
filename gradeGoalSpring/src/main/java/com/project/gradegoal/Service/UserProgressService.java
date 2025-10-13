@@ -106,7 +106,7 @@ public class UserProgressService {
         progress.setTotalPoints(progress.getTotalPoints() + points);
         
         // Check for level up
-        boolean leveledUp = checkLevelUp(progress);
+        checkLevelUp(progress);
         
         // Update last activity date
         progress.setLastActivityDate(LocalDate.now());

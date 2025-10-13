@@ -67,7 +67,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const streak = await DashboardService.getUserLoginStreak(currentUser.userId) as StreakData;
       setStreakData(streak);
     } catch (error) {
-      console.error('Error updating streak:', error);
       // Set default streak data on error
       setStreakData({
         streakDays: 0,

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 import { colors } from '../../styles/colors';
 
@@ -26,37 +25,8 @@ export const AIAnalysisIndicator: React.FC<AIAnalysisIndicatorProps> = ({
   activeSemesterTerm,
   onAnalysisComplete,
 }) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [lastAnalysisDate, setLastAnalysisDate] = useState<string | null>(null);
-
   const hasGrades = grades && grades.length > 0;
   const hasCategories = categories && categories.length > 0;
-
-  const handleReAnalyze = async () => {
-    if (!hasGrades || !hasCategories) {
-      return;
-    }
-
-    setIsAnalyzing(true);
-    
-    try {
-      // Simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const result = {
-        confidence: Math.floor(Math.random() * 30) + 70, // 70-100%
-        recommendations: Math.floor(Math.random() * 5) + 3, // 3-7 recommendations
-        analysisDate: new Date().toISOString(),
-      };
-      
-      setLastAnalysisDate(result.analysisDate);
-      onAnalysisComplete(result);
-    } catch (error) {
-      console.error('AI Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   if (!hasGrades || !hasCategories) {
     return null;
@@ -72,31 +42,15 @@ export const AIAnalysisIndicator: React.FC<AIAnalysisIndicatorProps> = ({
         <View style={styles.textContainer}>
           <Text style={styles.title}>AI Analysis Available</Text>
           <Text style={styles.description}>
-            Update your AI analysis with latest course data and performance insights.
+            Advanced AI analysis and personalized recommendations are available in the web version.
           </Text>
         </View>
         
-        <TouchableOpacity
-          style={[styles.button, isAnalyzing && styles.buttonDisabled]}
-          onPress={handleReAnalyze}
-          disabled={isAnalyzing}
-        >
-          <Text style={styles.buttonIcon}>
-            {isAnalyzing ? '⏳' : '🔄'}
-          </Text>
-          <Text style={styles.buttonText}>
-            {isAnalyzing ? 'Analyzing...' : 'Re-analyze'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      {lastAnalysisDate && (
-        <View style={styles.lastAnalysisContainer}>
-          <Text style={styles.lastAnalysisText}>
-            Last analysis: {new Date(lastAnalysisDate).toLocaleDateString()}
-          </Text>
+        <View style={styles.webIndicator}>
+          <Text style={styles.webIcon}>🌐</Text>
+          <Text style={styles.webText}>Web Only</Text>
         </View>
-      )}
+      </View>
     </View>
   );
 };
@@ -134,36 +88,22 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: 20,
   },
-  button: {
+  webIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.blue[500],
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: colors.blue[100],
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    gap: 4,
   },
-  buttonDisabled: {
-    backgroundColor: colors.gray[400],
-  },
-  buttonIcon: {
-    fontSize: 16,
-  },
-  buttonText: {
+  webIcon: {
     fontSize: 14,
-    color: colors.text.white,
-    fontWeight: '500',
   },
-  lastAnalysisContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  lastAnalysisText: {
+  webText: {
     fontSize: 12,
-    color: colors.text.secondary,
-    fontStyle: 'italic',
+    color: colors.blue[600],
+    fontWeight: '500',
   },
 });
 

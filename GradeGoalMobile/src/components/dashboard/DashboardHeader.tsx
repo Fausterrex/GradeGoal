@@ -52,7 +52,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       const response = await apiClient.get(`/users/email/${currentUser.email}`);
       setUserId((response.data as any).userId);
       } catch (error) {
-        console.error('Error fetching user ID:', error);
+        // Error fetching user ID
       }
     };
 
@@ -74,7 +74,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       const unreadCount = data.filter(n => !n.isRead).length;
       setUnreadCount(unreadCount);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Error fetching notifications
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      // Error marking notification as read
     }
   };
 
@@ -102,7 +102,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      // Error marking all as read
     }
   };
 

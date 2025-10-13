@@ -190,7 +190,6 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
       
       setNotifications(notificationActivities);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
       // Set empty array on error to prevent UI issues
       setNotifications([]);
     }
@@ -220,7 +219,6 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
       
       setUserAchievements(achievementActivities);
     } catch (error) {
-      console.error('Error fetching user achievements:', error);
       // Set empty array on error to prevent UI issues
       setUserAchievements([]);
     }
@@ -281,7 +279,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
       setActivities(allActivities.slice(0, 20)); // Limit to 20 most recent
 
     } catch (error) {
-      console.error("Error loading recent activities:", error);
+      // Error loading recent activities
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +314,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
                 assessmentMap[assessment.assessmentId || assessment.id] = assessment.assessmentName || assessment.name;
               });
             } catch (error) {
-              console.warn(`Failed to fetch assessments for category ${category.categoryId}:`, error);
+              // Failed to fetch assessments for category
             }
           }
           
@@ -347,13 +345,12 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
             });
           });
         } catch (error) {
-          console.warn(`Failed to fetch grades for course ${course.id}:`, error);
+          // Failed to fetch grades for course
         }
       }
       
       return gradeActivities;
     } catch (error) {
-      console.error("Error fetching recent grades:", error);
       return [];
     }
   };
@@ -436,13 +433,12 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
             }
           }
         } catch (error) {
-          console.warn(`Failed to check AI analysis for course ${course.id}:`, error);
+          // Failed to check AI analysis for course
         }
       }
       
       return aiAnalysisActivities;
     } catch (error) {
-      console.error("Error fetching recent AI analysis:", error);
       return [];
     }
   };
@@ -477,14 +473,14 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
   // ========================================
   const getActivityIcon = (iconName?: string) => {
     const iconMap: { [key: string]: string } = {
-      'BookOpen': '📚',
+      'BookOpen': '📖',
       'Award': '🏆',
       'Target': '🎯',
       'Bell': '🔔',
-      'TrendingUp': '📈',
+      'TrendingUp': '↑',
       'Calendar': '📅',
-      'CheckCircle': '✅',
-      'AlertCircle': '⚠️',
+      'CheckCircle': '✓',
+      'AlertCircle': '!',
       'Star': '⭐'
     };
     return iconMap[iconName || 'Bell'] || '🔔';

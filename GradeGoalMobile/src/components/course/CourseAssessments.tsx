@@ -53,16 +53,16 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
         CourseService.getCourseCategories(course.id),
       ]);
       
-      setGrades(gradesData || []);
-      setCategories(categoriesData || []);
+      setGrades(Array.isArray(gradesData) ? gradesData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       
       // Check if midterm is completed
-      const midtermGrades = (gradesData || []).filter((grade: any) => 
+      const midtermGrades = Array.isArray(gradesData) ? gradesData.filter((grade: any) => 
         grade.semesterTerm === 'MIDTERM' && grade.score !== null && grade.score !== undefined
-      );
+      ) : [];
       setIsMidtermCompleted(midtermGrades.length > 0);
     } catch (error) {
-      console.error('Error loading assessment data:', error);
+      // Error loading assessment data
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,6 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
       
       return totalScore / categoryGrades.length;
     } catch (error) {
-      console.error('Error calculating category average:', error);
       return null;
     }
   };
@@ -108,7 +107,6 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
       setIsMidtermCompleted(true);
       Alert.alert('Success', 'Midterm has been marked as completed!');
     } catch (error) {
-      console.error('Error marking midterm as done:', error);
       Alert.alert('Error', 'Failed to mark midterm as completed');
     }
   };
@@ -144,11 +142,10 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await CourseService.deleteGrade(gradeId);
+              // await CourseService.deleteGrade(gradeId); // TODO: Implement deleteGrade method
               await loadAssessmentData();
               onGradeUpdate?.();
             } catch (error) {
-              console.error('Error deleting assessment:', error);
               Alert.alert('Error', 'Failed to delete assessment');
             }
           },
@@ -235,25 +232,27 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
       {/* Modals */}
       <AddScoreModal
         visible={showAddScoreModal}
-        grade={selectedGrade}
+        assessment={selectedGrade}
         onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
+        onScoreAdded={handleModalSuccess}
       />
 
       <EditScoreModal
         visible={showEditScoreModal}
         grade={selectedGrade}
         onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
+        onScoreUpdated={handleModalSuccess}
       />
 
       <AssessmentModal
         visible={showAssessmentModal}
-        categoryId={selectedCategoryId}
-        grade={selectedGrade}
+        categoryId={selectedCategoryId || undefined}
+        assessment={selectedGrade}
         course={course}
         onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
+        onAssessmentSaved={handleModalSuccess}
+        activeSemesterTerm={activeSemesterTerm}
+        isMidtermCompleted={isMidtermCompleted}
       />
     </View>
   );

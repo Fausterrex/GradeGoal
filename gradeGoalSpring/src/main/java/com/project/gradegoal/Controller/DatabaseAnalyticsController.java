@@ -68,14 +68,5 @@ public class DatabaseAnalyticsController {
         }
     }
     
-    private String getCourseSemester(Long courseId) {
-        try {
-            String sql = "SELECT semester FROM courses WHERE course_id = ?";
-            String semester = jdbcTemplate.queryForObject(sql, String.class, courseId);
-            return semester != null ? semester : "FIRST"; // Default to FIRST if not found
-        } catch (Exception e) {
-            return "FIRST"; // Default to FIRST if error
-        }
-    }
 }
 

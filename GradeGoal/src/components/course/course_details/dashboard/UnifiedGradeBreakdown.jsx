@@ -94,6 +94,10 @@ function UnifiedGradeBreakdown({
 
   // Calculate current GPA - handle both number and string formats
   const currentGPA = (() => {
+    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - currentGrade prop:', currentGrade, typeof currentGrade);
+    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - course prop:', course);
+    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - course?.courseGpa:', course?.courseGpa);
+    
     if (typeof currentGrade === 'number') {
       return currentGrade;
     } else if (typeof currentGrade === 'string') {
@@ -366,6 +370,9 @@ function UnifiedGradeBreakdown({
             <div className="text-3xl font-bold text-gray-900">
               {(() => {
                 const gpa = course?.courseGpa || currentGPA;
+                console.log('🔍 [DEBUG] Overall GPA calculation - course?.courseGpa:', course?.courseGpa);
+                console.log('🔍 [DEBUG] Overall GPA calculation - currentGPA:', currentGPA);
+                console.log('🔍 [DEBUG] Overall GPA calculation - final gpa value:', gpa);
                 if (typeof gpa === 'string' && gpa === 'R') return 'R';
                 return parseFloat(gpa).toFixed(2);
               })()}
@@ -412,15 +419,6 @@ function UnifiedGradeBreakdown({
             </div>
           </div>
           
-          {/* Debug: Calculation Verification */}
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg ml-5 mr-5">
-            <div className="text-xs text-gray-600">
-              <strong>Calculation Verification:</strong><br/>
-              Midterm: {midtermData.contribution.toFixed(2)}% + Final Term: {finalTermData.contribution.toFixed(2)}% = {(midtermData.contribution + finalTermData.contribution).toFixed(2)}%<br/>
-              Weighted Average: {getOverallContribution().toFixed(2)}%<br/>
-              Difference: {(Math.abs(getOverallContribution() - (midtermData.contribution + finalTermData.contribution))).toFixed(2)}%
-            </div>
-          </div>
         </div>
       </div>
 

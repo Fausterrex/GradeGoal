@@ -415,66 +415,7 @@ public class CourseService {
         return null;
     }
 
-    private BigDecimal calculateFinalCourseGrade(Long courseId) {
 
-        List<AssessmentCategory> categories = assessmentCategoryRepository.findByCourseId(courseId);
-
-        if (categories.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal totalWeightedGrade = BigDecimal.ZERO;
-        BigDecimal totalWeight = BigDecimal.ZERO;
-
-        for (AssessmentCategory category : categories) {
-
-            List<Grade> categoryGrades = gradeRepository.findGradesByCategoryId(category.getCategoryId());
-
-            if (!categoryGrades.isEmpty()) {
-
-                BigDecimal categoryAverage = calculateCategoryAverage(categoryGrades);
-                BigDecimal categoryWeight = category.getWeightPercentage();
-
-                totalWeightedGrade = totalWeightedGrade.add(categoryAverage.multiply(categoryWeight));
-                totalWeight = totalWeight.add(categoryWeight);
-            }
-        }
-
-        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
-            return totalWeightedGrade.divide(totalWeight, 2, BigDecimal.ROUND_HALF_UP);
-        }
-
-        return BigDecimal.ZERO;
-    }
-
-    private BigDecimal calculateCategoryAverage(List<Grade> grades) {
-        if (grades.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal totalScore = BigDecimal.ZERO;
-        BigDecimal totalMaxScore = BigDecimal.ZERO;
-
-        for (Grade grade : grades) {
-            if (grade.getPointsEarned() != null && grade.getPointsPossible() != null) {
-
-                BigDecimal earned = grade.getPointsEarned();
-                if (grade.getIsExtraCredit() && grade.getExtraCreditPoints() != null) {
-                    earned = earned.add(grade.getExtraCreditPoints());
-                }
-
-                totalScore = totalScore.add(earned);
-                totalMaxScore = totalMaxScore.add(grade.getPointsPossible());
-            }
-        }
-
-        if (totalMaxScore.compareTo(BigDecimal.ZERO) > 0) {
-            return totalScore.divide(totalMaxScore, 4, BigDecimal.ROUND_HALF_UP)
-                           .multiply(BigDecimal.valueOf(100));
-        }
-
-        return BigDecimal.ZERO;
-    }
 
     // Target grades are now managed through the Academic Goals system
     // This method is no longer used
