@@ -116,7 +116,7 @@ export const getConversionPreview = (value, inputFormat, gpaScale = 4.0) => {
     return `(${parseFloat(gpa).toFixed(2)} GPA)`;
   } else if (inputFormat === 'gpa') {
     const percentage = gpaToPercentage(numValue, gpaScale);
-    return `(${percentage.toFixed(1)}%)`;
+    return `(${percentage.toFixed(2)}%)`;
   }
   
   return '';

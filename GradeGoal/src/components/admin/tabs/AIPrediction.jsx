@@ -118,27 +118,31 @@ const AIPrediction = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-gray-50 rounded-xl text-center">
               <p className="text-sm text-gray-500">MSE</p>
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold text-blue-600">
                 {predictionData.performanceMetrics?.mse || '0.0000'}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Mean Squared Error</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl text-center">
               <p className="text-sm text-gray-500">Last Retrain</p>
-              <p className="text-lg font-semibold">
-                {predictionData.performanceMetrics?.lastRetrain || 'N/A'}
+              <p className="text-lg font-semibold text-green-600">
+                {predictionData.performanceMetrics?.lastRetrain || 'Never'}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Model Version</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl text-center">
               <p className="text-sm text-gray-500">Avg Response</p>
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold text-purple-600">
                 {predictionData.performanceMetrics?.avgResponseTime || 'N/A'}
               </p>
+              <p className="text-xs text-gray-400 mt-1">API Response Time</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl text-center">
               <p className="text-sm text-gray-500">Success Rate</p>
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold text-orange-600">
                 {predictionData.performanceMetrics?.successRate || '0%'}
               </p>
+              <p className="text-xs text-gray-400 mt-1">AI Generation Success</p>
             </div>
           </div>
         </div>

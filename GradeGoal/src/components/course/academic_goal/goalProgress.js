@@ -4,7 +4,7 @@
 // This utility calculates goal progress, achievement probability,
 // and provides visual progress indicators for academic goals.
 
-// Removed all calculation imports
+import { percentageToGPA } from "./gpaConversionUtils";
 
 // Cache for database calculations to prevent infinite loops
 const calculationCache = new Map();
@@ -135,7 +135,7 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
           // For semester GPA goals, convert target from percentage to GPA
           if (targetValue > 4.0) {
             // Target is in percentage format, convert to GPA
-            normalizedTargetValue = (targetValue / 100) * 4.0; // Convert percentage to GPA
+            normalizedTargetValue = parseFloat(percentageToGPA(targetValue)); // Convert percentage to GPA using proper scaling
             normalizedCurrentValue = currentValue; // Current value is already in GPA format
           } else {
             // Both are GPA values
@@ -147,7 +147,7 @@ export const calculateGoalProgress = async (goal, courses, grades, userStats = {
           // For cumulative GPA goals, convert target from percentage to GPA
           if (targetValue > 4.0) {
             // Target is in percentage format, convert to GPA
-            normalizedTargetValue = (targetValue / 100) * 4.0; // Convert percentage to GPA
+            normalizedTargetValue = parseFloat(percentageToGPA(targetValue)); // Convert percentage to GPA using proper scaling
             normalizedCurrentValue = currentValue; // Current value is already in GPA format
           } else {
             // Both are GPA values

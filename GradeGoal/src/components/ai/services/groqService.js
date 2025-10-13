@@ -15,11 +15,23 @@ import {
 } from "../utils/achievementProbabilityUtils.js";
 import { getFallbackRecommendations } from "../utils/aiPredictionUtils.js";
 import { buildRealAnalysisPrompt, parseAIResponse } from "../utils/aiResponseUtils.js";
+import { 
+  calculateAIConfidence, 
+  getConfidenceLevel, 
+  getConfidenceExplanation,
+  calculateDataQualityScore,
+  calculatePerformanceConsistencyScore,
+  calculateGoalAchievabilityScore,
+  calculateAnalysisCompletenessScore,
+  calculateDataVolumeScore
+} from "../utils/confidenceCalculationUtils.js";
+import { trackAIResponse, trackAIError, trackAIPrediction } from "./performanceTrackingService.js";
 
 // Groq API configuration
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL_NAME = "llama-3.1-8b-instant";
+// Valid Groq models: llama-3.1-8b-instant, llama-3.1-70b-versatile, mixtral-8x7b-32768, gemma-7b-it
+const MODEL_NAME = import.meta.env.VITE_AI_MODEL || "llama-3.1-8b-instant";
 
 // Cache for AI recommendations to avoid unnecessary API calls
 const aiRecommendationCache = new Map();
@@ -80,7 +92,7 @@ export const getAIRecommendations = async (userId, courseId) => {
           success: true,
           recommendations: data.recommendations.map(rec => ({
             ...rec,
-            aiModel: 'llama-3.1-8b-instant'
+            aiModel: MODEL_NAME
           }))
         };
       }
@@ -118,11 +130,55 @@ export const generateAIRecommendations = async (courseData, goalData) => {
       return await getFallbackRecommendations(courseData, goalData);
     }
     
+    // Validate model name for Groq API
+    const validGroqModels = [
+      'llama-3.1-8b-instant',
+      'llama-3.1-70b-versatile', 
+      'mixtral-8x7b-32768',
+      'gemma-7b-it'
+    ];
+    
+    if (!validGroqModels.includes(MODEL_NAME)) {
+      console.warn(`⚠️ [GROQ DEBUG] Invalid model '${MODEL_NAME}' for Groq API. Using fallback model 'llama-3.1-8b-instant'`);
+      const fallbackModel = 'llama-3.1-8b-instant';
+      return await generateWithModel(courseData, goalData, fallbackModel);
+    }
+    
+    // Generate with the validated model
+    return await generateWithModel(courseData, goalData, MODEL_NAME);
+  } catch (error) {
+    console.error('❌ [GROQ DEBUG] Error in generateAIRecommendations:', error);
+    
+    // Return fallback recommendations on error
+    const fallbackResult = await getFallbackRecommendations(courseData, goalData);
+    return {
+      success: false,
+      error: error.message,
+      analysis: fallbackResult,
+      userId: courseData.course?.userId || 1,
+      courseId: courseData.course?.id || 1,
+      aiModel: MODEL_NAME,
+      confidence: 0.3, // Lower confidence for fallback
+      isFallback: true
+    };
+  }
+};
+
+/**
+ * Generate AI recommendations with a specific model
+ */
+const generateWithModel = async (courseData, goalData, modelName) => {
+  const startTime = Date.now();
+  
+  try {
     // Build the analysis prompt
     const prompt = buildRealAnalysisPrompt(courseData, goalData);
     // Generated prompt
     
-    // Make API call to Groq DeepSeek
+    // Track API call start time
+    const apiStartTime = performance.now();
+    
+    // Make API call to Groq
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
@@ -130,7 +186,7 @@ export const generateAIRecommendations = async (courseData, goalData) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
+        model: modelName,
         messages: [
           {
             role: 'system',
@@ -148,6 +204,10 @@ export const generateAIRecommendations = async (courseData, goalData) => {
       })
     });
     
+    // Track response time
+    const apiEndTime = performance.now();
+    trackAIResponse(apiStartTime, apiEndTime, modelName);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ [GROQ DEBUG] API call failed:', {
@@ -155,7 +215,11 @@ export const generateAIRecommendations = async (courseData, goalData) => {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`Groq API call failed: ${response.status} ${response.statusText}`);
+      
+      // Track the error
+      const error = new Error(`Groq API call failed: ${response.status} ${response.statusText}`);
+      trackAIError(error, modelName, 'API_CALL_FAILED');
+      throw error;
     }
     
     const data = await response.json();
@@ -173,18 +237,51 @@ export const generateAIRecommendations = async (courseData, goalData) => {
     const parsedAnalysis = await parseAIResponse(aiResponse, courseData, goalData);
     // Parsed analysis successfully
     
+    // Calculate confidence score based on data quality and analysis
+    const confidenceScore = calculateAIConfidence(courseData, goalData, parsedAnalysis);
+    const confidenceLevel = getConfidenceLevel(confidenceScore);
+    const confidenceExplanation = getConfidenceExplanation(confidenceScore, {
+      dataQuality: calculateDataQualityScore(courseData),
+      performanceConsistency: calculatePerformanceConsistencyScore(courseData),
+      goalAchievability: calculateGoalAchievabilityScore(courseData, goalData),
+      analysisCompleteness: calculateAnalysisCompletenessScore(parsedAnalysis),
+      dataVolume: calculateDataVolumeScore(courseData)
+    });
+    
+    console.log('🎯 [CONFIDENCE DEBUG] Calculated confidence:', {
+      score: confidenceScore,
+      level: confidenceLevel,
+      explanation: confidenceExplanation
+    });
+    
+    // Track successful prediction
+    const predictionData = {
+      predictedGrade: parsedAnalysis.predictedFinalGrade?.percentage || 'N/A',
+      predictedGPA: parsedAnalysis.predictedFinalGrade?.gpa || 'N/A',
+      confidence: parsedAnalysis.targetGoalProbability?.confidence || 'MEDIUM'
+    };
+    
+    // Note: We'll track actual outcomes when students complete courses
+    // For now, we track the prediction itself
+    trackAIPrediction(
+      predictionData.predictedGrade,
+      'PENDING_ACTUAL_OUTCOME', // Will be updated when actual grade is known
+      modelName,
+      confidenceScore
+    );
+    
     // Store in memory for quick access
     const storageKey = `${courseData.course?.userId || 1}-${courseData.course?.id || 1}`;
     aiAnalysisStorage.set(storageKey, parsedAnalysis);
     
-    // Save to database
+    // Save to database with calculated confidence
     const saveResult = await saveAIAnalysisData(
       courseData.course?.userId || 1,
       courseData.course?.id || 1,
       'AI_ANALYSIS',
       parsedAnalysis,
-      'llama-3.1-8b-instant',
-      0.85
+      modelName,
+      confidenceScore
     );
     
     // Database save completed
@@ -198,26 +295,16 @@ export const generateAIRecommendations = async (courseData, goalData) => {
       analysis: parsedAnalysis,
       userId: courseData.course?.userId || 1,
       courseId: courseData.course?.id || 1,
-      aiModel: 'llama-3.1-8b-instant',
-      confidence: 0.85,
+      aiModel: modelName,
+      confidence: confidenceScore,
+      confidenceLevel: confidenceLevel,
+      confidenceExplanation: confidenceExplanation,
       duration: duration
     };
     
   } catch (error) {
-    console.error('❌ [GROQ DEBUG] Error in generateAIRecommendations:', error);
-    
-    // Return fallback recommendations on error
-    const fallbackResult = await getFallbackRecommendations(courseData, goalData);
-    return {
-      success: false,
-      error: error.message,
-      analysis: fallbackResult,
-      userId: courseData.course?.userId || 1,
-      courseId: courseData.course?.id || 1,
-      aiModel: 'llama-3.1-8b-instant',
-      confidence: 0.5,
-      isFallback: true
-    };
+    console.error('❌ [GROQ DEBUG] Error in generateWithModel:', error);
+    throw error; // Re-throw to be handled by the calling function
   }
 };
 

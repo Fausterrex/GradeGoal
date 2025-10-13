@@ -39,8 +39,15 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User authenticateUser(String email, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
+    public User authenticateUser(String emailOrUsername, String password) {
+        // Try to find user by email first
+        Optional<User> userOpt = userRepository.findByEmail(emailOrUsername);
+        
+        // If not found by email, try to find by username
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByUsername(emailOrUsername);
+        }
+        
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(password, user.getPasswordHashForAuth())) {

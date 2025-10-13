@@ -27,7 +27,7 @@ export const buildRealAnalysisPrompt = (courseData, goalData, priorityLevel, isS
 Categories: ${categories.map(cat => {
   const categoryGrades = grades[cat.id] || [];
   const avgScore = categoryGrades.length > 0 ? 
-    (categoryGrades.reduce((sum, grade) => sum + (grade.percentageScore || 0), 0) / categoryGrades.length).toFixed(1) : 
+    (categoryGrades.reduce((sum, grade) => sum + (grade.percentageScore || 0), 0) / categoryGrades.length).toFixed(2) : 
     '0';
   return `${cat.categoryName || cat.name}: ${avgScore}%`;
 }).join(', ')}
@@ -518,21 +518,21 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
           priority = "MEDIUM";
         } else if (averageGrade < 70) {
           needsAttention = true;
-          reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(1)}%. Need improvement to reach target.`;
+          reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(2)}%. Need improvement to reach target.`;
           priority = "HIGH";
         } else if (averageGrade < 80) {
           needsAttention = true;
-          reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(1)}%. Room for improvement.`;
+          reason = `Average grade in ${categoryName} is ${averageGrade.toFixed(2)}%. Room for improvement.`;
           priority = "MEDIUM";
         } else {
           // Good performance (≥80%) - check if only 1 assessment
           if (totalCount === 1) {
             needsAttention = true;
-            reason = `Good performance in ${categoryName} (${averageGrade.toFixed(1)}%) but consider adding more assessments to improve GPA.`;
+            reason = `Good performance in ${categoryName} (${averageGrade.toFixed(2)}%) but consider adding more assessments to improve GPA.`;
             priority = "MEDIUM";
           } else {
             needsAttention = false;
-            reason = `Good performance in ${categoryName} (${averageGrade.toFixed(1)}%). Keep it up!`;
+            reason = `Good performance in ${categoryName} (${averageGrade.toFixed(2)}%). Keep it up!`;
             priority = "LOW";
           }
         }
@@ -565,7 +565,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
         confidence: pred.confidence,
         reasoning: pred.reasoning
       })),
-      averagePredictedScore: `${(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length).toFixed(1)}/${categoryPredictions[0]?.predictedMaxScore}`,
+      averagePredictedScore: `${(categoryPredictions.reduce((sum, p) => sum + p.predictedScore, 0) / categoryPredictions.length).toFixed(2)}/${categoryPredictions[0]?.predictedMaxScore}`,
       confidence: predictions.confidence
     };
     
@@ -578,7 +578,7 @@ export const parseRealAIResponse = (aiResponse, courseData, goalData) => {
 
   return {
     predictedFinalGrade: {
-      percentage: `${(typeof currentGrade === 'number' ? currentGrade : parseFloat(currentGrade) || 0).toFixed(1)}%`,
+      percentage: `${(typeof currentGrade === 'number' ? currentGrade : parseFloat(currentGrade) || 0).toFixed(2)}%`,
       gpa: `${(typeof currentGPA === 'number' ? currentGPA : parseFloat(currentGPA) || 0).toFixed(2)}`,
       confidence: predictions.confidence,
       explanation: `Based on current performance patterns and realistic predictions for upcoming assessments`

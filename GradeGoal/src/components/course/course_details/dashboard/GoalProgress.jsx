@@ -178,7 +178,7 @@ function GoalProgress({
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-1">Current Grade</div>
               <div className="text-2xl font-bold text-gray-900">
-                {typeof currentGrade === 'string' ? currentGrade : currentGrade.toFixed(1)}
+                {typeof currentGrade === 'string' ? currentGrade : currentGrade.toFixed(2)}
               </div>
             </div>
           </div>

@@ -338,7 +338,7 @@ function UnifiedRecommendations({
                     {/* Compact Footer */}
                     <div className="bg-gray-50 rounded-lg p-2 text-center">
                       <span className="text-xs text-gray-500">
-                        Model: {recommendation.aiModel || 'gemini-2.0-flash-exp'}
+                        Model: {recommendation.aiModel || import.meta.env.VITE_AI_MODEL || 'llama-3.1-8b-instant'}
                       </span>
                     </div>
                   </div>

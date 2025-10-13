@@ -7,7 +7,7 @@ import { Activity, Users, Brain, Trophy, LogOut } from "lucide-react";
 import Overview from "./tabs/Overview";
 import UserManagement from "./tabs/UserManagement";
 import AIPrediction from "./tabs/AIPrediction";
-import Gamification from "./tabs/Gamification"
+import Gamification from "./tabs/Gamification";
 
 function Admin() {
   const { currentUser, logout, userRole, loading } = useAuth();

@@ -21,10 +21,7 @@ import {
 } from "../../backend/api";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
-// Utility function to convert GPA to percentage
-const gpaToPercentage = (gpa, scale = 4.0) => {
-  return Math.round((gpa / scale) * 100);
-};
+import { gpaToPercentage } from "../course/academic_goal/gpaConversionUtils";
 
 // Utility function to convert percentage to GPA
 const percentageToGPA = (percentage, scale = 4.0) => {
@@ -443,7 +440,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
               {`${gpaLabel}: ${typeof gpaValue === 'string' ? gpaValue : gpaValue.toFixed(2)}`}
             </p>
           <p className="text-gray-300 text-sm">
-            {`Percentage: ${Math.round((gpaValue / 4.0) * 100)}%`}
+            {`Percentage: ${gpaToPercentage(gpaValue).toFixed(2)}%`}
           </p>
           </div>
         );
@@ -767,7 +764,7 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
                   stroke="#6b7280"
                   fontSize={14}
                   tick={{ fill: "#374151" }}
-                  tickFormatter={(value) => `${value.toFixed(1)}`}
+                  tickFormatter={(value) => `${value.toFixed(2)}`}
                   fontWeight="500"
                   label={{ 
                     value: 'GPA Scale', 

@@ -28,6 +28,7 @@ import {
   markWelcomeModalAsShown,
   shouldShowWelcomeModal
 } from "../utils/firstTimeUserUtils";
+import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
 import {
   FaTachometerAlt,
   FaBook,
@@ -433,7 +434,7 @@ function MainDashboard({ initialTab = "overview" }) {
                     
                     const gradingScale = course.gradingScale || "percentage";
                     if (gradingScale === "gpa" || (gradingScale === "percentage" && courseGrade > 4.0)) {
-                      courseGrade = gradingScale === "percentage" ? (courseGrade / 100) * 4.0 : courseGrade;
+                      courseGrade = gradingScale === "percentage" ? parseFloat(percentageToGPA(courseGrade)) : courseGrade;
                     }
                   }
                 }
@@ -777,7 +778,7 @@ function MainDashboard({ initialTab = "overview" }) {
                       
                       const gradingScale = course.gradingScale || "percentage";
                       if (gradingScale === "gpa" || (gradingScale === "percentage" && courseGrade > 4.0)) {
-                        courseGrade = gradingScale === "percentage" ? (courseGrade / 100) * 4.0 : courseGrade;
+                        courseGrade = gradingScale === "percentage" ? parseFloat(percentageToGPA(courseGrade)) : courseGrade;
                       }
                     }
                   }
@@ -1391,7 +1392,7 @@ function MainDashboard({ initialTab = "overview" }) {
                                       ? "ARCHIVED"
                                       : hasGrades
                                       ? typeof courseGrade === "number"
-                                        ? courseGrade.toFixed(1)
+                                        ? courseGrade.toFixed(2)
                                         : courseGrade
                                       : "Ongoing"}
                                   </span>

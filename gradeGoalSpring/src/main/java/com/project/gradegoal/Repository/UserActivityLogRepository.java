@@ -47,5 +47,10 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
      * Count all activities for a user
      */
     long countByUserId(Long userId);
+    
+    /**
+     * Find top N recent activities ordered by timestamp
+     */
+    List<UserActivityLog> findTop10ByOrderByCreatedAtDesc();
 }
 
