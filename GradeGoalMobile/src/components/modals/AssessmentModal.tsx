@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { AssessmentService } from '../../services/assessmentService';
-import { NotificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
 
 interface AssessmentModalProps {
@@ -186,19 +185,6 @@ export const AssessmentModal: React.FC<AssessmentModalProps> = ({
         console.log('Assessment creation result:', result);
         Alert.alert('Success', 'Assessment created successfully!');
         
-        // Send notification for new assessment
-        if (currentUser?.userId && course?.name) {
-          try {
-            await NotificationService.notifyAssessmentCreated(
-              currentUser.userId,
-              formData.name.trim(),
-              course.name,
-              currentUser.email
-            );
-          } catch (notificationError) {
-            console.error('Error sending assessment notification:', notificationError);
-          }
-        }
       }
       
       onAssessmentSaved();

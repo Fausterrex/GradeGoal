@@ -96,8 +96,8 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
           targetGPA = parseFloat(targetGrade);
         }
       } else if (typeof targetGrade === 'number') {
-        // If it's a number, convert from percentage to GPA (assuming 4.0 scale)
-        targetGPA = targetGrade / 25;
+        // If it's a number, it's already in GPA format (4.0 scale)
+        targetGPA = targetGrade;
       }
     }
     
@@ -322,9 +322,6 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
             <Text style={styles.overallValue}>
               {(() => {
                 const gpa = course?.courseGpa || currentGrade;
-                console.log('🔍 [DEBUG] CourseGradeBreakdown - course?.courseGpa:', course?.courseGpa);
-                console.log('🔍 [DEBUG] CourseGradeBreakdown - currentGrade:', currentGrade);
-                console.log('🔍 [DEBUG] CourseGradeBreakdown - final gpa value:', gpa);
                 if (typeof gpa === 'string' && gpa === 'R') return 'R';
                 return parseFloat(gpa).toFixed(2);
               })()}

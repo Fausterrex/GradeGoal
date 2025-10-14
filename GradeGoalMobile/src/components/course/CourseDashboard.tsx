@@ -14,7 +14,15 @@ import { CourseGradeBreakdown } from './CourseGradeBreakdown';
 import { GoalProgress } from './GoalProgress';
 import { UserProgress } from './UserProgress';
 import { AIAnalysisIndicator } from './AIAnalysisIndicator';
-import { checkAIAnalysisExists, getAIAnalysis, getAchievementProbabilityFromData, getBestPossibleGPAFromData, getUserProgressWithGPAs, getCourseAnalytics } from '../../services/aiAnalysisService';
+import { 
+  checkAIAnalysisExists, 
+  getAIAnalysis, 
+  getAchievementProbabilityFromData, 
+  getBestPossibleGPAFromData, 
+  getUserProgressWithGPAs, 
+  getCourseAnalytics 
+} from '../../services/aiAnalysisService';
+import { getGoalsByUserId } from '../../services/goalsService';
 import { getApiConfig } from '../../config/environment';
 
 // Get API configuration
@@ -55,48 +63,109 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
   }, [course, grades, categories]);
 
   const loadDashboardData = async () => {
-    console.log('🚀 [DEBUG] Starting loadDashboardData...');
     try {
       if (!userId || !course) {
         console.warn('❌ [DEBUG] Missing userId or course data:', { userId, course: course?.id || course?.courseId });
         return;
       }
 
-      console.log('🔍 [DEBUG] Loading dashboard data for:', { userId, courseId: course.id || course.courseId });
 
       // Get current grade from database (same as web version)
       const calculatedGrade = await getCourseGradeFromDatabase();
-      console.log('🔍 [DEBUG] Database course grade:', calculatedGrade);
-      console.log('🔍 [DEBUG] Setting currentGrade to:', calculatedGrade);
       setCurrentGrade(calculatedGrade);
       
       // Update the course object with the correct courseGpa
       if (course && calculatedGrade !== null && calculatedGrade !== undefined) {
         const updatedCourseData = { ...course, courseGpa: calculatedGrade };
-        console.log('🔍 [DEBUG] Updated course object with courseGpa:', updatedCourseData.courseGpa);
         setUpdatedCourse(updatedCourseData);
       }
 
       // Load target grade from goal data
-      // For now, we'll use a default target grade since we don't have goal data in this component
-      // TODO: Pass goal data to this component to get the actual target grade
-      setTargetGrade(100); // Default target grade
+      // First check if course has targetGrade property, then fetch from goals
+      let targetGradeValue = null;
+      
+      if (course?.targetGrade && course.targetGrade > 0) {
+        // Check if course.targetGrade is already in GPA format or percentage format
+        // If it's <= 4.0, it's likely in GPA format, use as is
+        if (course.targetGrade <= 4.0) {
+          targetGradeValue = course.targetGrade; // Already in GPA format
+        } else {
+          // If it's > 4.0, it's likely in percentage format, convert to GPA
+          targetGradeValue = (course.targetGrade / 100) * 4.0; // Convert percentage to GPA
+        }
+      } else {
+        // Try to fetch goal data for this course
+        try {
+          const goals = await getGoalsByUserId(userId);
+          
+          const courseGoal = goals.find(goal => {
+            // Try both string and number comparison for courseId
+            const courseId = course.id || course.courseId;
+            const courseIdMatch = goal.courseId === courseId || 
+                                 goal.courseId === parseInt(courseId) || 
+                                 goal.courseId === courseId.toString();
+            const typeMatch = goal.goalType === 'COURSE_GRADE';
+            // Handle undefined status - if status is undefined, consider it active
+            const statusMatch = goal.status === 'active' || goal.status === undefined;
+            
+            return courseIdMatch && typeMatch && statusMatch;
+          });
+          
+          if (courseGoal && courseGoal.targetValue > 0) {
+            
+            // Check if targetValue is already in GPA format or percentage format
+            if (courseGoal.targetValue <= 4.0) {
+              // Already in GPA format
+              targetGradeValue = courseGoal.targetValue;
+            } else {
+              // In percentage format, convert to GPA
+              targetGradeValue = (courseGoal.targetValue / 100) * 4.0; // 100% -> 4.0 GPA
+            }
+          } else {
+          }
+        } catch (error: any) {
+          console.error('❌ [DEBUG] Failed to fetch goals:', error);
+          console.error('❌ [DEBUG] Error details:', {
+            message: error?.message,
+            response: error?.response?.data,
+            status: error?.response?.status
+          });
+        }
+      }
+      
+      setTargetGrade(targetGradeValue);
 
       // Load real user progress from database (with fallback)
-      console.log('🔍 [DEBUG] Loading user progress...');
+      // For newly created courses, only show course-specific data
       try {
         const userProgressData = await getUserProgressWithGPAs(userId);
-        console.log('✅ [DEBUG] User progress loaded successfully:', userProgressData);
-        setUserProgress({
-          totalAssessments: grades.length,
-          completedAssessments: grades.filter(g => g.score !== null).length,
-          averageScore: calculatedGrade,
-          level: userProgressData.currentLevel || 1,
-          points: userProgressData.totalPoints || 0,
-          streak: userProgressData.streakDays || 0,
-          semesterGPA: userProgressData.semesterGpa || 0.00,
-          cumulativeGPA: userProgressData.cumulativeGpa || 0.00,
-        });
+        
+        // For new courses with no grades, don't show global progress data
+        const hasGrades = grades && grades.length > 0;
+        if (hasGrades) {
+          setUserProgress({
+            totalAssessments: grades.length,
+            completedAssessments: grades.filter(g => g.score !== null).length,
+            averageScore: calculatedGrade,
+            level: userProgressData.currentLevel || 1,
+            points: userProgressData.totalPoints || 0,
+            streak: userProgressData.streakDays || 0,
+            semesterGPA: userProgressData.semesterGpa || 0.00,
+            cumulativeGPA: userProgressData.cumulativeGpa || 0.00,
+          });
+        } else {
+          // For new courses, show minimal data
+          setUserProgress({
+            totalAssessments: 0,
+            completedAssessments: 0,
+            averageScore: 0,
+            level: 1,
+            points: 0,
+            streak: 0,
+            semesterGPA: 0.00,
+            cumulativeGPA: 0.00,
+          });
+        }
       } catch (error) {
         console.warn('⚠️ [DEBUG] Failed to load user progress, using local data:', error);
         setUserProgress({
@@ -112,22 +181,35 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
       }
 
       // Load real course analytics from database (with fallback)
-      console.log('🔍 [DEBUG] Loading course analytics...');
-      try {
-        const analyticsData = await getCourseAnalytics(userId, course.id || course.courseId);
-        console.log('✅ [DEBUG] Course analytics loaded successfully:', analyticsData);
-        setUserAnalytics(analyticsData);
-      } catch (error) {
-        console.warn('⚠️ [DEBUG] Failed to load course analytics, using empty data:', error);
+      // Only load analytics for courses with actual data
+      const hasGrades = grades && grades.length > 0;
+      if (hasGrades) {
+        try {
+          const analyticsData = await getCourseAnalytics(userId, course.id || course.courseId);
+          setUserAnalytics(analyticsData);
+        } catch (error) {
+          console.warn('⚠️ [DEBUG] Failed to load course analytics, using empty data:', error);
+          setUserAnalytics([]);
+        }
+      } else {
         setUserAnalytics([]);
       }
 
-      // Load AI analysis data if it exists (with fallback)
-      console.log('🔍 [DEBUG] Loading AI analysis...');
-      try {
-        await loadExistingAIAnalysis();
-      } catch (error) {
-        console.warn('⚠️ [DEBUG] Failed to load AI analysis, continuing without it:', error);
+      // Load AI analysis data only if course has grades and categories
+      // Don't load AI analysis for newly created courses with no data
+      const hasCategories = categories && categories.length > 0;
+      
+      if (hasGrades && hasCategories) {
+        try {
+          await loadExistingAIAnalysis();
+        } catch (error) {
+          console.warn('⚠️ [DEBUG] Failed to load AI analysis, continuing without it:', error);
+        }
+      } else {
+        // Clear any existing AI analysis data
+        setAiAnalysisData(null);
+        setSuccessRate(null);
+        setBestPossibleGPA(null);
       }
 
       // Check if midterm is completed
@@ -135,7 +217,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
       const completedMidtermGrades = midtermGrades.filter(g => g.score !== null);
       setIsMidtermCompleted(completedMidtermGrades.length > 0);
 
-      console.log('✅ [DEBUG] Dashboard data loading completed successfully');
 
     } catch (error) {
       console.error('❌ [ERROR] Error loading dashboard data:', error);
@@ -144,36 +225,28 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
 
   // Load existing AI analysis data
   const loadExistingAIAnalysis = async () => {
-    console.log('🔍 [DEBUG] Starting loadExistingAIAnalysis...');
     try {
       if (!userId || !course) {
         console.warn('❌ [DEBUG] Missing userId or course in loadExistingAIAnalysis:', { userId, course: course?.id || course?.courseId });
         return;
       }
 
-      console.log('🔍 [DEBUG] Checking if AI analysis exists for:', { userId, courseId: course.id || course.courseId });
       
       // Check if AI analysis exists
       const existsResult = await checkAIAnalysisExists(userId, course.id || course.courseId);
-      console.log('🔍 [DEBUG] AI analysis exists result:', existsResult);
       
       if (existsResult.success && existsResult.exists) {
-        console.log('✅ [DEBUG] AI analysis exists, loading data...');
         // Load the analysis data
         const analysisResult = await getAIAnalysis(userId, course.id || course.courseId);
-        console.log('🔍 [DEBUG] AI analysis result:', analysisResult);
         
         if (analysisResult.success && analysisResult.hasAnalysis && analysisResult.analysis) {
-          console.log('✅ [DEBUG] Setting AI analysis data:', analysisResult.analysis);
           setAiAnalysisData(analysisResult.analysis);
           
               // Extract success rate from the analysis data
               const probability = getAchievementProbabilityFromData(analysisResult.analysis.analysisData);
-              console.log('🔍 [DEBUG] Extracted probability:', probability);
               
               // Extract best possible GPA from the analysis data
               const extractedBestPossibleGPA = getBestPossibleGPAFromData(analysisResult.analysis.analysisData);
-              console.log('🔍 [DEBUG] Extracted bestPossibleGPA:', extractedBestPossibleGPA);
               
               // Apply same logic as web version: force 100% if goal is achieved
               let finalSuccessRate = probability;
@@ -186,7 +259,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
                 
                 if (isCourseCompleted && currentGPA >= targetGPA) {
                   finalSuccessRate = 100; // Force 100% when goal is achieved
-                  console.log('🔍 [DEBUG] Goal achieved, forcing 100% success rate in loadExistingAIAnalysis');
                 }
                 
                 setSuccessRate(finalSuccessRate);
@@ -198,7 +270,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
               }
         }
       } else {
-        console.log('ℹ️ [DEBUG] No AI analysis exists for this course');
       }
     } catch (error) {
       console.error('❌ [ERROR] Error loading existing AI analysis:', error);
@@ -216,7 +287,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
       
       // Use the same approach as web version: get course data first, then fallback to calculation
       const courseUrl = `${API_BASE_URL}/api/courses/${courseId}`;
-      console.log('🔍 [DEBUG] Fetching course data from database:', { courseId, courseUrl });
 
       const courseResponse = await fetch(courseUrl, {
         method: 'GET',
@@ -225,29 +295,17 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
         },
       });
 
-      console.log('🔍 [DEBUG] Course data response:', { 
-        status: courseResponse.status, 
-        statusText: courseResponse.statusText,
-        ok: courseResponse.ok 
-      });
-
       if (courseResponse.ok) {
         const courseData = await courseResponse.json();
-        console.log('🔍 [DEBUG] Course data:', courseData);
         
         // Check if courseGpa is available (same as web version logic)
         if (courseData && courseData.courseGpa !== null && courseData.courseGpa !== undefined) {
-          console.log('🔍 [DEBUG] Using courseGpa from database:', courseData.courseGpa);
-          console.log('🔍 [DEBUG] courseData.calculatedCourseGrade:', courseData.calculatedCourseGrade);
-          console.log('🔍 [DEBUG] Full course data:', courseData);
           return courseData.courseGpa; // This is already in GPA format (0-4.0)
         }
       }
 
       // Fallback: trigger calculation if course_gpa is null (same as web version)
-      console.log('🔍 [DEBUG] courseGpa is null, triggering calculation...');
       const calcUrl = `${API_BASE_URL}/api/database-calculations/course/${courseId}/grade`;
-      console.log('🔍 [DEBUG] Fetching calculated course grade:', { courseId, calcUrl });
 
       const calcResponse = await fetch(calcUrl, {
         method: 'GET',
@@ -256,19 +314,11 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
         },
       });
 
-      console.log('🔍 [DEBUG] Course grade calculation response:', { 
-        status: calcResponse.status, 
-        statusText: calcResponse.statusText,
-        ok: calcResponse.ok 
-      });
-
       if (calcResponse.ok) {
         const calcData = await calcResponse.json();
-        console.log('🔍 [DEBUG] Course grade calculation data:', calcData);
         
         // The calculation API returns GPA directly
         const courseGradeGPA = calcData.gpa || 0;
-        console.log('🔍 [DEBUG] Using calculated GPA:', courseGradeGPA);
         return courseGradeGPA;
       }
 
@@ -350,7 +400,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           // Extract best possible GPA from the analysis result
           if (result && result.analysisData) {
             const extractedBestPossibleGPA = getBestPossibleGPAFromData(result.analysisData);
-            console.log('🔍 [DEBUG] Extracted bestPossibleGPA from analysis result:', extractedBestPossibleGPA);
             if (extractedBestPossibleGPA !== null) {
               setBestPossibleGPA(extractedBestPossibleGPA);
             }
@@ -363,7 +412,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           
           if (finalSuccessRate && isCourseCompleted && currentGPA >= targetGPA) {
             finalSuccessRate = 100; // Force 100% when goal is achieved
-            console.log('🔍 [DEBUG] Goal achieved, forcing 100% success rate');
           }
           
           setSuccessRate(finalSuccessRate);
@@ -429,16 +477,18 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
         isMidtermCompleted={isMidtermCompleted}
       />
 
-      {/* AI Recommendations */}
-      <CourseRecommendations
-        course={course}
-        grades={grades}
-        categories={categories}
-        targetGrade={targetGrade}
-        currentGrade={currentGrade}
-        userAnalytics={userAnalytics}
-        refreshTrigger={aiAnalysisRefreshTrigger}
-      />
+      {/* AI Recommendations - Only show if there's actual AI analysis data */}
+      {aiAnalysisData && (successRate !== null || bestPossibleGPA !== null) && (
+        <CourseRecommendations
+          course={course}
+          grades={grades}
+          categories={categories}
+          targetGrade={targetGrade}
+          currentGrade={currentGrade}
+          userAnalytics={userAnalytics}
+          refreshTrigger={aiAnalysisRefreshTrigger}
+        />
+      )}
     </ScrollView>
   );
 };

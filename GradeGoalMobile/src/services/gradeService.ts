@@ -5,22 +5,17 @@ export class GradeService {
   // Test connectivity to backend
   static async testConnectivity() {
     try {
-      console.log('🔍 [DEBUG] Testing backend connectivity...');
-      console.log('🌐 [DEBUG] API Base URL:', currentConfig.api.baseURL);
-      
       // Try to access a simple endpoint that should exist
       const response = await apiClient.get('/users/test');
-      console.log('✅ [DEBUG] Backend is reachable:', response.status);
       return true;
     } catch (error) {
-      console.error('❌ [DEBUG] Backend connectivity test failed:', error);
+      console.error('Backend connectivity test failed:', error);
       // If the test endpoint fails, try a basic connectivity test
       try {
         const response = await apiClient.get('/');
-        console.log('✅ [DEBUG] Backend is reachable (root endpoint):', response.status);
         return true;
       } catch (rootError) {
-        console.error('❌ [DEBUG] Root endpoint also failed:', rootError);
+        console.error('Root endpoint also failed:', rootError);
         return false;
       }
     }
@@ -29,7 +24,7 @@ export class GradeService {
   // Create a new grade
   static async createGrade(gradeData: any) {
     try {
-      const response = await apiClient.post('/grades', gradeData);
+      const response = await apiClient.post('/database-calculations/grade/add-update', gradeData);
       return response.data;
     } catch (error) {
       console.error('Error creating grade:', error);
@@ -40,25 +35,10 @@ export class GradeService {
   // Update an existing grade
   static async updateGrade(gradeId: number, gradeData: any) {
     try {
-      console.log('🔄 [DEBUG] Updating grade:', { gradeId, gradeData });
-      console.log('🌐 [DEBUG] API Base URL:', currentConfig.api.baseURL);
-      
       const response = await apiClient.put(`/grades/${gradeId}`, gradeData);
-      console.log('✅ [DEBUG] Grade updated successfully:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ [DEBUG] Error updating grade:', error);
-      console.error('❌ [DEBUG] Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          baseURL: error.config?.baseURL,
-        }
-      });
+      console.error('Error updating grade:', error);
       throw error;
     }
   }

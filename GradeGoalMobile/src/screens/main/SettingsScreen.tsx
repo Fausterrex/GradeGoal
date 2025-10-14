@@ -17,7 +17,6 @@ import { UserService } from '../../services/userService';
 import { ProfileEditModal } from '../../components/modals/ProfileEditModal';
 import { PasswordChangeModal } from '../../components/modals/PasswordChangeModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
-import { NotificationService } from '../../services/notificationService';
 
 export const SettingsScreen: React.FC = () => {
   const { logout, currentUser } = useAuth();
@@ -85,6 +84,7 @@ export const SettingsScreen: React.FC = () => {
   const handleEmailNotificationToggle = (enabled: boolean) => {
     setEmailNotificationsEnabled(enabled);
   };
+
 
 
   const handleSaveSettings = async () => {
@@ -230,28 +230,6 @@ export const SettingsScreen: React.FC = () => {
             </View>
 
 
-            {emailNotificationsEnabled && currentUser?.email && (
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={async () => {
-                  try {
-                    await NotificationService.sendTestEmailNotification(
-                      currentUser.userId,
-                      currentUser.email
-                    );
-                    Alert.alert('Success', 'Test email notification sent!');
-                  } catch (error) {
-                    Alert.alert('Error', 'Failed to send test email notification');
-                  }
-                }}
-              >
-                <View style={styles.settingItemLeft}>
-                  <Text style={styles.settingIcon}>📧</Text>
-                  <Text style={styles.settingText}>Test Email Notification</Text>
-                </View>
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-            )}
 
             <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingItemLeft}>
@@ -313,7 +291,7 @@ export const SettingsScreen: React.FC = () => {
         onConfirm={handleSaveConfirm}
         type="edit"
         title="Save Settings"
-        message="Are you sure you want to save your settings? This will update your email notification preferences."
+        message="Are you sure you want to save your settings? This will update your notification preferences."
         confirmText="Save Changes"
         cancelText="Cancel"
       />

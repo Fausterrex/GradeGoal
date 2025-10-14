@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { CourseService } from '../../services/courseService';
+import { AssessmentService } from '../../services/assessmentService';
+import { apiClient } from '../../services/apiClient';
 import { SemesterTermTabs } from './SemesterTermTabs';
 import { AssessmentCategories } from './AssessmentCategories';
 import { AddScoreModal } from '../modals/AddScoreModal';
@@ -19,12 +21,14 @@ interface CourseAssessmentsProps {
   course: any;
   userId?: number;
   onGradeUpdate?: () => void;
+  onCourseUpdate?: () => void;
 }
 
 export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
   course,
   userId,
   onGradeUpdate,
+  onCourseUpdate,
 }) => {
   const [grades, setGrades] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -56,11 +60,8 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
       setGrades(Array.isArray(gradesData) ? gradesData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       
-      // Check if midterm is completed
-      const midtermGrades = Array.isArray(gradesData) ? gradesData.filter((grade: any) => 
-        grade.semesterTerm === 'MIDTERM' && grade.score !== null && grade.score !== undefined
-      ) : [];
-      setIsMidtermCompleted(midtermGrades.length > 0);
+      // Check if midterm is completed from course data (matching web version logic)
+      setIsMidtermCompleted(course?.isMidtermCompleted || false);
     } catch (error) {
       // Error loading assessment data
     } finally {
@@ -104,9 +105,18 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
 
   const handleMarkMidtermAsDone = async () => {
     try {
+      const response = await apiClient.post(`/database-calculations/course/${course.id}/mark-midterm-completed`);
+
       setIsMidtermCompleted(true);
-      Alert.alert('Success', 'Midterm has been marked as completed!');
-    } catch (error) {
+      setActiveSemesterTerm('FINAL_TERM');
+      Alert.alert('Success', 'Midterm has been marked as completed! Final Term is now unlocked.');
+      
+      // Refresh data to get updated course information
+      await loadAssessmentData();
+      onGradeUpdate?.();
+      onCourseUpdate?.(); // Refresh course data to get updated isMidtermCompleted status
+    } catch (error: any) {
+      console.error('Error marking midterm as completed:', error);
       Alert.alert('Error', 'Failed to mark midterm as completed');
     }
   };
@@ -142,10 +152,10 @@ export const CourseAssessments: React.FC<CourseAssessmentsProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              // await CourseService.deleteGrade(gradeId); // TODO: Implement deleteGrade method
+              await AssessmentService.deleteAssessment(gradeId);
               await loadAssessmentData();
               onGradeUpdate?.();
-            } catch (error) {
+            } catch (error: any) {
               Alert.alert('Error', 'Failed to delete assessment');
             }
           },

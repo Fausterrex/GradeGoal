@@ -154,8 +154,10 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
       
       setRatingModal({ isOpen: false, courseId: null, courseName: '', isLoading: false });
       Alert.alert('Success', 'Course marked as complete!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to complete course. Please try again.');
+    } catch (error: any) {
+      console.error('Error completing course with rating:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to complete course. Please try again.';
+      Alert.alert('Error', `Error completing course with rating: ${errorMessage}`);
     } finally {
       setRatingModal(prev => ({ ...prev, isLoading: false }));
     }

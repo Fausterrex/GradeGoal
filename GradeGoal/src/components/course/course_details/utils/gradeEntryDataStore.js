@@ -198,7 +198,7 @@ export const updateExistingAssessment = async (assessmentId, assessmentData) => 
  */
 export const deleteAssessment = async (assessmentId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/assessments/${assessmentId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/grades/${assessmentId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

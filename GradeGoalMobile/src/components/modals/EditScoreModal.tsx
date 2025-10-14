@@ -125,15 +125,7 @@ export const EditScoreModal: React.FC<EditScoreModalProps> = ({
         extraCreditPoints: formData.extraCredit ? parseFloat(formData.extraCreditPoints) || 0 : 0,
       };
 
-      console.log('🔄 [DEBUG] EditScoreModal - Submitting grade update:', {
-        gradeId: grade.id,
-        gradeData,
-        originalGrade: grade
-      });
-
       await GradeService.updateGrade(grade.id, gradeData);
-      
-      console.log('✅ [DEBUG] EditScoreModal - Grade updated successfully');
       Alert.alert('Success', 'Score updated successfully!');
       if (onScoreUpdated && typeof onScoreUpdated === 'function') {
         onScoreUpdated();

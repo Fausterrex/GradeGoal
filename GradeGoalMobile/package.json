@@ -33,7 +33,7 @@
     "react-native-svg": "15.12.1"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
+    "@types/react": "^18.3.26",
     "typescript": "~5.9.2"
   },
   "private": true

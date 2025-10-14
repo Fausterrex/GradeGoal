@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { GradeService } from '../../services/gradeService';
-import { NotificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
 
 interface AddScoreModalProps {
@@ -83,19 +82,26 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-    if (!assessment?.id) {
+    if (!assessment?.assessmentId) {
       Alert.alert('Error', 'Assessment information is missing');
       return;
     }
 
     setIsLoading(true);
     try {
+      const pointsEarned = parseFloat(formData.score);
+      const pointsPossible = assessment.maxScore || 100;
+      const extraCreditPoints = formData.extraCredit ? parseFloat(formData.extraCreditPoints) || 0 : 0;
+      const totalPointsEarned = pointsEarned + extraCreditPoints;
+      const percentageScore = (totalPointsEarned / pointsPossible) * 100;
+
       const gradeData = {
-        assessmentId: assessment.id,
-        score: parseFloat(formData.score),
-        maxScore: assessment.maxScore || 100,
+        assessmentId: assessment.assessmentId,
+        pointsEarned: totalPointsEarned,
+        pointsPossible: pointsPossible,
+        percentageScore: percentageScore,
         extraCredit: formData.extraCredit,
-        extraCreditPoints: formData.extraCredit ? parseFloat(formData.extraCreditPoints) || 0 : 0,
+        extraCreditPoints: extraCreditPoints,
         date: new Date().toISOString().split('T')[0], // Current date
         notes: '', // Empty notes as per web version
       };
@@ -104,21 +110,6 @@ export const AddScoreModal: React.FC<AddScoreModalProps> = ({
       
       Alert.alert('Success', 'Score added successfully!');
       
-      // Send notification for grade added
-      if (currentUser?.userId && assessment?.name) {
-        try {
-          await NotificationService.notifyGradeAdded(
-            currentUser.userId,
-            assessment.name,
-            parseFloat(formData.score),
-            assessment.maxScore || 100,
-            'Course', // You might want to pass course name here
-            currentUser.email
-          );
-        } catch (notificationError) {
-          console.error('Error sending grade notification:', notificationError);
-        }
-      }
       
       onScoreAdded();
       onClose();

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, FC } from 'react';
 import { User } from '../types';
 import { authService } from '../services/authService';
 import { StreakService, StreakData } from '../services/streakService';
@@ -11,8 +11,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
-  googleLogin: () => Promise<void>;
-  facebookLogin: () => Promise<void>;
   updateStreak: () => Promise<void>;
 }
 
@@ -30,7 +28,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
@@ -110,34 +108,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleLogin = async () => {
-    setIsLoading(true);
-    try {
-      const user = await authService.googleLogin();
-      setCurrentUser(user);
-      // Update streak on successful login
-      if (user?.userId) {
-        await updateStreak();
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const facebookLogin = async () => {
-    setIsLoading(true);
-    try {
-      const user = await authService.facebookLogin();
-      setCurrentUser(user);
-      // Update streak on successful login
-      if (user?.userId) {
-        await updateStreak();
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const value: AuthContextType = {
     currentUser,
     isLoading,
@@ -145,8 +115,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
-    googleLogin,
-    facebookLogin,
     updateStreak,
   };
 

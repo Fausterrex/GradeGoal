@@ -84,22 +84,20 @@ const GoalCard = ({
         const userProfile = await getUserProfile(currentUser.email);
         if (!userProfile?.userId) return;
         
-        // Skip AI analysis check only for cumulative GPA goals (they don't have courseId)
-        if (goal.goalType === 'CUMMULATIVE_GPA') {
+        // Skip AI analysis check for cumulative GPA and semester GPA goals (show "Coming Soon")
+        if (goal.goalType === 'CUMMULATIVE_GPA' || goal.goalType === 'SEMESTER_GPA') {
           setHasExistingAnalysis(false);
           return;
         }
         
-        // For semester GPA goals, use a special courseId (0) to indicate semester-level analysis
-        const analysisCourseId = goal.goalType === 'SEMESTER_GPA' ? 0 : goal.courseId;
-        
-        if (!analysisCourseId && goal.goalType !== 'SEMESTER_GPA') {
+        // For course-specific goals, check if AI analysis exists
+        if (!goal.courseId) {
           setHasExistingAnalysis(false);
           return;
         }
         
         // Check if AI analysis exists for course-specific goals
-        const existsResponse = await checkAIAnalysisExists(userProfile.userId, analysisCourseId);
+        const existsResponse = await checkAIAnalysisExists(userProfile.userId, goal.courseId);
         const exists = existsResponse.success && existsResponse.exists;
         
         
@@ -109,7 +107,7 @@ const GoalCard = ({
         if (exists) {
           try {
             // Load the analysis data into memory first
-            const analysisData = await loadAIAnalysisForCourse(userProfile.userId, analysisCourseId);
+            const analysisData = await loadAIAnalysisForCourse(userProfile.userId, goal.courseId);
             if (analysisData) {
               
               // Get probability directly from the loaded analysis data
@@ -549,33 +547,31 @@ const GoalCard = ({
                 );
               })()}
               
-              {!isCourseCompleted && (
-                <AIAnalysisIndicator
-                  course={
-                    goal.goalType === 'CUMMULATIVE_GPA' 
-                      ? { id: 0, courseName: 'Cumulative GPA' } 
-                      : goal.goalType === 'SEMESTER_GPA'
-                      ? { id: 0, courseName: 'Semester GPA' }
-                      : courses.find(c => c.id === goal.courseId)
-                  }
-                  grades={grades}
-                  categories={categories}
-                  targetGrade={goal}
-                  currentGrade={progressData.currentValue}
-                  courses={courses}
-                  onAnalysisComplete={async (recommendations) => {
-                    // Handle the AI analysis completion
-                    // Get AI achievement probability after analysis completion
-                    try {
-                      const probability = getAchievementProbability();
-                      if (probability) {
-                        setAiAchievementProbability(probability);
-                      }
-                    } catch (error) {
-                      }
-                  }}
-                />
-              )}
+              <AIAnalysisIndicator
+                course={
+                  goal.goalType === 'CUMMULATIVE_GPA' 
+                    ? { id: 0, courseName: 'Cumulative GPA' } 
+                    : goal.goalType === 'SEMESTER_GPA'
+                    ? { id: 0, courseName: 'Semester GPA' }
+                    : courses.find(c => c.id === goal.courseId)
+                }
+                grades={grades}
+                categories={categories}
+                targetGrade={goal}
+                currentGrade={progressData.currentValue}
+                courses={courses}
+                onAnalysisComplete={async (recommendations) => {
+                  // Handle the AI analysis completion
+                  // Get AI achievement probability after analysis completion
+                  try {
+                    const probability = getAchievementProbability();
+                    if (probability) {
+                      setAiAchievementProbability(probability);
+                    }
+                  } catch (error) {
+                    }
+                }}
+              />
             </div>
           </div>
         )}

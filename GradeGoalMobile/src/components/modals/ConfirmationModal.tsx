@@ -46,7 +46,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       case 'delete':
         return colors.red[500];
       case 'archive':
-        return colors.gray[500];
+        return colors.blue[500];
       case 'incomplete':
         return colors.orange[500];
       default:

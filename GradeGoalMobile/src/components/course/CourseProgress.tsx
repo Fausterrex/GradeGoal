@@ -169,7 +169,7 @@ export const CourseProgress: React.FC<CourseProgressProps> = ({
     });
     
     // Convert grouped data to weekly format
-    const weeklyData = [];
+    const processedWeeklyData: any[] = [];
     const sortedWeekKeys = Object.keys(weeklyGroups).sort();
     
     sortedWeekKeys.forEach((weekKey, index) => {
@@ -206,14 +206,14 @@ export const CourseProgress: React.FC<CourseProgressProps> = ({
         percentage: currentGradePercentage,
         dueDate: group.weekStart.toISOString().split('T')[0],
         assessmentCount: group.analytics.length,
-        gradeTrend: index > 0 ? currentGPA - weeklyData[index - 1]?.gpa : 0,
+        gradeTrend: index > 0 ? currentGPA - processedWeeklyData[index - 1]?.gpa : 0,
         analytics: group.analytics // Include the analytics data for this week
       };
       
-      weeklyData.push(weekData);
+      processedWeeklyData.push(weekData);
     });
 
-    return weeklyData;
+    return processedWeeklyData;
   };
 
   // Load analytics on component mount
@@ -240,6 +240,7 @@ export const CourseProgress: React.FC<CourseProgressProps> = ({
 
   // Generate weekly cards data with smooth trajectory
   const weeklyCards = useMemo(() => {
+    // Only show real data if we have actual weekly data
     if (weeklyData.length > 0) {
       return weeklyData.map((week, index) => ({
         id: index,
@@ -253,40 +254,9 @@ export const CourseProgress: React.FC<CourseProgressProps> = ({
       }));
     }
     
-    // Generate smooth trajectory based on current course grade
-    const currentGPA = currentGrade / 100 * 4; // Convert percentage to GPA
-    const weeks = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'];
-    
-    return weeks.map((week, index) => {
-      // Create a smooth progression that starts lower and gradually improves
-      const progressRatio = index / (weeks.length - 1);
-      const startGPA = Math.max(0.5, currentGPA - 1.0); // Start 1.0 GPA lower
-      const endGPA = currentGPA;
-      
-      // Smooth curve with slight variations
-      let gpa = startGPA + (progressRatio * (endGPA - startGPA));
-      
-      // Add very small, smooth variations to make it look natural
-      const variation = Math.sin(progressRatio * Math.PI * 2) * 0.1; // Small sine wave variation
-      gpa += variation;
-      
-      // Ensure GPA stays within bounds
-      gpa = Math.max(0, Math.min(4, gpa));
-      
-      const percentage = (gpa / 4) * 100;
-      const dueDate = new Date(Date.now() + index * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      return {
-        id: index,
-        week,
-        weekNumber: index + 1,
-        gpa: parseFloat(gpa.toFixed(2)),
-        percentage: parseFloat(percentage.toFixed(1)),
-        dueDate,
-        assessmentCount: Math.floor(Math.random() * 3) + 1, // 1-3 updates
-        color: getProgressColor(percentage),
-      };
-    });
+    // For new courses with no data, return empty array
+    // Don't generate fake data for newly created courses
+    return [];
   }, [weeklyData, currentGrade]);
 
   // Calculate statistics using ALL analytics data (matching web version logic)
@@ -495,51 +465,61 @@ export const CourseProgress: React.FC<CourseProgressProps> = ({
         <View style={styles.weeklyPerformance}>
           <Text style={styles.weeklySubtitle}>📁 Weekly Performance</Text>
           
-          {/* Sliding Weekly Cards */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.weeklyCardsScroll}
-            contentContainerStyle={styles.weeklyCardsScrollContent}
-            onScroll={(event) => {
-              const scrollX = event.nativeEvent.contentOffset.x;
-              const cardWidth = width * 0.8;
-              const newIndex = Math.round(scrollX / cardWidth);
-              setCurrentIndex(newIndex);
-            }}
-            scrollEventThrottle={16}
-            decelerationRate="fast"
-            snapToInterval={width * 0.8 + 12}
-            snapToAlignment="start"
-          >
-            {weeklyCards.map((card) => (
-              <View key={card.id} style={styles.weeklyCardContainer}>
-                <View style={styles.weeklyCard}>
-                  <View style={styles.weeklyCardHeader}>
-                    <View style={[styles.weeklyDot, { backgroundColor: card.color }]} />
-                    <Text style={styles.weeklyTitle}>{card.week}</Text>
-                  </View>
-                  <Text style={styles.weeklyDate}>Due: {new Date(card.dueDate).toLocaleDateString()}</Text>
-                  <Text style={styles.weeklyUpdate}>{card.assessmentCount} update{card.assessmentCount > 1 ? 's' : ''}</Text>
+          {weeklyCards.length > 0 ? (
+            <>
+              {/* Sliding Weekly Cards */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.weeklyCardsScroll}
+                contentContainerStyle={styles.weeklyCardsScrollContent}
+                onScroll={(event) => {
+                  const scrollX = event.nativeEvent.contentOffset.x;
+                  const cardWidth = width * 0.8;
+                  const newIndex = Math.round(scrollX / cardWidth);
+                  setCurrentIndex(newIndex);
+                }}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+                snapToInterval={width * 0.8 + 12}
+                snapToAlignment="start"
+              >
+                {weeklyCards.map((card) => (
+                  <View key={card.id} style={styles.weeklyCardContainer}>
+                    <View style={styles.weeklyCard}>
+                      <View style={styles.weeklyCardHeader}>
+                        <View style={[styles.weeklyDot, { backgroundColor: card.color }]} />
+                        <Text style={styles.weeklyTitle}>{card.week}</Text>
+                      </View>
+                      <Text style={styles.weeklyDate}>Due: {new Date(card.dueDate).toLocaleDateString()}</Text>
+                      <Text style={styles.weeklyUpdate}>{card.assessmentCount} update{card.assessmentCount > 1 ? 's' : ''}</Text>
                       <Text style={styles.weeklyGrade}>Current Grade: <Text style={styles.gradeValue}>{card.percentage.toFixed(1)}%</Text></Text>
                       <Text style={styles.weeklyGPA}>GPA: <Text style={[styles.gpaValue, { color: card.color }]}>{card.gpa.toFixed(2)}</Text></Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+              
+              {/* Page Indicators */}
+              {weeklyCards.length > 1 && (
+                <View style={styles.pageIndicators}>
+                  {weeklyCards.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.pageIndicator,
+                        index === currentIndex && styles.pageIndicatorActive
+                      ]}
+                    />
+                  ))}
                 </View>
-              </View>
-            ))}
-          </ScrollView>
-          
-          {/* Page Indicators */}
-          {weeklyCards.length > 1 && (
-            <View style={styles.pageIndicators}>
-              {weeklyCards.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.pageIndicator,
-                    index === currentIndex && styles.pageIndicatorActive
-                  ]}
-                />
-              ))}
+              )}
+            </>
+          ) : (
+            <View style={styles.noWeeklyDataContainer}>
+              <Text style={styles.noWeeklyDataIcon}>📊</Text>
+              <Text style={styles.noWeeklyDataText}>No weekly performance data yet</Text>
+              <Text style={styles.noWeeklyDataSubtext}>Complete some assessments to see your weekly progress</Text>
             </View>
           )}
         </View>
@@ -850,6 +830,30 @@ const styles = StyleSheet.create({
   },
   statisticsPercentage: {
     fontSize: 10,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  // No Weekly Data Styles
+  noWeeklyDataContainer: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  noWeeklyDataIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  noWeeklyDataText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 4,
+  },
+  noWeeklyDataSubtext: {
+    fontSize: 12,
     color: colors.text.secondary,
     textAlign: 'center',
   },

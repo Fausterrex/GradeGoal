@@ -19,7 +19,7 @@ export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, googleLogin, facebookLogin } = useAuth();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -37,26 +37,20 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    try {
-      await googleLogin();
-    } catch (error) {
-      Alert.alert('Login Failed', 'Google login failed');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGoogleLogin = () => {
+    Alert.alert(
+      'Coming Soon', 
+      'Google login will be available in a future update. Please use email and password for now.',
+      [{ text: 'OK' }]
+    );
   };
 
-  const handleFacebookLogin = async () => {
-    setIsLoading(true);
-    try {
-      await facebookLogin();
-    } catch (error) {
-      Alert.alert('Login Failed', 'Facebook login failed');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleFacebookLogin = () => {
+    Alert.alert(
+      'Coming Soon', 
+      'Facebook login will be available in a future update. Please use email and password for now.',
+      [{ text: 'OK' }]
+    );
   };
 
   return (

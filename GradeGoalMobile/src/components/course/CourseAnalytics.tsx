@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { FC, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ interface CourseAnalyticsProps {
   currentGrade: number;
 }
 
-export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
+export const CourseAnalytics: FC<CourseAnalyticsProps> = ({
   userAnalytics,
   course,
   grades,
@@ -24,7 +24,7 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
   currentGrade,
 }) => {
   // Calculate key metrics
-  const metrics = React.useMemo(() => {
+  const metrics = useMemo(() => {
     const allGrades = (grades && Array.isArray(grades)) ? grades : [];
     const today = new Date();
     const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -40,7 +40,7 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
       if (!grade || !grade.date || grade.score) return false; // Exclude if no date or already has a score
       const dueDate = new Date(grade.date);
       return dueDate >= today && dueDate <= twoWeeksFromNow;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // Overdue assessments
     const overdueAssessments = allGrades.filter(grade => {
@@ -70,7 +70,14 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
   const performance_metrics = userAnalytics?.performance_metrics || {};
   const statistics = performance_metrics?.statistics || {};
 
-  const MetricCard = ({ colorScheme, title, value, subtitle, icon, urgent = false }) => (
+  const MetricCard = ({ colorScheme, title, value, subtitle, icon, urgent = false }: {
+    colorScheme: string;
+    title: string;
+    value: number;
+    subtitle: string;
+    icon: string;
+    urgent?: boolean;
+  }) => (
     <View style={[styles.metricCard, urgent && styles.urgentCard]}>
       <View style={[styles.metricHeader, { backgroundColor: colorScheme }]}>
         <Text style={styles.metricIcon}>{icon}</Text>
@@ -104,8 +111,8 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
           value={metrics.upcomingDeadlines.length}
           subtitle="Deadlines in next 2 weeks"
           icon="⏰"
-          urgent={metrics.upcomingDeadlines.filter(g => {
-            const daysUntilDue = Math.ceil((new Date(g.date) - new Date()) / (1000 * 60 * 60 * 24));
+          urgent={metrics.upcomingDeadlines.filter((g: any) => {
+            const daysUntilDue = Math.ceil((new Date(g.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             return daysUntilDue <= 3;
           }).length > 0}
         />
@@ -132,8 +139,8 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
       {metrics.upcomingDeadlines.length > 0 && (
         <View style={styles.deadlinesSection}>
           <Text style={styles.deadlinesTitle}>Upcoming Deadlines</Text>
-          {metrics.upcomingDeadlines.slice(0, 3).map((deadline, index) => {
-            const daysUntilDue = Math.ceil((new Date(deadline.date) - new Date()) / (1000 * 60 * 60 * 24));
+          {metrics.upcomingDeadlines.slice(0, 3).map((deadline: any, index: number) => {
+            const daysUntilDue = Math.ceil((new Date(deadline.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             return (
               <View key={index} style={styles.deadlineItem}>
                 <Text style={styles.deadlineName}>{deadline.name || deadline.assessmentName}</Text>
@@ -151,25 +158,32 @@ export const CourseAnalytics: React.FC<CourseAnalyticsProps> = ({
         <Text style={styles.performanceTitle}>Performance Trend</Text>
         <Text style={styles.performanceSubtitle}>Analyzing your academic progression</Text>
         
-        <View style={styles.performanceMetrics}>
-          <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>✓</Text>
-            <Text style={styles.performanceValue}>{statistics.change || 77.78}%</Text>
-            <Text style={styles.performanceLabel}>Change</Text>
+        {statistics.change !== undefined && statistics.confidence ? (
+          <View style={styles.performanceMetrics}>
+            <View style={styles.performanceMetric}>
+              <Text style={styles.performanceIcon}>✓</Text>
+              <Text style={styles.performanceValue}>{statistics.change}%</Text>
+              <Text style={styles.performanceLabel}>Change</Text>
+            </View>
+            
+            <View style={styles.performanceMetric}>
+              <Text style={styles.performanceIcon}>i</Text>
+              <Text style={styles.performanceValue}>GPA improved by {statistics.change}%</Text>
+              <Text style={styles.performanceLabel}>Trend Analysis</Text>
+            </View>
+            
+            <View style={styles.performanceMetric}>
+              <Text style={styles.performanceIcon}>✓</Text>
+              <Text style={styles.performanceValue}>{statistics.confidence}</Text>
+              <Text style={styles.performanceLabel}>Confidence</Text>
+            </View>
           </View>
-          
-          <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>i</Text>
-            <Text style={styles.performanceValue}>GPA improved by {statistics.change || 77.78}%</Text>
-            <Text style={styles.performanceLabel}>Trend Analysis</Text>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No performance data available</Text>
+            <Text style={styles.noDataSubtext}>Complete some assessments to see your performance trend</Text>
           </View>
-          
-          <View style={styles.performanceMetric}>
-            <Text style={styles.performanceIcon}>✓</Text>
-            <Text style={styles.performanceValue}>{statistics.confidence || 'High'}</Text>
-            <Text style={styles.performanceLabel}>Confidence</Text>
-          </View>
-        </View>
+        )}
       </View>
     </View>
   );
@@ -302,6 +316,21 @@ const styles = StyleSheet.create({
   },
   performanceLabel: {
     fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  noDataSubtext: {
+    fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',
   },

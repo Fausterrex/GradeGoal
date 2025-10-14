@@ -1,5 +1,6 @@
 // AI Analysis Service for Mobile App
 // Fetches real AI analysis data from the backend database
+// Updated to fix module import issues
 
 import { getApiConfig } from '../config/environment';
 
@@ -7,12 +8,6 @@ import { getApiConfig } from '../config/environment';
 const apiConfig = getApiConfig();
 const API_BASE_URL = apiConfig.baseURL.replace('/api', ''); // Remove /api suffix since we add it in each endpoint
 
-// Debug logging for API configuration
-console.log('🔧 [DEBUG] AI Analysis Service API Configuration:', {
-  baseURL: apiConfig.baseURL,
-  apiBaseURL: API_BASE_URL,
-  platform: require('react-native').Platform.OS
-});
 
 export interface AIAnalysisResult {
   success: boolean;
@@ -39,7 +34,6 @@ export interface AIAnalysisExistsResult {
  */
 export async function checkAIAnalysisExists(userId: number, courseId: number): Promise<AIAnalysisExistsResult> {
   const url = `${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
-  console.log('🔍 [DEBUG] Checking AI analysis exists:', { userId, courseId, url });
   
   try {
     const response = await fetch(url, {
@@ -47,12 +41,6 @@ export async function checkAIAnalysisExists(userId: number, courseId: number): P
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-    
-    console.log('🔍 [DEBUG] AI analysis check response:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      ok: response.ok 
     });
     
     if (!response.ok) {
@@ -65,7 +53,6 @@ export async function checkAIAnalysisExists(userId: number, courseId: number): P
     }
     
     const data = await response.json();
-    console.log('🔍 [DEBUG] AI analysis check data:', data);
     
     return {
       success: true,
@@ -86,7 +73,6 @@ export async function checkAIAnalysisExists(userId: number, courseId: number): P
  */
 export async function getAIAnalysis(userId: number, courseId: number): Promise<AIAnalysisResult> {
   const url = `${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
-  console.log('🔍 [DEBUG] Getting AI analysis:', { userId, courseId, url });
   
   try {
     const response = await fetch(url, {
@@ -94,12 +80,6 @@ export async function getAIAnalysis(userId: number, courseId: number): Promise<A
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-    
-    console.log('🔍 [DEBUG] AI analysis response:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      ok: response.ok 
     });
     
     if (!response.ok) {
@@ -112,12 +92,10 @@ export async function getAIAnalysis(userId: number, courseId: number): Promise<A
     }
     
     const data = await response.json();
-    console.log('🔍 [DEBUG] AI analysis data:', data);
     
     if (data.success && data.recommendations && data.recommendations.length > 0) {
       // Get the most recent AI analysis
       const latestAnalysis = data.recommendations[0];
-      console.log('🔍 [DEBUG] Latest analysis:', latestAnalysis);
       
       return {
         success: true,
@@ -133,7 +111,6 @@ export async function getAIAnalysis(userId: number, courseId: number): Promise<A
       };
     }
     
-    console.log('🔍 [DEBUG] No AI analysis found');
     return {
       success: true,
       hasAnalysis: false
@@ -155,7 +132,6 @@ export function getAchievementProbabilityFromData(analysisData: any): number | n
   try {
     if (!analysisData) return null;
     
-    console.log('🔍 [DEBUG] Extracting probability from:', typeof analysisData, analysisData);
     
     // Try to extract probability from various possible formats
     if (typeof analysisData === 'object') {
@@ -221,7 +197,6 @@ export function getAchievementProbabilityFromData(analysisData: any): number | n
  */
 export async function getUserProgressWithGPAs(userId: number): Promise<any> {
   const url = `${API_BASE_URL}/api/user-progress/${userId}/with-gpas`;
-  console.log('🔍 [DEBUG] Getting user progress with GPAs:', { userId, url });
   
   try {
     const response = await fetch(url, {
@@ -231,18 +206,11 @@ export async function getUserProgressWithGPAs(userId: number): Promise<any> {
       },
     });
     
-    console.log('🔍 [DEBUG] User progress response:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      ok: response.ok 
-    });
-    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('🔍 [DEBUG] User progress data:', data);
     return data;
   } catch (error) {
     console.error('❌ [ERROR] Error fetching user progress:', error);
@@ -262,7 +230,6 @@ export async function getUserProgressWithGPAs(userId: number): Promise<any> {
  */
 export async function getCourseAnalytics(userId: number, courseId: number): Promise<any[]> {
   const url = `${API_BASE_URL}/api/database-calculations/user/${userId}/analytics/${courseId}`;
-  console.log('🔍 [DEBUG] Getting course analytics:', { userId, courseId, url });
   
   try {
     const response = await fetch(url, {
@@ -272,19 +239,12 @@ export async function getCourseAnalytics(userId: number, courseId: number): Prom
       },
     });
     
-    console.log('🔍 [DEBUG] Course analytics response:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      ok: response.ok 
-    });
-    
     if (!response.ok) {
       console.warn(`Course analytics API returned ${response.status}, using fallback data`);
       return [];
     }
     
     const data = await response.json();
-    console.log('🔍 [DEBUG] Course analytics data:', data);
     return data;
   } catch (error) {
     console.error('❌ [ERROR] Error fetching course analytics:', error);
@@ -297,7 +257,6 @@ export function getBestPossibleGPAFromData(analysisData: any): number | null {
   try {
     if (!analysisData) return null;
     
-    console.log('🔍 [DEBUG] Extracting bestPossibleGPA from:', typeof analysisData, analysisData);
     
     if (typeof analysisData === 'object') {
       // Check for direct bestPossibleGPA field

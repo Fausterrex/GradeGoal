@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, FC } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ interface GoalCardProps {
   allGoals?: any[];
 }
 
-export const GoalCard: React.FC<GoalCardProps> = ({
+export const GoalCard: FC<GoalCardProps> = ({
   goal,
   courses,
   grades,
@@ -72,7 +72,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     goal?.courseId,
     goal?.semester,
     goal?.academicYear,
-    courses.map(c => c.id || c.courseId).join(','),
+    courses.map((c: any) => c.id || c.courseId).join(','),
     Object.keys(grades).join(','),
     allGoals.length
   ]);
@@ -106,7 +106,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   // Check if course is completed (for course-specific goals)
   const isCourseCompleted = useMemo(() => {
     if (!goal.courseId) return true; // Non-course goals are always considered "completed" for display purposes
-    const course = courses.find(c => c.courseId === goal.courseId);
+    const course = courses.find((c: any) => c.courseId === goal.courseId);
     return course?.isCompleted === true;
   }, [goal.courseId, courses]);
 

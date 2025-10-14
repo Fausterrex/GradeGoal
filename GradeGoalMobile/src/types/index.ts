@@ -105,8 +105,6 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  googleLogin: () => Promise<void>;
-  facebookLogin: () => Promise<void>;
 }
 
 export interface LoginCredentials {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, FC } from 'react';
 import {
   View,
   Text,
@@ -41,7 +41,7 @@ interface RecentActivitiesProps {
   courses: any[];
 }
 
-const ActivityCard: React.FC<{ 
+const ActivityCard: FC<{ 
   activity: Activity; 
   onPress: () => void;
   getActivityIcon: (iconName?: string) => string;
@@ -125,7 +125,7 @@ const ActivityCard: React.FC<{
   );
 };
 
-export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) => {
+export const RecentActivities: FC<RecentActivitiesProps> = ({ courses }) => {
   const { currentUser } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [notifications, setNotifications] = useState<Activity[]>([]);
@@ -162,7 +162,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
     if (activityFilter === 'all') {
       return [...activities, ...notifications, ...userAchievements];
     }
-    return activities.filter(activity => activity.type === activityFilter);
+    return activities.filter((activity: Activity) => activity.type === activityFilter);
   }, [activities, notifications, userAchievements, activityFilter]);
 
   // Fetch notifications from database
@@ -456,7 +456,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
 
   const markAsRead = (activityId: string) => {
     setActivities(prev => 
-      prev.map(activity => 
+      prev.map((activity: Activity) => 
         activity.id === activityId 
           ? { ...activity, isRead: true }
           : activity
@@ -465,7 +465,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
   };
 
   const getUnreadCount = () => {
-    return activities.filter(activity => !activity.isRead).length;
+    return activities.filter((activity: Activity) => !activity.isRead).length;
   };
 
   // ========================================
@@ -502,12 +502,12 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ courses }) =
   const getFilterCounts = () => {
     return {
       all: filteredActivities.length,
-      grade_entry: activities.filter(a => a.type === 'grade_entry').length,
-      goal_achievement: activities.filter(a => a.type === 'goal_achievement').length,
-      goal_created: activities.filter(a => a.type === 'goal_created').length,
+      grade_entry: activities.filter((a: Activity) => a.type === 'grade_entry').length,
+      goal_achievement: activities.filter((a: Activity) => a.type === 'goal_achievement').length,
+      goal_created: activities.filter((a: Activity) => a.type === 'goal_created').length,
       notification: notifications.length,
       achievement: userAchievements.length,
-      ai_analysis: activities.filter(a => a.type === 'ai_analysis').length,
+      ai_analysis: activities.filter((a: Activity) => a.type === 'ai_analysis').length,
     };
   };
 

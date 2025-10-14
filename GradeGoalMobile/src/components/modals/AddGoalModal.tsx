@@ -148,8 +148,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
     const currentYear = new Date().getFullYear();
     return [
       { value: `${currentYear}-${currentYear + 1}`, label: `${currentYear}-${currentYear + 1}` },
-      { value: `${currentYear - 1}-${currentYear}`, label: `${currentYear - 1}-${currentYear}` },
-      { value: `${currentYear + 1}-${currentYear + 2}`, label: `${currentYear + 1}-${currentYear + 2}` }
+      { value: `${currentYear - 1}-${currentYear}`, label: `${currentYear - 1}-${currentYear}` }
     ];
   };
 

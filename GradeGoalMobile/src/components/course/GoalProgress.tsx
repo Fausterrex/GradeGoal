@@ -34,6 +34,7 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
   successRate,
   bestPossibleGPA,
 }) => {
+  // Debug logging
   // Calculate course completion progress (matching web version logic)
   const calculateCourseCompletion = () => {
     if (!categories || categories.length === 0) return 0;
@@ -64,12 +65,11 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
   const getProgressPercentage = () => {
     if (!targetGrade || targetGrade === 0) return 0;
     
-    // Convert targetGrade from percentage to GPA for comparison
-    const targetGPA = targetGrade / 25; // Convert percentage to GPA
+    // Now targetGrade is already in GPA scale (4.0), no conversion needed
     
     // Match web version logic exactly:
     // Show 100% if GPA target is met or exceeded, regardless of completion status
-    if (currentGrade >= targetGPA) {
+    if (currentGrade >= targetGrade) {
       return 100;
     }
     
@@ -110,43 +110,48 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
             <Text style={styles.progressLabel}>Progress</Text>
           </View>
 
-          {/* GPA Goal Probability Section */}
-          <View style={styles.gpaGoalSection}>
-            <View style={styles.gpaGoalHeader}>
-              <View style={styles.gpaGoalHeaderLeft}>
-                <Text style={styles.gpaGoalIcon}>✓</Text>
-                <Text style={styles.gpaGoalTitle}>GPA Goal Probability</Text>
-              </View>
-            </View>
-            
-            <View style={styles.successProbabilitySection}>
-              <View style={styles.successProbabilityHeader}>
-                <Text style={styles.successProbabilityIcon}>🎯</Text>
-                <Text style={styles.successProbabilityLabel}>Success Probability</Text>
-              </View>
-              {successRate !== null && successRate !== undefined ? (
-                <View style={styles.successProbabilityBar}>
-                  <View style={[styles.successProbabilityFill, { width: `${Math.min(successRate, 100)}%`, backgroundColor: progressColor }]} />
-                  <Text style={styles.successProbabilityText}>{successRate.toFixed(0)}%</Text>
+          {/* GPA Goal Probability Section - Show if target grade is set OR if AI analysis exists */}
+          {(() => {
+            const shouldShow = (targetGrade && targetGrade > 0) || (aiAnalysis && (successRate !== null || bestPossibleGPA !== null));
+            return shouldShow;
+          })() ? (
+            <View style={styles.gpaGoalSection}>
+              <View style={styles.gpaGoalHeader}>
+                <View style={styles.gpaGoalHeaderLeft}>
+                  <Text style={styles.gpaGoalIcon}>✓</Text>
+                  <Text style={styles.gpaGoalTitle}>GPA Goal Probability</Text>
                 </View>
-              ) : (
-                <View style={styles.noAiAnalysisContainer}>
-                  <Text style={styles.noAiAnalysisText}>Get AI Analysis to determine the success rate</Text>
-                  <TouchableOpacity style={styles.getAiAnalysisButton} onPress={onSetGoal}>
-                    <Text style={styles.getAiAnalysisButtonText}>Get AI Analysis</Text>
-                  </TouchableOpacity>
+              </View>
+              
+              <View style={styles.successProbabilitySection}>
+                <View style={styles.successProbabilityHeader}>
+                  <Text style={styles.successProbabilityIcon}>🎯</Text>
+                  <Text style={styles.successProbabilityLabel}>Success Probability</Text>
                 </View>
-              )}
-            </View>
+                {successRate !== null && successRate !== undefined ? (
+                  <View style={styles.successProbabilityBar}>
+                    <View style={[styles.successProbabilityFill, { width: `${Math.min(successRate, 100)}%`, backgroundColor: progressColor }]} />
+                    <Text style={styles.successProbabilityText}>{successRate.toFixed(0)}%</Text>
+                  </View>
+                ) : (
+                  <View style={styles.noAiAnalysisContainer}>
+                    <Text style={styles.noAiAnalysisText}>Get AI Analysis to determine the success rate</Text>
+                    <TouchableOpacity style={styles.getAiAnalysisButton} onPress={onSetGoal}>
+                      <Text style={styles.getAiAnalysisButtonText}>Get AI Analysis</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
 
-            <View style={styles.bestPossibleSection}>
-              <Text style={styles.bestPossibleLabel}>Best Possible GPA</Text>
-              <Text style={styles.bestPossibleValue}>
-                {bestPossibleGPA ? bestPossibleGPA.toFixed(2) : (targetGrade ? (targetGrade / 25).toFixed(2) : '4.00')}
-              </Text>
-              <Text style={styles.bestPossibleSubtext}>With perfect performance on remaining assessments.</Text>
+              <View style={styles.bestPossibleSection}>
+                <Text style={styles.bestPossibleLabel}>Best Possible GPA</Text>
+                <Text style={styles.bestPossibleValue}>
+                  {bestPossibleGPA ? bestPossibleGPA.toFixed(2) : (targetGrade ? (targetGrade / 25).toFixed(2) : 'N/A')}
+                </Text>
+                <Text style={styles.bestPossibleSubtext}>With perfect performance on remaining assessments.</Text>
+              </View>
             </View>
-          </View>
+          ) : null}
 
           {/* GPA Stats Grid */}
           <View style={styles.gpaStatsGrid}>
@@ -160,14 +165,18 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
               <View style={styles.targetGpaIcon}>
                 <Text style={styles.targetGpaIconText}>G</Text>
               </View>
-              <Text style={styles.gpaStatValue}>{targetGrade ? (targetGrade / 25).toFixed(2) : '4.00'}</Text>
+              <Text style={styles.gpaStatValue}>{targetGrade ? targetGrade.toFixed(2) : 'N/A'}</Text>
               <Text style={styles.gpaStatLabel}>Target GPA</Text>
             </View>
             
             <View style={styles.gpaStatCard}>
               <Text style={styles.gpaStatIcon}>✓</Text>
-              <Text style={styles.gpaStatValue}>Need {(targetGrade ? (targetGrade / 25) - currentGrade : 4.00 - currentGrade).toFixed(2)} more GPA points</Text>
-              <Text style={styles.gpaStatSubtext}>to reach your target GPA of {targetGrade ? (targetGrade / 25).toFixed(2) : '4.00'}</Text>
+              <Text style={styles.gpaStatValue}>
+                {targetGrade ? `Need ${(targetGrade - currentGrade).toFixed(2)} more GPA points` : 'Set a target GPA first'}
+              </Text>
+              <Text style={styles.gpaStatSubtext}>
+                {targetGrade ? `to reach your target GPA of ${targetGrade.toFixed(2)}` : 'to track your progress'}
+              </Text>
             </View>
           </View>
         </View>
@@ -194,23 +203,23 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
         {targetGrade && (
           <View style={styles.goalDetails}>
             <View style={styles.goalItem}>
-              <Text style={styles.goalLabel}>Current Grade</Text>
+              <Text style={styles.goalLabel}>Current GPA</Text>
               <Text style={[styles.goalValue, { color: colors.blue[600] }]}>
-                {currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : '0.0'}%
+                {currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(2) : '0.00'}
               </Text>
             </View>
             
             <View style={styles.goalItem}>
-              <Text style={styles.goalLabel}>Target Grade</Text>
+              <Text style={styles.goalLabel}>Target GPA</Text>
               <Text style={[styles.goalValue, { color: colors.green[600] }]}>
-                {targetGrade !== null && targetGrade !== undefined ? targetGrade.toFixed(1) : '0.0'}%
+                {targetGrade !== null && targetGrade !== undefined ? targetGrade.toFixed(2) : '0.00'}
               </Text>
             </View>
             
             <View style={styles.goalItem}>
               <Text style={styles.goalLabel}>Gap to Close</Text>
               <Text style={[styles.goalValue, { color: colors.orange[600] }]}>
-                {targetGrade !== null && currentGrade !== null && targetGrade !== undefined && currentGrade !== undefined ? (targetGrade - currentGrade).toFixed(1) : '0.0'}%
+                {targetGrade !== null && currentGrade !== null && targetGrade !== undefined && currentGrade !== undefined ? (targetGrade - currentGrade).toFixed(2) : '0.00'}
               </Text>
             </View>
           </View>

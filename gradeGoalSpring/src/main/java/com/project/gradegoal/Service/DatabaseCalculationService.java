@@ -349,8 +349,8 @@ public class DatabaseCalculationService {
             } else {
                 // Insert new grade
                 String insertQuery = "INSERT INTO grades (assessment_id, points_earned, points_possible, " +
-                                   "percentage_score, score_type, notes, is_extra_credit, extra_credit_points, user_id) " +
-                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                                   "percentage_score, score_type, notes, is_extra_credit, extra_credit_points) " +
+                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 
                 entityManager.createNativeQuery(insertQuery)
@@ -362,7 +362,6 @@ public class DatabaseCalculationService {
                     .setParameter(6, notes)
                     .setParameter(7, isExtraCredit)
                     .setParameter(8, extraCreditPoints)
-                    .setParameter(9, userId)
                     .executeUpdate();
                 
                 // Update assessment status to COMPLETED when grade is added

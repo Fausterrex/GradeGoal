@@ -272,26 +272,18 @@ const AIAnalysisIndicator = ({
   // Calculate total assessments count based on goal type
   let totalAssessments = 0;
   let hasEnoughAssessments = false;
+  let isComingSoonGoal = false; // Flag for Semester GPA and Cumulative GPA goals
   
   if (targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA') {
-    // For cumulative GPA, count unique semesters from all available courses
-    const uniqueSemesters = new Set();
-    courses.forEach(course => {
-      if (course.semester && course.academicYear) {
-        uniqueSemesters.add(course.semester);
-      }
-    });
-    
-    totalAssessments = uniqueSemesters.size;
-    hasEnoughAssessments = uniqueSemesters.size >= 3; // Need at least 3 semesters with data
+    // For cumulative GPA goals - show "Coming Soon" message
+    isComingSoonGoal = true;
+    totalAssessments = 0;
+    hasEnoughAssessments = false;
   } else if (targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA') {
-    // For semester GPA, count courses for the current semester
-    const semesterCourses = courses.filter(course => 
-      course.semester === targetGrade.semester && 
-      course.academicYear === targetGrade.academicYear
-    );
-    totalAssessments = semesterCourses.length;
-    hasEnoughAssessments = semesterCourses.length >= 2; // Need at least 2 courses
+    // For semester GPA goals - show "Coming Soon" message
+    isComingSoonGoal = true;
+    totalAssessments = 0;
+    hasEnoughAssessments = false;
   } else {
     // For course goals, count individual assessments
     totalAssessments = categories.reduce((count, cat) => {
@@ -324,22 +316,22 @@ const AIAnalysisIndicator = ({
                <h3 className="text-lg font-semibold text-gray-900">
                  {!hasGoal || !hasEnoughAssessments
                    ? 'AI Analysis Requirements' 
-                   : hasExistingAnalysis 
-                     ? 'AI Analysis Available' 
-                     : 'AI Analysis Available'
+                   : 'AI Analysis Available'
                  }
                </h3>
                <p className="text-sm text-gray-600 mt-1">
-                 {isCourseCompleted
+                 {isComingSoonGoal
+                   ? targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA'
+                     ? 'AI Analysis features for Cumulative GPA Goals are coming soon! Stay tuned for personalized insights and recommendations.'
+                     : targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA'
+                     ? 'AI Analysis features for Semester GPA Goals are coming soon! Stay tuned for personalized insights and recommendations.'
+                     : 'AI Analysis features for this goal type are coming soon!'
+                   : isCourseCompleted
                    ? 'Course has been completed. AI analysis is no longer available.'
                    : !hasGoal
                    ? 'Set a goal first to enable AI analysis.'
                    : !hasEnoughAssessments 
-                     ? targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA'
-                       ? `You need at least 3 semesters with course data for cumulative GPA analysis. Currently have ${totalAssessments} semester${totalAssessments !== 1 ? 's' : ''} with data.`
-                       : targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA'
-                       ? `You need at least 2 courses for semester GPA analysis. Currently have ${totalAssessments} course${totalAssessments !== 1 ? 's' : ''}.`
-                       : `You need at least 2 assessments to analyze student performance. Currently have ${totalAssessments} assessment${totalAssessments !== 1 ? 's' : ''}.`
+                     ? `You need at least 2 assessments to analyze student performance. Currently have ${totalAssessments} assessment${totalAssessments !== 1 ? 's' : ''}.`
                      : hasExistingAnalysis 
                        ? 'Update your AI analysis with latest course data and performance insights.'
                        : 'Get personalized AI insights and recommendations for your academic performance.'
@@ -351,10 +343,10 @@ const AIAnalysisIndicator = ({
           <div className="flex-shrink-0">
              <button
                onClick={handleAnalysisClick}
-               disabled={isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted}
+               disabled={isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted || isComingSoonGoal}
                className={`
                  inline-flex items-center px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
-                 ${isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted
+                 ${isAnalyzing || !hasEnoughAssessments || !hasGoal || isCourseCompleted || isComingSoonGoal
                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                    : hasExistingAnalysis
                      ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg'
@@ -362,7 +354,12 @@ const AIAnalysisIndicator = ({
                  }
                `}
              >
-               {isAnalyzing ? (
+               {isComingSoonGoal ? (
+                 <>
+                   <FaRobot className="w-4 h-4 mr-2" />
+                   Coming Soon
+                 </>
+               ) : isAnalyzing ? (
                  <>
                    <FaSpinner className="w-4 h-4 mr-2 animate-spin" />
                    Analyzing...
@@ -392,8 +389,23 @@ const AIAnalysisIndicator = ({
           </div>
         </div>
         
+        {/* Coming Soon Indicator for Semester GPA and Cumulative GPA Goals */}
+        {isComingSoonGoal && (
+          <div className="mt-3 text-center">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+              <FaRobot className="w-3 h-3 mr-1" />
+              {targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA'
+                ? 'AI Analysis for Cumulative GPA Goals coming soon!'
+                : targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'SEMESTER_GPA'
+                ? 'AI Analysis for Semester GPA Goals coming soon!'
+                : 'AI Analysis for this goal type coming soon!'
+              }
+            </div>
+          </div>
+        )}
+        
         {/* Goal Requirement Indicator */}
-        {!hasGoal && (
+        {!hasGoal && !isComingSoonGoal && (
           <div className="mt-3 text-center">
             <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
               <FaExclamationTriangle className="w-3 h-3 mr-1" />
@@ -403,14 +415,11 @@ const AIAnalysisIndicator = ({
         )}
         
         {/* Assessment Requirement Indicator */}
-        {hasGoal && !hasEnoughAssessments && (
+        {hasGoal && !hasEnoughAssessments && !isComingSoonGoal && (
           <div className="mt-3 text-center">
             <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
               <FaExclamationTriangle className="w-3 h-3 mr-1" />
-              {targetGrade && typeof targetGrade === 'object' && targetGrade.goalType === 'CUMMULATIVE_GPA' 
-                ? `Need at least 3 semesters with course data for AI analysis (currently have ${totalAssessments})`
-                : `Need at least 2 assessments for AI analysis (currently have ${totalAssessments})`
-              }
+              Need at least 2 assessments for AI analysis (currently have {totalAssessments})
             </div>
           </div>
         )}

@@ -55,12 +55,18 @@ export const CourseDetailsScreen: React.FC<CourseDetailsScreenProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Load grades and categories in parallel
-      const [gradesData, categoriesData] = await Promise.all([
+      // Load course, grades and categories in parallel
+      const [courseData, gradesData, categoriesData] = await Promise.all([
+        CourseService.getCourseById(course.id).catch(() => null),
         CourseService.getGradesByCourseId(course.id).catch(() => []),
         CourseService.getCourseCategories(course.id).catch(() => []),
       ]);
 
+      // Update course data if fetched successfully
+      if (courseData) {
+        setCourse(courseData);
+      }
+      
       setGrades(gradesData || []);
       setCategories(categoriesData || []);
       
@@ -76,8 +82,13 @@ export const CourseDetailsScreen: React.FC<CourseDetailsScreenProps> = ({
     navigation.goBack();
   };
 
-  const handleCourseUpdate = (updatedCourse: any) => {
-    setCourse(updatedCourse);
+  const handleCourseUpdate = (updatedCourse?: any) => {
+    if (updatedCourse) {
+      setCourse(updatedCourse);
+    } else {
+      // Refresh course data from backend
+      loadCourseData();
+    }
   };
 
   const handleGradeUpdate = () => {
@@ -180,6 +191,7 @@ export const CourseDetailsScreen: React.FC<CourseDetailsScreenProps> = ({
               categories={categories}
               userId={currentUser?.userId}
               onGradeUpdate={handleGradeUpdate}
+              onCourseUpdate={handleCourseUpdate}
             />
           )}
         </View>

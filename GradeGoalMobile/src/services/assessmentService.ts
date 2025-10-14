@@ -4,9 +4,7 @@ export class AssessmentService {
   // Create a new assessment
   static async createAssessment(assessmentData: any) {
     try {
-      console.log('Creating assessment with data:', assessmentData);
-      const response = await apiClient.post('/grades', assessmentData);
-      console.log('Assessment created successfully:', response.data);
+      const response = await apiClient.post('/assessments', assessmentData);
       return response.data;
     } catch (error) {
       console.error('Error creating assessment:', error);
@@ -17,9 +15,7 @@ export class AssessmentService {
   // Update an existing assessment
   static async updateAssessment(assessmentId: number, assessmentData: any) {
     try {
-      console.log('Updating assessment with data:', assessmentData);
-      const response = await apiClient.put(`/grades/${assessmentId}`, assessmentData);
-      console.log('Assessment updated successfully:', response.data);
+      const response = await apiClient.put(`/assessments/${assessmentId}`, assessmentData);
       return response.data;
     } catch (error) {
       console.error('Error updating assessment:', error);

@@ -406,20 +406,63 @@ const calculateSemesterGPAProgress = async (goal: any, courses: any[], grades: a
     }
 
     // Fallback: Calculate from courses for the specific semester
-    let currentSemesterCourses = courses.filter(course => 
-      course.isActive !== false &&
-      course.semester === goal.semester &&
-      course.academicYear === goal.academicYear
-    );
+    let currentSemesterCourses = courses.filter(course => {
+      if (course.isActive === false) return false;
+      if (course.semester !== goal.semester) return false;
+      
+      // Handle academic year format mismatch
+      // Goal format: "2025-2026", Course format: "2025"
+      const courseAcademicYear = course.academicYear;
+      const goalAcademicYear = goal.academicYear;
+      
+      // Direct match
+      if (courseAcademicYear === goalAcademicYear) return true;
+      
+      // Handle year range format (e.g., "2025-2026" vs "2025")
+      if (goalAcademicYear && goalAcademicYear.includes('-')) {
+        const goalStartYear = goalAcademicYear.split('-')[0];
+        if (courseAcademicYear === goalStartYear) return true;
+      }
+      
+      // Handle single year format (e.g., "2025" vs "2025-2026")
+      if (courseAcademicYear && !courseAcademicYear.includes('-') && goalAcademicYear && goalAcademicYear.includes('-')) {
+        const goalStartYear = goalAcademicYear.split('-')[0];
+        if (courseAcademicYear === goalStartYear) return true;
+      }
+      
+      return false;
+    });
+    
     // If no courses found with specific semester/year, try fallback logic
     if (currentSemesterCourses.length === 0) {
       // If goal has specific semester, only fallback to FIRST semester if goal is for FIRST semester
       if (goal.semester === 'FIRST') {
         // Try to find courses from the FIRST semester as fallback for FIRST semester goals
-        currentSemesterCourses = courses.filter(course => 
-          course.isActive !== false &&
-          (course.semester === 'FIRST' || course.semester === 'FIRST_SEMESTER' || course.semester === 1)
-        );
+        currentSemesterCourses = courses.filter(course => {
+          if (course.isActive === false) return false;
+          if (!(course.semester === 'FIRST' || course.semester === 'FIRST_SEMESTER' || course.semester === 1)) return false;
+          
+          // Also check academic year format for fallback
+          const courseAcademicYear = course.academicYear;
+          const goalAcademicYear = goal.academicYear;
+          
+          // Direct match
+          if (courseAcademicYear === goalAcademicYear) return true;
+          
+          // Handle year range format (e.g., "2025-2026" vs "2025")
+          if (goalAcademicYear && goalAcademicYear.includes('-')) {
+            const goalStartYear = goalAcademicYear.split('-')[0];
+            if (courseAcademicYear === goalStartYear) return true;
+          }
+          
+          // Handle single year format (e.g., "2025" vs "2025-2026")
+          if (courseAcademicYear && !courseAcademicYear.includes('-') && goalAcademicYear && goalAcademicYear.includes('-')) {
+            const goalStartYear = goalAcademicYear.split('-')[0];
+            if (courseAcademicYear === goalStartYear) return true;
+          }
+          
+          return false;
+        });
       } else if (!goal.semester || !goal.academicYear) {
         // If goal doesn't have specific semester/year (legacy goals), fallback to FIRST semester courses
         currentSemesterCourses = courses.filter(course => 
