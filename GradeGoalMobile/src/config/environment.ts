@@ -34,7 +34,7 @@ const ENV = {
   ENABLE_CRASH_REPORTING: ENABLE_CRASH_REPORTING === 'true',
   MAX_RETRY_ATTEMPTS: parseInt(MAX_RETRY_ATTEMPTS || '3'),
   RETRY_DELAY: parseInt(RETRY_DELAY || '1000'),
-  ANDROID_API_URL: ANDROID_API_URL || 'http://10.0.2.2:8080/api',
+  ANDROID_API_URL: ANDROID_API_URL || 'http://192.168.18.10:8080/api',
   IOS_API_URL: IOS_API_URL || 'http://localhost:8080/api',
   WEB_API_URL: WEB_API_URL || 'http://localhost:8080/api',
 };

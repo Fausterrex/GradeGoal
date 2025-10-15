@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  RefreshControl,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +19,6 @@ export const GoalsScreen: React.FC = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [grades, setGrades] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load data on component mount
@@ -47,7 +45,7 @@ export const GoalsScreen: React.FC = () => {
 
       // Fetch courses data
       const coursesData = await DashboardService.getCoursesByUserId(userId).catch(err => {
-        console.warn('❌ Failed to fetch courses:', err);
+        console.warn('Failed to fetch courses:', err);
         return [];
       });
 
@@ -67,7 +65,7 @@ export const GoalsScreen: React.FC = () => {
             categories: courseCategories
           };
         } catch (error) {
-          console.warn(`❌ Failed to load data for course ${course.id}:`, error);
+          console.warn(`Failed to load data for course ${course.id}:`, error);
           return { 
             courseId: course.id || course.courseId, 
             grades: [],
@@ -105,16 +103,6 @@ export const GoalsScreen: React.FC = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await loadData();
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   if (isLoading) {
     return (

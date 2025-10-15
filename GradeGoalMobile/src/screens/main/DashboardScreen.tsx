@@ -23,7 +23,7 @@ import { CourseService } from '../../services/courseService';
 import { getGoalsByUserId } from '../../services/goalsService';
 
 export const DashboardScreen: React.FC = () => {
-  const { currentUser, streakData } = useAuth();
+  const { currentUser, streakData, updateStreak } = useAuth();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
@@ -59,19 +59,19 @@ export const DashboardScreen: React.FC = () => {
       // Fetch all data in parallel
       const [coursesData, progressData, semesterGPAs, goalsData] = await Promise.all([
         DashboardService.getCoursesByUserId(userId).catch(err => {
-          console.warn('❌ Failed to fetch courses:', err);
+          console.warn('Failed to fetch courses:', err);
           return [];
         }),
         DashboardService.getUserProgress(userId).catch(err => {
-          console.warn('❌ Failed to fetch progress:', err);
+          console.warn('Failed to fetch progress:', err);
           return {};
         }),
         DashboardService.getAllSemesterGPAs(userId).catch(err => {
-          console.warn('❌ Failed to fetch semester GPAs:', err);
+          console.warn('Failed to fetch semester GPAs:', err);
           return null;
         }),
         getGoalsByUserId(userId).catch((err: any) => {
-          console.warn('❌ Failed to fetch goals:', err);
+          console.warn('Failed to fetch goals:', err);
           return [];
         }),
       ]);
@@ -116,7 +116,7 @@ export const DashboardScreen: React.FC = () => {
             categories: courseCategories
           };
         } catch (error) {
-          console.warn(`❌ Failed to load data for course ${course.id}:`, error);
+          console.warn(`Failed to load data for course ${course.id}:`, error);
           return { 
             courseId: course.id || course.courseId, 
             grades: [],
@@ -172,6 +172,10 @@ export const DashboardScreen: React.FC = () => {
     setRefreshing(true);
     try {
       await loadRealData();
+      // Also refresh streak data
+      if (updateStreak) {
+        await updateStreak();
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {

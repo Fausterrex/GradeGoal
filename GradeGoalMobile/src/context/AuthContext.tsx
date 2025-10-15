@@ -41,6 +41,10 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       // Update streak when user changes
       if (user?.userId) {
         updateStreak();
+        // Also update streak after a short delay to ensure network is ready
+        setTimeout(() => {
+          updateStreak();
+        }, 2000);
       } else {
         setStreakData(null);
       }

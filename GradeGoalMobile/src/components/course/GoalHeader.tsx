@@ -9,13 +9,11 @@ import { colors } from '../../styles/colors';
 
 interface GoalHeaderProps {
   onAddGoal: () => void;
-  onRefresh?: () => void;
   isCompact?: boolean;
 }
 
 export const GoalHeader: React.FC<GoalHeaderProps> = ({
   onAddGoal,
-  onRefresh,
   isCompact = false
 }) => {
   return (
@@ -25,14 +23,6 @@ export const GoalHeader: React.FC<GoalHeaderProps> = ({
       </Text>
       {!isCompact && (
         <View style={styles.buttonContainer}>
-          {onRefresh && (
-            <TouchableOpacity
-              onPress={onRefresh}
-              style={[styles.button, styles.refreshButton]}
-            >
-              <Text style={styles.buttonText}>↻ Refresh</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
             onPress={onAddGoal}
             style={[styles.button, styles.addButton]}
@@ -71,9 +61,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  refreshButton: {
-    backgroundColor: colors.gray[500],
   },
   addButton: {
     backgroundColor: colors.purple[600],

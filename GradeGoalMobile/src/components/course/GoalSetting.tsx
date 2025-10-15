@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   Alert,
-  RefreshControl,
 } from 'react-native';
 import { GoalHeader } from './GoalHeader';
 import { GoalFilter } from './GoalFilter';
@@ -40,7 +39,6 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
 
@@ -277,20 +275,6 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({
     setActiveFilters(filters);
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      if (user?.userId) {
-        const goalsData = await getGoalsByUserId(user.userId);
-        setGoals(goalsData);
-      }
-    } catch (error) {
-      console.error('Error refreshing goals:', error);
-      Alert.alert('Error', 'Failed to refresh goals. Please try again.');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const renderGoalCard = ({ item }: { item: any }) => (
     <GoalCard
@@ -329,7 +313,6 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({
       {/* Header */}
       <GoalHeader 
         onAddGoal={handleAddGoal}
-        onRefresh={handleRefresh}
         isCompact={isCompact}
       />
 
@@ -348,14 +331,6 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({
         renderItem={renderGoalCard}
         keyExtractor={(item) => item.goalId.toString()}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.purple[600]]}
-            tintColor={colors.purple[600]}
-          />
-        }
         ListEmptyComponent={renderEmptyState}
         contentContainerStyle={filteredGoals.length === 0 ? styles.emptyListContainer : undefined}
       />

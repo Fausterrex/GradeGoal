@@ -171,18 +171,11 @@ export const AssessmentModal: React.FC<AssessmentModalProps> = ({
         semesterTerm: formData.semesterTerm,
       };
 
-      console.log('Submitting assessment data:', assessmentData);
-      console.log('Course ID:', course.id);
-      console.log('Assessment ID (if editing):', assessment?.id);
-
       if (assessment) {
-        console.log('Updating existing assessment...');
         await AssessmentService.updateAssessment(assessment.id, assessmentData);
         Alert.alert('Success', 'Assessment updated successfully!');
       } else {
-        console.log('Creating new assessment...');
-        const result = await AssessmentService.createAssessment(assessmentData);
-        console.log('Assessment creation result:', result);
+        await AssessmentService.createAssessment(assessmentData);
         Alert.alert('Success', 'Assessment created successfully!');
         
       }

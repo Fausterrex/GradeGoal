@@ -49,7 +49,7 @@ import { apiClient } from '../../services/apiClient';
         return null;
       }
     } catch (error) {
-      console.warn('❌ Failed to fetch AI analysis:', error);
+      console.warn('Failed to fetch AI analysis:', error);
       return null;
     }
   };
@@ -413,7 +413,7 @@ export const GoalsOverview: React.FC<GoalsOverviewProps> = ({
                 successRate = null;
               }
             } catch (aiError) {
-              console.warn('❌ Error fetching AI analysis, will show "Get AI Analysis" message:', aiError);
+              console.warn('Error fetching AI analysis, will show "Get AI Analysis" message:', aiError);
               // No AI analysis available - set to null to show "Get AI Analysis" message
               successRate = null;
             }

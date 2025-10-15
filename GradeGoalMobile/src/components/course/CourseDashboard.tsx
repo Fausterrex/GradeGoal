@@ -65,7 +65,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
   const loadDashboardData = async () => {
     try {
       if (!userId || !course) {
-        console.warn('❌ [DEBUG] Missing userId or course data:', { userId, course: course?.id || course?.courseId });
         return;
       }
 
@@ -167,7 +166,7 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           });
         }
       } catch (error) {
-        console.warn('⚠️ [DEBUG] Failed to load user progress, using local data:', error);
+        console.warn('Failed to load user progress, using local data:', error);
         setUserProgress({
           totalAssessments: grades.length,
           completedAssessments: grades.filter(g => g.score !== null).length,
@@ -188,7 +187,7 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           const analyticsData = await getCourseAnalytics(userId, course.id || course.courseId);
           setUserAnalytics(analyticsData);
         } catch (error) {
-          console.warn('⚠️ [DEBUG] Failed to load course analytics, using empty data:', error);
+          console.warn('Failed to load course analytics, using empty data:', error);
           setUserAnalytics([]);
         }
       } else {
@@ -203,7 +202,7 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
         try {
           await loadExistingAIAnalysis();
         } catch (error) {
-          console.warn('⚠️ [DEBUG] Failed to load AI analysis, continuing without it:', error);
+          console.warn('Failed to load AI analysis, continuing without it:', error);
         }
       } else {
         // Clear any existing AI analysis data
@@ -227,7 +226,6 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
   const loadExistingAIAnalysis = async () => {
     try {
       if (!userId || !course) {
-        console.warn('❌ [DEBUG] Missing userId or course in loadExistingAIAnalysis:', { userId, course: course?.id || course?.courseId });
         return;
       }
 

@@ -4,7 +4,7 @@
     "slug": "GradeGoalMobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logoGG.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "gradegoal",
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logoGG.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -44,6 +44,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
+    }
   }
 }
