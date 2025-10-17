@@ -55,7 +55,6 @@ public class UserService {
                     loginStreakService.updateLoginStreak(user.getUserId());
                 } catch (Exception e) {
                     // Log error but don't fail authentication
-                    System.err.println("Failed to update login streak for user " + user.getUserId() + ": " + e.getMessage());
                 }
                 return user;
             }

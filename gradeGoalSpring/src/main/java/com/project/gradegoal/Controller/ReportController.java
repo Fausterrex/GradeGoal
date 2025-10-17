@@ -38,7 +38,6 @@ public class ReportController {
             return ResponseEntity.ok(summary);
 
         } catch (Exception e) {
-            e.printStackTrace();
             summary.put("error", e.getMessage());
             return ResponseEntity.internalServerError().body(summary);
         }

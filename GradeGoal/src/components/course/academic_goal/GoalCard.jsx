@@ -13,6 +13,7 @@ import { getAssessmentCategoriesByCourseId, checkAIAnalysisExists } from "../../
 import { getAchievementProbability, getAchievementProbabilityFromData, loadAIAnalysisForCourse } from "../../ai/services/aiAnalysisService";
 import { useAuth } from "../../context/AuthContext";
 import { getUserProfile } from "../../../backend/api";
+
 const GoalCard = ({
   goal,
   courses,

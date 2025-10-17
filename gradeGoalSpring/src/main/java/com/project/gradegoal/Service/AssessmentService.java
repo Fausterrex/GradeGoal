@@ -306,36 +306,24 @@ public class AssessmentService {
         try {
             // Find all analytics records for this user and course
             List<UserAnalytics> analyticsRecords = userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
-            System.out.println("🔍 Found " + analyticsRecords.size() + " analytics records for User: " + userId + ", Course: " + courseId);
             
             // Delete all analytics records for this course to force recalculation
             int deletedCount = 0;
             for (UserAnalytics analytics : analyticsRecords) {
-                System.out.println("🔍 Analytics record - Completed: " + analytics.getAssignmentsCompleted() + 
-                                 ", Pending: " + analytics.getAssignmentsPending() + 
-                                 ", Current Grade: " + analytics.getCurrentGrade() + 
-                                 ", Date: " + analytics.getAnalyticsDate());
-                
+                System.out.println("🗑️ Deleted analytics record with ID: " + analytics.getAnalyticsId());
                 userAnalyticsRepository.delete(analytics);
                 deletedCount++;
-                System.out.println("🗑️ Deleted analytics record with ID: " + analytics.getAnalyticsId());
             }
-            
             System.out.println("✅ Cleaned up " + deletedCount + " user analytics records for assessment deletion - User: " + userId + ", Course: " + courseId);
+            
             
             // Immediately regenerate analytics for all remaining assessments
             try {
-                System.out.println("🔄 Regenerating analytics for remaining assessments...");
                 regenerateAnalyticsForCourse(userId, courseId);
-                System.out.println("✅ Analytics regeneration completed");
             } catch (Exception e) {
-                System.err.println("⚠️ Failed to regenerate analytics: " + e.getMessage());
-                e.printStackTrace();
             }
             
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to cleanup user analytics for assessment deletion: " + e.getMessage());
-            e.printStackTrace();
             // Don't throw exception - assessment deletion should still proceed
         }
     }
@@ -357,7 +345,6 @@ public class AssessmentService {
             // Get all assessments for these categories
             List<Assessment> assessments = assessmentRepository.findByCategoryIdIn(categoryIds);
             
-            System.out.println("🔍 Found " + assessments.size() + " assessments for course " + courseId);
             
             // Filter assessments to only include those with actual scores (grades)
             List<Assessment> assessmentsWithScores = assessments.stream()
@@ -370,22 +357,18 @@ public class AssessmentService {
                 })
                 .collect(Collectors.toList());
             
-            System.out.println("🔍 Found " + assessmentsWithScores.size() + " assessments with scores for course " + courseId);
             
             // If no assessments have scores, don't create any analytics records
             if (assessmentsWithScores.isEmpty()) {
-                System.out.println("📊 No assessments with scores found - skipping analytics creation");
                 return;
             }
             
             // Get existing analytics for this course
             List<UserAnalytics> existingAnalytics = userAnalyticsRepository.findByUserIdAndCourseId(userId, courseId);
-            System.out.println("🔍 Found " + existingAnalytics.size() + " existing analytics records");
             
             // Get the course to get semester info
             Optional<Course> courseOpt = courseRepository.findById(courseId);
             if (!courseOpt.isPresent()) {
-                System.err.println("⚠️ Course not found: " + courseId);
                 return;
             }
             
@@ -406,7 +389,6 @@ public class AssessmentService {
             // Check if we should update existing analytics or create new ones
             if (existingAnalytics.isEmpty()) {
                 // No existing analytics - create one record per assessment
-                System.out.println("📊 No existing analytics found - creating new records for each assessment");
                 
                 for (Assessment assessment : assessmentsWithScores) {
                     try {
@@ -416,23 +398,18 @@ public class AssessmentService {
                         System.out.println("✅ Created analytics record for assessment: " + assessment.getAssessmentName() + 
                                          " (Due: " + assessment.getDueDate() + ", GPA: " + assessmentGPA + ")");
                     } catch (Exception e) {
-                        System.err.println("⚠️ Failed to create analytics for assessment " + assessment.getAssessmentName() + ": " + e.getMessage());
-                        e.printStackTrace();
                     }
                 }
             } else {
                 // Update existing analytics instead of creating new ones
-                System.out.println("📊 Updating existing analytics records instead of creating duplicates");
                 
                 // Check if we need to adjust the number of analytics records
                 int targetAnalyticsCount = assessmentsWithScores.size();
                 int currentAnalyticsCount = existingAnalytics.size();
                 
-                System.out.println("📊 Target analytics count: " + targetAnalyticsCount + ", Current analytics count: " + currentAnalyticsCount);
                 
                 if (currentAnalyticsCount > targetAnalyticsCount) {
                     // We have more analytics records than assessments - delete excess ones
-                    System.out.println("📊 Deleting " + (currentAnalyticsCount - targetAnalyticsCount) + " excess analytics records");
                     
                     // Sort by calculatedAt descending and delete the oldest ones
                     existingAnalytics.sort((a, b) -> b.getCalculatedAt().compareTo(a.getCalculatedAt()));
@@ -440,7 +417,6 @@ public class AssessmentService {
                     for (int i = targetAnalyticsCount; i < currentAnalyticsCount; i++) {
                         UserAnalytics analyticsToDelete = existingAnalytics.get(i);
                         userAnalyticsRepository.delete(analyticsToDelete);
-                        System.out.println("🗑️ Deleted excess analytics record with ID: " + analyticsToDelete.getAnalyticsId());
                     }
                     
                     // Update the remaining analytics records
@@ -468,12 +444,10 @@ public class AssessmentService {
                         analytics.setPerformanceMetrics(performanceMetrics);
                         
                         userAnalyticsRepository.save(analytics);
-                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
                     }
                     
                 } else if (currentAnalyticsCount < targetAnalyticsCount) {
                     // We have fewer analytics records than assessments - create additional ones
-                    System.out.println("📊 Creating " + (targetAnalyticsCount - currentAnalyticsCount) + " additional analytics records");
                     
                     // Update existing analytics records first
                     for (int i = 0; i < currentAnalyticsCount; i++) {
@@ -500,7 +474,6 @@ public class AssessmentService {
                         analytics.setPerformanceMetrics(performanceMetrics);
                         
                         userAnalyticsRepository.save(analytics);
-                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
                     }
                     
                     // Create additional analytics records for new assessments
@@ -512,14 +485,11 @@ public class AssessmentService {
                             BigDecimal assessmentGPA = calculateAssessmentGPA(assessment);
                             System.out.println("✅ Created additional analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
                         } catch (Exception e) {
-                            System.err.println("⚠️ Failed to create additional analytics for assessment " + assessment.getAssessmentName() + ": " + e.getMessage());
-                            e.printStackTrace();
                         }
                     }
                     
                 } else {
                     // Perfect match - just update existing analytics records
-                    System.out.println("📊 Perfect match - updating existing analytics records");
                     
                     for (int i = 0; i < currentAnalyticsCount; i++) {
                         UserAnalytics analytics = existingAnalytics.get(i);
@@ -545,14 +515,11 @@ public class AssessmentService {
                         analytics.setPerformanceMetrics(performanceMetrics);
                         
                         userAnalyticsRepository.save(analytics);
-                        System.out.println("✅ Updated analytics record for assessment: " + assessment.getAssessmentName() + " (GPA: " + assessmentGPA + ")");
                     }
                 }
             }
             
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to regenerate analytics for course: " + e.getMessage());
-            e.printStackTrace();
         }
     }
     
@@ -610,7 +577,6 @@ public class AssessmentService {
             return BigDecimal.valueOf(totalPercentage / 25.0).setScale(2, RoundingMode.HALF_UP);
             
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to calculate assessment GPA: " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -634,7 +600,6 @@ public class AssessmentService {
             return BigDecimal.valueOf(averagePercentage).setScale(1, RoundingMode.HALF_UP);
             
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to calculate assessment grade: " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }

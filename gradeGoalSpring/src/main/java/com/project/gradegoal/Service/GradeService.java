@@ -186,7 +186,6 @@ public class GradeService {
 
             return savedGrade;
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("Failed to update grade from frontend: " + e.getMessage(), e);
         }
     }
@@ -217,10 +216,8 @@ public class GradeService {
                             assessment.setStatus(Assessment.AssessmentStatus.valueOf(newStatus));
                             assessmentService.updateAssessment(assessment);
                             
-                            System.out.println("✅ Updated assessment " + assessmentId + " status to " + newStatus + " after grade deletion");
                         }
                     } catch (Exception e) {
-                        System.err.println("⚠️ Failed to update assessment status after grade deletion: " + e.getMessage());
                         // Don't fail the entire operation if status update fails
                     }
                 }

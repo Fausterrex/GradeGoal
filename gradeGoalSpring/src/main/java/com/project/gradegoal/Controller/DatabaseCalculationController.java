@@ -162,10 +162,8 @@ public class DatabaseCalculationController {
     @PostMapping("/grade/add-update")
     public ResponseEntity<Map<String, Object>> addOrUpdateGrade(@RequestBody Map<String, Object> request) {
         try {
-            System.out.println("🔍 Received grade data: " + request);
             
             if (request == null) {
-                System.err.println("❌ Request body is null");
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Request body is required");
                 errorResponse.put("success", false);
@@ -175,10 +173,6 @@ public class DatabaseCalculationController {
             // Validate required fields
             if (request.get("assessmentId") == null || request.get("pointsEarned") == null || 
                 request.get("pointsPossible") == null || request.get("percentageScore") == null) {
-                System.err.println("❌ Missing required fields - assessmentId: " + request.get("assessmentId") + 
-                                 ", pointsEarned: " + request.get("pointsEarned") + 
-                                 ", pointsPossible: " + request.get("pointsPossible") + 
-                                 ", percentageScore: " + request.get("percentageScore"));
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Required fields: assessmentId, pointsEarned, pointsPossible, percentageScore");
                 errorResponse.put("success", false);
@@ -202,7 +196,6 @@ public class DatabaseCalculationController {
             );
 
             // Check if result contains course ID for analytics update
-            System.out.println("🔍 Grade add/update result: " + result);
             String[] resultParts = result.split("\\|");
             String message = resultParts[0];
             Long courseId = null;
@@ -210,10 +203,8 @@ public class DatabaseCalculationController {
             if (resultParts.length > 1 && !resultParts[1].isEmpty()) {
                 try {
                     courseId = Long.valueOf(resultParts[1]);
-                    System.out.println("🎯 Extracted course ID: " + courseId);
                     // Update course grades in a separate transaction to avoid rollback issues
                     databaseCalculationService.updateCourseGrades(courseId);
-                    System.out.println("✅ Course grades updated for course " + courseId);
                     
                     // Update user progress GPAs after course grades are updated
                     try {
@@ -221,18 +212,13 @@ public class DatabaseCalculationController {
                         Long userId = databaseCalculationService.getUserIdFromCourse(courseId);
                         if (userId != null) {
                             databaseCalculationService.updateUserProgressGPAs(userId);
-                            System.out.println("✅ User progress GPAs updated for user " + userId);
                         }
                     } catch (Exception e) {
-                        System.err.println("⚠️ Failed to update user progress GPAs: " + e.getMessage());
                         // Don't fail the entire operation if GPA update fails
                     }
                 } catch (NumberFormatException e) {
-                    System.err.println("❌ Failed to parse course ID from result: " + result);
-                    e.printStackTrace();
                 }
             } else {
-                System.err.println("❌ No course ID found in result: " + result);
             }
 
             Map<String, Object> response = new HashMap<>();
@@ -434,25 +420,21 @@ public class DatabaseCalculationController {
     @PostMapping("/course/{courseId}/calculate-and-save")
     public ResponseEntity<Map<String, Object>> calculateAndSaveCourseGrade(@PathVariable Long courseId) {
         try {
-            System.out.println("🔢 Starting calculation and save for course ID: " + courseId);
             
             // Calculate the course grade using database function
             BigDecimal courseGrade = databaseCalculationService.calculateCourseGrade(courseId);
             BigDecimal gpa = databaseCalculationService.calculateGPA(courseGrade);
             
-            System.out.println("📊 Calculated values - Grade: " + courseGrade + "%, GPA: " + gpa);
             
             // Save the calculated values to the courses table in a single transaction
             Course updatedCourse = courseService.updateCalculatedGradeAndGpa(courseId, courseGrade, gpa);
-            
             System.out.println("💾 Save result: " + (updatedCourse != null ? "SUCCESS" : "FAILED"));
+            
             
             // Verify the values were actually saved by reading them back
             Optional<Course> verificationCourse = courseService.getCourseById(courseId);
             if (verificationCourse.isPresent()) {
                 Course course = verificationCourse.get();
-                System.out.println("✅ Verification - Stored Grade: " + course.getCalculatedCourseGrade() + 
-                                 ", Stored GPA: " + course.getCourseGpa());
                                  
             // Check for goal achievements after GPA update
             // Note: Analytics are already updated by UpdateCourseGrades stored procedure
@@ -460,10 +442,8 @@ public class DatabaseCalculationController {
                 Long userId = course.getUserId();
                 if (userId != null) {
                     databaseCalculationService.checkGoalProgress(userId);
-                    System.out.println("🎯 Goal progress checked for user " + userId);
                 }
             } catch (Exception goalError) {
-                System.err.println("Failed to check goal progress after course calculation: " + goalError.getMessage());
             }
             }
             
@@ -476,8 +456,6 @@ public class DatabaseCalculationController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("❌ Error in calculateAndSaveCourseGrade: " + e.getMessage());
-            e.printStackTrace();
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to calculate and save course grade: " + e.getMessage());
@@ -604,26 +582,21 @@ public class DatabaseCalculationController {
             @PathVariable Long courseId,
             @RequestParam(required = false) String semester) {
         try {
-            System.out.println("🔍 [DatabaseCalculationController] Fetching analytics for user: " + userId + ", course: " + courseId + ", semester: " + semester);
             
             List<UserAnalytics> analyticsList;
             
             if (semester != null && !semester.isEmpty()) {
                 // Filter by semester if provided
                 analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdAndSemesterOrderByAnalyticsDateDesc(userId, courseId, semester);
-                System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records for semester: " + semester);
             } else {
                 // Get all analytics records for this user and course, ordered by date
                 analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
-                System.out.println("📊 [DatabaseCalculationController] Found " + analyticsList.size() + " analytics records");
             }
             
             if (analyticsList.isEmpty()) {
-                System.out.println("⚠️ [DatabaseCalculationController] No analytics found, triggering recalculation");
                 
                 // Try to trigger analytics recalculation by updating course grades
                 try {
-                    System.out.println("🔄 [DatabaseCalculationController] Triggering analytics recalculation for course: " + courseId);
                     databaseCalculationService.updateCourseGrades(courseId);
                     
                     // Fetch analytics again after recalculation
@@ -633,31 +606,17 @@ public class DatabaseCalculationController {
                         analyticsList = userAnalyticsRepository.findByUserIdAndCourseIdOrderByAnalyticsDateDesc(userId, courseId);
                     }
                     
-                    System.out.println("📊 [DatabaseCalculationController] After recalculation, found " + analyticsList.size() + " analytics records");
                 } catch (Exception e) {
-                    System.err.println("⚠️ [DatabaseCalculationController] Failed to trigger analytics recalculation: " + e.getMessage());
                 }
                 
                 // Return whatever we have (empty or recalculated)
                 return ResponseEntity.ok(analyticsList);
             }
             
-            // Log the analytics data for debugging
-            analyticsList.forEach(analytics -> {
-                System.out.println("📊 [DatabaseCalculationController] Analytics: " + 
-                    "id=" + analytics.getAnalyticsId() + 
-                    ", date=" + analytics.getAnalyticsDate() + 
-                    ", current_grade=" + analytics.getCurrentGrade() + 
-                    ", grade_trend=" + analytics.getGradeTrend() + 
-                    ", assignments_completed=" + analytics.getAssignmentsCompleted() +
-                    ", semester=" + analytics.getSemester());
-            });
             
             return ResponseEntity.ok(analyticsList);
             
         } catch (Exception e) {
-            System.err.println("❌ [DatabaseCalculationController] Error fetching analytics: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch analytics: " + e.getMessage());
         }
     }

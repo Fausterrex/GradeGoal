@@ -195,15 +195,9 @@ public class UserController {
     @PutMapping("/{userId}/profile")
     public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
         try {
-            System.out.println("Profile update request for userId: " + userId);
-            System.out.println("Request data: firstName=" + request.getFirstName() +
-                    ", lastName=" + request.getLastName() +
-                    ", username=" + request.getUsername() +
-                    ", profilePictureUrl=" + request.getProfilePictureUrl());
 
             User user;
             // Use comprehensive update method that includes year level and username
-            System.out.println("Updating profile with all fields including year level: " + request.getCurrentYearLevel());
             user = userService.updateProfileComplete(
                     userId,
                     request.getFirstName(),
@@ -213,14 +207,10 @@ public class UserController {
                     request.getCurrentYearLevel()
             );
 
-            System.out.println("Updated user profilePictureUrl: " + user.getProfilePictureUrl());
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
-            System.out.println("Profile update error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            System.out.println("Profile update exception: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Profile update failed");
         }
     }
@@ -299,7 +289,6 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Google sign in failed");
         }
     }
@@ -310,7 +299,6 @@ public class UserController {
             boolean available = userService.isUsernameAvailable(username);
             return ResponseEntity.ok(new UsernameAvailabilityResponse(available));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to check username availability");
         }
     }

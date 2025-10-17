@@ -65,7 +65,6 @@ public class ExportController {
 
             return ResponseEntity.ok("✅ Export logged successfully with timestamps and parameters.");
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("❌ Failed to log export: " + e.getMessage());
         }

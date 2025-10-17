@@ -18,13 +18,9 @@ public class GradeControllerNew {
     @GetMapping("/course/{courseId}")
     public ResponseEntity<List<Grade>> getGradesByCourseId(@PathVariable Long courseId) {
         try {
-            System.out.println("🔍 Fetching grades for course ID: " + courseId);
             List<Grade> grades = gradeService.getGradesByCourseId(courseId);
-            System.out.println("✅ Found " + grades.size() + " grades for course " + courseId);
             return ResponseEntity.ok(grades);
         } catch (Exception e) {
-            System.err.println("❌ Error fetching grades for course " + courseId + ": " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -54,7 +50,6 @@ public class GradeControllerNew {
                 return ResponseEntity.ok(createdGrade);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -95,7 +90,6 @@ public class GradeControllerNew {
                 return ResponseEntity.ok(updatedGrade);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }

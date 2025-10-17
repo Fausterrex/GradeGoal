@@ -43,8 +43,6 @@ public class UserProgressController {
                 return ResponseEntity.status(404).body("User progress not found");
             }
         } catch (Exception e) {
-            System.err.println("Error fetching user progress: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to fetch user progress");
         }
     }
@@ -60,8 +58,6 @@ public class UserProgressController {
             List<Map<String, Object>> recentAchievements = userProgressService.getRecentAchievements(userId, 2);
             return ResponseEntity.ok(recentAchievements);
         } catch (Exception e) {
-            System.err.println("Error fetching recent achievements: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to fetch recent achievements");
         }
     }
@@ -77,8 +73,6 @@ public class UserProgressController {
             List<Map<String, Object>> allAchievements = userProgressService.getRecentAchievements(userId, 1000); // Get all achievements
             return ResponseEntity.ok(allAchievements);
         } catch (Exception e) {
-            System.err.println("Error fetching all user achievements: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to fetch all user achievements");
         }
     }
@@ -104,8 +98,6 @@ public class UserProgressController {
                 return ResponseEntity.status(404).body("User progress not found");
             }
         } catch (Exception e) {
-            System.err.println("Error fetching user progress with rank: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to fetch user progress with rank");
         }
     }
@@ -118,19 +110,14 @@ public class UserProgressController {
     @PostMapping("/{userId}/update-gpas")
     public ResponseEntity<?> updateUserProgressGPAs(@PathVariable Long userId) {
         try {
-            System.out.println("🔄 [UserProgressController] Updating GPAs for user: " + userId);
             UserProgress updatedProgress = databaseCalculationService.updateUserProgressGPAs(userId);
             
             if (updatedProgress != null) {
-                System.out.println("✅ [UserProgressController] Successfully updated user progress");
                 return ResponseEntity.ok(updatedProgress);
             } else {
-                System.out.println("❌ [UserProgressController] Failed to update user progress");
                 return ResponseEntity.status(500).body("Failed to update user progress");
             }
         } catch (Exception e) {
-            System.err.println("❌ [UserProgressController] Error updating user progress: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to update user progress: " + e.getMessage());
         }
     }
@@ -143,13 +130,11 @@ public class UserProgressController {
     @GetMapping("/{userId}/with-gpas")
     public ResponseEntity<?> getUserProgressWithGPAs(@PathVariable Long userId) {
         try {
-            System.out.println("🔄 [UserProgressController] Getting user progress with GPAs for user: " + userId);
             
             // First try to get existing user progress
             UserProgress existingProgress = userProgressService.getUserProgress(userId);
             
             if (existingProgress == null) {
-                System.out.println("⚠️ [UserProgressController] No existing user progress found, creating new one");
                 existingProgress = new UserProgress(userId);
                 existingProgress.setSemesterGpa(0.0);
                 existingProgress.setCumulativeGpa(0.0);
@@ -160,20 +145,15 @@ public class UserProgressController {
             try {
                 UserProgress updatedProgress = databaseCalculationService.updateUserProgressGPAs(userId);
                 if (updatedProgress != null) {
-                    System.out.println("✅ [UserProgressController] Successfully updated GPAs");
                     return ResponseEntity.ok(updatedProgress);
                 } else {
-                    System.out.println("⚠️ [UserProgressController] GPA update failed, returning existing progress");
                     return ResponseEntity.ok(existingProgress);
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ [UserProgressController] Error updating GPAs, returning existing progress: " + e.getMessage());
                 return ResponseEntity.ok(existingProgress);
             }
             
         } catch (Exception e) {
-            System.err.println("❌ [UserProgressController] Error getting user progress with GPAs: " + e.getMessage());
-            e.printStackTrace();
             
             // Return a default user progress if everything fails
             UserProgress defaultProgress = new UserProgress(userId);
@@ -200,12 +180,10 @@ public class UserProgressController {
             @RequestParam String semester,
             @RequestParam(required = false, defaultValue = "2025") String academicYear) {
         try {
-            System.out.println("🔄 [UserProgressController] Getting semester GPA for user: " + userId + ", semester: " + semester + ", year: " + academicYear);
             
             // Calculate semester GPA for the specific semester
             BigDecimal semesterGPA = databaseCalculationService.calculateSemesterGPA(userId, semester, academicYear);
             
-            System.out.println("📊 [UserProgressController] Calculated " + semester + " semester GPA: " + semesterGPA);
             
             Map<String, Object> result = new HashMap<>();
             result.put("userId", userId);
@@ -217,8 +195,6 @@ public class UserProgressController {
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
-            System.err.println("❌ [UserProgressController] Error getting semester GPA: " + e.getMessage());
-            e.printStackTrace();
             
             Map<String, Object> errorResult = new HashMap<>();
             errorResult.put("error", e.getMessage());
@@ -239,7 +215,6 @@ public class UserProgressController {
             @PathVariable Long userId,
             @RequestParam(required = false, defaultValue = "2025") String academicYear) {
         try {
-            System.out.println("🔄 [UserProgressController] Getting all semester GPAs for user: " + userId + ", year: " + academicYear);
             
             Map<String, Object> result = new HashMap<>();
             result.put("userId", userId);
@@ -253,9 +228,7 @@ public class UserProgressController {
                 try {
                     BigDecimal gpa = databaseCalculationService.calculateSemesterGPA(userId, semester, academicYear);
                     semesterGPAs.put(semester, gpa.doubleValue());
-                    System.out.println("📊 [UserProgressController] " + semester + " semester GPA: " + gpa);
                 } catch (Exception e) {
-                    System.err.println("⚠️ [UserProgressController] Error calculating " + semester + " semester GPA: " + e.getMessage());
                     semesterGPAs.put(semester, 0.0);
                 }
             }
@@ -266,8 +239,6 @@ public class UserProgressController {
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
-            System.err.println("❌ [UserProgressController] Error getting all semester GPAs: " + e.getMessage());
-            e.printStackTrace();
             
             Map<String, Object> errorResult = new HashMap<>();
             errorResult.put("error", e.getMessage());
@@ -285,19 +256,15 @@ public class UserProgressController {
     @GetMapping("/{userId}/test")
     public ResponseEntity<?> testDatabaseFunctions(@PathVariable Long userId) {
         try {
-            System.out.println("🧪 [UserProgressController] Testing database functions for user: " + userId);
             
             // Test cumulative GPA calculation
             BigDecimal cumulativeGPA = databaseCalculationService.calculateCumulativeGPA(userId);
-            System.out.println("📊 [UserProgressController] Cumulative GPA: " + cumulativeGPA);
             
             // Test semester GPA calculation (using default values)
             BigDecimal semesterGPA = databaseCalculationService.calculateSemesterGPA(userId, "FIRST", "2025");
-            System.out.println("📊 [UserProgressController] Semester GPA: " + semesterGPA);
             
             // Get active courses
             List<Course> activeCourses = courseRepository.findByUserIdAndIsActiveTrue(userId);
-            System.out.println("📚 [UserProgressController] Active courses count: " + activeCourses.size());
             
             Map<String, Object> result = new HashMap<>();
             result.put("userId", userId);
@@ -309,8 +276,6 @@ public class UserProgressController {
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
-            System.err.println("❌ [UserProgressController] Error testing database functions: " + e.getMessage());
-            e.printStackTrace();
             
             Map<String, Object> errorResult = new HashMap<>();
             errorResult.put("error", e.getMessage());

@@ -26,7 +26,6 @@ public class AcademicGoalController {
             AcademicGoal createdGoal = academicGoalService.createAcademicGoal(academicGoal);
             return ResponseEntity.ok(createdGoal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -50,7 +49,6 @@ public class AcademicGoalController {
             );
             return ResponseEntity.ok(createdGoal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -61,7 +59,6 @@ public class AcademicGoalController {
             List<AcademicGoal> goals = academicGoalService.getAcademicGoalsByUserId(userId);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -72,7 +69,6 @@ public class AcademicGoalController {
             List<AcademicGoal> goals = academicGoalService.getAcademicGoalsByCourse(userId, courseId);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -85,7 +81,6 @@ public class AcademicGoalController {
             List<AcademicGoal> goals = academicGoalService.getAcademicGoalsByUserIdAndType(userId, goalType);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -101,7 +96,6 @@ public class AcademicGoalController {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -131,7 +125,6 @@ public class AcademicGoalController {
             AcademicGoal updatedGoal = academicGoalService.updateAcademicGoal(existingGoal);
             return ResponseEntity.ok(updatedGoal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -142,7 +135,6 @@ public class AcademicGoalController {
             AcademicGoal goal = academicGoalService.markGoalAsAchieved(goalId);
             return ResponseEntity.ok(goal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -153,7 +145,6 @@ public class AcademicGoalController {
             AcademicGoal goal = academicGoalService.markGoalAsNotAchieved(goalId);
             return ResponseEntity.ok(goal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -166,7 +157,6 @@ public class AcademicGoalController {
             List<AcademicGoal> goals = academicGoalService.getAcademicGoalsByUserIdAndAchievementStatus(userId, isAchieved);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -179,7 +169,6 @@ public class AcademicGoalController {
             AcademicGoal goal = academicGoalService.updateGoalPriority(goalId, request.getPriority());
             return ResponseEntity.ok(goal);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -190,7 +179,6 @@ public class AcademicGoalController {
             boolean deleted = academicGoalService.deleteAcademicGoal(goalId);
             return ResponseEntity.ok(deleted);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(false);
         }
     }
@@ -205,7 +193,6 @@ public class AcademicGoalController {
                 .toList();
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -222,7 +209,6 @@ public class AcademicGoalController {
                 .toList();
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -233,7 +219,6 @@ public class AcademicGoalController {
             List<AcademicGoal> goals = academicGoalService.getActiveGoals(userId);
             return ResponseEntity.ok(goals);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }

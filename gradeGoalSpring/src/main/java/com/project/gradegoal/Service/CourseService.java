@@ -470,7 +470,6 @@ public class CourseService {
         if (courseOpt.isPresent()) {
             Course course = courseOpt.get();
             
-            System.out.println("🔄 Updating course " + courseId + " - Grade: " + calculatedGrade + ", GPA: " + courseGpa);
             
             course.setCalculatedCourseGrade(calculatedGrade);
             course.setCourseGpa(courseGpa);
@@ -478,12 +477,9 @@ public class CourseService {
             
             Course savedCourse = courseRepository.save(course);
             
-            System.out.println("✅ Course updated - Stored Grade: " + savedCourse.getCalculatedCourseGrade() + 
-                             ", Stored GPA: " + savedCourse.getCourseGpa());
             
             return savedCourse;
         }
-        System.err.println("❌ Course not found with ID: " + courseId);
         return null;
     }
 

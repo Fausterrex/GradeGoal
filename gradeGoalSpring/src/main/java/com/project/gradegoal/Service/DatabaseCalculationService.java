@@ -54,7 +54,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateCourseGrade(courseId, semesterTerm);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating course grade for course " + courseId + " term " + semesterTerm + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -71,7 +70,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateCourseGradeOverall(courseId);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating course grade for course " + courseId + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -89,7 +87,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateCategoryGrade(categoryId, semesterTerm);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating category grade for category " + categoryId + " term " + semesterTerm + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -106,7 +103,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateCategoryGradeOverall(categoryId);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating category grade for category " + categoryId + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -123,7 +119,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateGPA(percentage);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating GPA for percentage " + percentage + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -140,7 +135,6 @@ public class DatabaseCalculationService {
             BigDecimal result = courseRepository.calculateCumulativeGPA(userId);
             return result != null ? result.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating cumulative GPA for user " + userId + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -170,7 +164,6 @@ public class DatabaseCalculationService {
                     return gpa.setScale(2, RoundingMode.HALF_UP);
                 }
             } catch (Exception e) {
-                System.err.println("Database function failed, trying manual calculation: " + e.getMessage());
             }
             
             // Fallback: Calculate manually using JPA
@@ -197,7 +190,6 @@ public class DatabaseCalculationService {
             
             return BigDecimal.ZERO;
         } catch (Exception e) {
-            System.err.println("Error calculating semester GPA for user " + userId + ": " + e.getMessage());
             return BigDecimal.ZERO;
         }
     }
@@ -210,14 +202,12 @@ public class DatabaseCalculationService {
     @Transactional
     public UserProgress updateUserProgressGPAs(Long userId) {
         try {
-            System.out.println("🔄 [DatabaseCalculationService] Updating user progress GPAs for user: " + userId);
             
             // Get or create user progress
             UserProgress userProgress = userProgressRepository.findByUserId(userId);
             if (userProgress == null) {
                 userProgress = new UserProgress(userId);
                 userProgressRepository.save(userProgress);
-                System.out.println("✅ [DatabaseCalculationService] Created new user progress for user: " + userId);
             }
 
             // Initialize GPA values
@@ -227,9 +217,7 @@ public class DatabaseCalculationService {
             try {
                 // Calculate cumulative GPA
                 cumulativeGPA = calculateCumulativeGPA(userId);
-                System.out.println("📊 [DatabaseCalculationService] Calculated cumulative GPA: " + cumulativeGPA);
             } catch (Exception e) {
-                System.err.println("⚠️ [DatabaseCalculationService] Error calculating cumulative GPA: " + e.getMessage());
                 cumulativeGPA = BigDecimal.ZERO;
             }
 
@@ -241,16 +229,12 @@ public class DatabaseCalculationService {
                     Course firstCourse = activeCourses.get(0);
                     String currentSemester = firstCourse.getSemester().toString();
                     String currentAcademicYear = firstCourse.getAcademicYear();
-                    System.out.println("📅 [DatabaseCalculationService] Found current semester: " + currentSemester + ", academic year: " + currentAcademicYear);
                     
                     // Calculate semester GPA
                     semesterGPA = calculateSemesterGPA(userId, currentSemester, currentAcademicYear);
-                    System.out.println("📊 [DatabaseCalculationService] Calculated semester GPA: " + semesterGPA);
                 } else {
-                    System.out.println("⚠️ [DatabaseCalculationService] No active courses found for user: " + userId);
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ [DatabaseCalculationService] Error calculating semester GPA: " + e.getMessage());
                 semesterGPA = BigDecimal.ZERO;
             }
 
@@ -259,13 +243,10 @@ public class DatabaseCalculationService {
             userProgress.setSemesterGpa(semesterGPA.doubleValue());
             
             UserProgress savedProgress = userProgressRepository.save(userProgress);
-            System.out.println("✅ [DatabaseCalculationService] Updated user progress - Cumulative: " + cumulativeGPA + ", Semester: " + semesterGPA);
             
             return savedProgress;
             
         } catch (Exception e) {
-            System.err.println("❌ [DatabaseCalculationService] Error updating user progress GPAs: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -336,9 +317,7 @@ public class DatabaseCalculationService {
                     entityManager.createNativeQuery(updateStatusQuery)
                         .setParameter(1, assessmentId)
                         .executeUpdate();
-                    System.out.println("✅ Updated assessment " + assessmentId + " status to COMPLETED");
                 } catch (Exception e) {
-                    System.err.println("⚠️ Failed to update assessment status: " + e.getMessage());
                     // Don't fail the entire operation if status update fails
                 }
                 
@@ -370,18 +349,14 @@ public class DatabaseCalculationService {
                     entityManager.createNativeQuery(updateStatusQuery)
                         .setParameter(1, assessmentId)
                         .executeUpdate();
-                    System.out.println("✅ Updated assessment " + assessmentId + " status to COMPLETED");
                 } catch (Exception e) {
-                    System.err.println("⚠️ Failed to update assessment status: " + e.getMessage());
                     // Don't fail the entire operation if status update fails
                 }
                 
                 // Award points for adding a new grade
                 try {
                     awardPoints(userId, 10, "GRADE_ADDED");
-                    System.out.println("✅ Awarded 10 points to user " + userId + " for adding a grade");
                 } catch (Exception e) {
-                    System.err.println("⚠️ Failed to award points for grade addition: " + e.getMessage());
                     // Don't fail the entire operation if point awarding fails
                 }
                 
@@ -391,7 +366,6 @@ public class DatabaseCalculationService {
                 return "Grade added successfully|" + (courseId != null ? courseId.toString() : "");
             }
         } catch (Exception e) {
-            System.err.println("Error adding/updating grade for assessment " + assessmentId + ": " + e.getMessage());
             return "Error: " + e.getMessage();
         }
     }
@@ -403,12 +377,10 @@ public class DatabaseCalculationService {
     @Transactional
     public void updateCourseGrades(Long courseId) {
         try {
-            System.out.println("🔄 Calling UpdateCourseGrades for course: " + courseId);
             
             // Get the course to find the user ID
             Optional<Course> courseOpt = courseRepository.findById(courseId);
             if (!courseOpt.isPresent()) {
-                System.err.println("❌ Course not found: " + courseId);
                 return;
             }
             
@@ -416,18 +388,13 @@ public class DatabaseCalculationService {
             Long userId = course.getUserId();
             
             if (userId == null) {
-                System.err.println("❌ User ID not found for course: " + courseId);
                 return;
             }
             
             // Use our smart analytics logic instead of the stored procedure
-            System.out.println("🔄 Using smart analytics logic for course: " + courseId + ", user: " + userId);
             assessmentService.regenerateAnalyticsForCourse(userId, courseId);
             
-            System.out.println("✅ Smart analytics update completed successfully for course: " + courseId);
         } catch (Exception e) {
-            System.err.println("❌ Error updating course grades for course " + courseId + ": " + e.getMessage());
-            e.printStackTrace();
             // Don't rethrow the exception to avoid transaction rollback issues
         }
     }
@@ -440,7 +407,6 @@ public class DatabaseCalculationService {
      */
     @Deprecated
     public void updateUserAnalytics(Long userId, Long courseId) {
-        System.out.println("⚠️ WARNING: updateUserAnalytics is deprecated. UpdateCourseGrades already handles analytics.");
         // Method intentionally left empty to prevent duplicate analytics
         // UpdateCourseGrades stored procedure already calls UpdateUserAnalytics
     }
@@ -462,12 +428,9 @@ public class DatabaseCalculationService {
                 Integer newLevel = levelUpResult.getProgress().getCurrentLevel();
                 String rankTitle = userProgressService.getUserRankTitle(newLevel);
                 notificationService.sendLevelUpNotification(userId, newLevel, rankTitle);
-                System.out.println("✅ Level-up notification sent for user " + userId + " to level " + newLevel);
             }
             
-            System.out.println("✅ Points awarded to user " + userId + ": " + points + " points for " + activityType);
         } catch (Exception e) {
-            System.err.println("Error awarding points to user " + userId + ": " + e.getMessage());
         }
     }
 
@@ -484,7 +447,6 @@ public class DatabaseCalculationService {
                 .setParameter("userId", userId)
                 .executeUpdate();
         } catch (Exception e) {
-            System.err.println("Error checking grade alerts for user " + userId + ": " + e.getMessage());
         }
     }
 
@@ -497,7 +459,6 @@ public class DatabaseCalculationService {
             // Call the database procedure InitializeSampleAchievements
             courseRepository.initializeSampleAchievements();
         } catch (Exception e) {
-            System.err.println("Error initializing sample achievements: " + e.getMessage());
         }
     }
 
@@ -515,7 +476,6 @@ public class DatabaseCalculationService {
             // Update cumulative GPA after updating all courses
             calculateCumulativeGPA(userId);
         } catch (Exception e) {
-            System.err.println("Error updating all course grades for user " + userId + ": " + e.getMessage());
         }
     }
 
@@ -539,15 +499,11 @@ public class DatabaseCalculationService {
                 
                 // Save updated course
                 Course savedCourse = courseRepository.save(course);
-                System.out.println("Course with calculations: " + savedCourse.getCourseName() + " - Grade: " + calculatedGrade + " - GPA: " + calculatedGPA);
                 return savedCourse;
             } else {
-                System.err.println("Course not found with ID: " + courseId);
                 return null;
             }
         } catch (Exception e) {
-            System.err.println("Error getting course with calculations for course " + courseId + ": " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -566,9 +522,7 @@ public class DatabaseCalculationService {
                     .setParameter(2, handleMissing)
                     .executeUpdate();
                     
-            System.out.println("Updated handle missing setting for course " + courseId + " to: " + handleMissing);
         } catch (Exception e) {
-            System.err.println("Error updating course handle missing setting: " + e.getMessage());
             throw new RuntimeException("Failed to update handle missing setting", e);
         }
     }
@@ -588,7 +542,6 @@ public class DatabaseCalculationService {
             
             return ((Number) result).longValue();
         } catch (Exception e) {
-            System.err.println("Error getting course ID from assessment: " + e.getMessage());
             return null;
         }
     }
@@ -606,7 +559,6 @@ public class DatabaseCalculationService {
             
             return ((Number) result).longValue();
         } catch (Exception e) {
-            System.err.println("Error getting user ID from course: " + e.getMessage());
             return null;
         }
     }
@@ -617,7 +569,6 @@ public class DatabaseCalculationService {
          */
         @Deprecated
         public void createAnalyticsForGradeUpdate(Long userId, Long courseId) {
-            System.out.println("⚠️ WARNING: createAnalyticsForGradeUpdate is deprecated. UpdateCourseGrades already handles analytics.");
             // Method intentionally left empty to prevent duplicate analytics
             // UpdateCourseGrades stored procedure already calls UpdateUserAnalytics
         }
@@ -633,7 +584,6 @@ public class DatabaseCalculationService {
                     .setParameter(1, userId)
                     .executeUpdate();
         } catch (Exception e) {
-            System.err.println("Error calling CheckGoalProgress stored procedure: " + e.getMessage());
             throw new RuntimeException("Failed to check goal progress: " + e.getMessage());
         }
     }
@@ -651,9 +601,7 @@ public class DatabaseCalculationService {
                     .setParameter(1, courseId)
                     .executeUpdate();
             
-            System.out.println("✅ [DatabaseCalculationService] Midterm marked as completed for course: " + courseId);
         } catch (Exception e) {
-            System.err.println("❌ [DatabaseCalculationService] Error marking midterm as completed: " + e.getMessage());
             throw new RuntimeException("Failed to mark midterm as completed: " + e.getMessage());
         }
     }

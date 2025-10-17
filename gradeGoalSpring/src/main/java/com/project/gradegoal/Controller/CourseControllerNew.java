@@ -258,7 +258,6 @@ public class CourseControllerNew {
             Course createdCourse = courseService.createCourse(course);
             return ResponseEntity.ok(createdCourse);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -347,8 +346,6 @@ public class CourseControllerNew {
                 return ResponseEntity.status(404).body("Course not found");
             }
         } catch (Exception e) {
-            System.err.println("Error deleting course: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to delete course: " + e.getMessage());
         }
     }
