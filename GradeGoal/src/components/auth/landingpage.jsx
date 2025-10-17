@@ -132,7 +132,7 @@ export default function LandingPage() {
         {/* ========================================
             INTERACTIVE CARDS SECTION
             ======================================== */}
-        <div className="flex flex-col md:flex-row items-center gap-0 mt-25">
+        <div className="flex flex-col md:flex-row items-center gap-0 mt-55">
           {cards.map((card, index) => {
             // Dynamic styling for each card based on position
             let rotation = "";
@@ -244,7 +244,7 @@ export default function LandingPage() {
       {/* ========================================
           FEATURES SECTION
           ======================================== */}
-      <section className="w-full bg-white">
+      <section id="features" className="w-full bg-white">
         <div className="w-full mx-auto px-7">
           <section className="bg-white ">
             {/* ========================================

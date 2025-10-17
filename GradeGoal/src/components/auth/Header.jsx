@@ -40,23 +40,20 @@ export default function Header() {
         >
           <HashLink
             smooth
+            to="#features"
+            className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-200"
+          >
+            Features
+          </HashLink>
+          <HashLink
+            smooth
             to="#aboutUs"
             className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-500"
           >
             About us
           </HashLink>
-          <Link
-            to="/help"
-            className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-200"
-          >
-            Help
-          </Link>
-          <Link
-            to="/community"
-            className="text-gray-500 text-sm hover:text-gray-700 transition-colors duration-200"
-          >
-            Community
-          </Link>
+
+
         </nav>
 
         {/* ========================================
