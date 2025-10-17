@@ -52,5 +52,10 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
      * Find top N recent activities ordered by timestamp
      */
     List<UserActivityLog> findTop10ByOrderByCreatedAtDesc();
+    
+    /**
+     * Find activities created after specified date
+     */
+    List<UserActivityLog> findByCreatedAtAfter(LocalDateTime createdAt);
 }
 
