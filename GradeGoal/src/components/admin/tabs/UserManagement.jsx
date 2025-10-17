@@ -11,12 +11,15 @@ import {
   Power,
 } from "lucide-react";
 import dummyProfile from "../../../drawables/dummyProfile.webp";
+import { getAllUsers } from "../../../backend/adminAPI";
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [toast, setToast] = useState(null);
+  const [userProgressData, setUserProgressData] = useState({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -24,15 +27,58 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        console.error('Failed to fetch users');
-      }
+      setLoading(true);
+      const data = await getAllUsers();
+      setUsers(data);
+      
+      // Fetch progress data for all users
+      await fetchUserProgressData(data);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setToast("Failed to fetch users ⚠️");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserProgressData = async (usersList) => {
+    try {
+      const progressPromises = usersList
+        .filter(user => user.role !== 'ADMIN')
+        .map(async (user) => {
+          try {
+            const [progressResponse, streakResponse] = await Promise.all([
+              fetch(`/api/user-progress/${user.userId}/with-gpas`),
+              fetch(`/api/users/${user.userId}/streak`)
+            ]);
+
+            const progressData = progressResponse.ok ? await progressResponse.json() : null;
+            const streakData = streakResponse.ok ? await streakResponse.json() : null;
+
+            return {
+              userId: user.userId,
+              progress: progressData,
+              streak: streakData
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch progress for user ${user.userId}:`, error);
+            return {
+              userId: user.userId,
+              progress: null,
+              streak: null
+            };
+          }
+        });
+
+      const progressResults = await Promise.all(progressPromises);
+      const progressMap = {};
+      progressResults.forEach(result => {
+        progressMap[result.userId] = result;
+      });
+      setUserProgressData(progressMap);
+    } catch (error) {
+      console.error("Error fetching user progress data:", error);
     }
   };
 
@@ -113,6 +159,56 @@ const UserManagement = () => {
       default:
         return level || "1st Year";
     }
+  };
+
+  const calculateGrowthRate = () => {
+    // Calculate growth rate based on user registration dates
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+    
+    const usersLastMonth = users.filter(user => {
+      const createdAt = new Date(user.createdAt);
+      return createdAt >= lastMonth && createdAt < now;
+    }).length;
+    
+    const usersTwoMonthsAgo = users.filter(user => {
+      const createdAt = new Date(user.createdAt);
+      return createdAt >= twoMonthsAgo && createdAt < lastMonth;
+    }).length;
+    
+    if (usersTwoMonthsAgo === 0) return 0;
+    return ((usersLastMonth - usersTwoMonthsAgo) / usersTwoMonthsAgo * 100).toFixed(1);
+  };
+
+  const getUserProgressInfo = (userId) => {
+    const progressInfo = userProgressData[userId];
+    if (!progressInfo) {
+      return {
+        currentGPA: 0.0,
+        semesterGPA: 0.0,
+        streakDays: 0,
+        rankTitle: "Beginner Scholar"
+      };
+    }
+
+    const progress = progressInfo.progress;
+    const streak = progressInfo.streak;
+
+    return {
+      currentGPA: progress?.cumulativeGpa || 0.0,
+      semesterGPA: progress?.semesterGpa || 0.0,
+      streakDays: streak?.streakDays || 0,
+      rankTitle: progress?.currentLevel ? getRankTitle(progress.currentLevel) : "Beginner Scholar"
+    };
+  };
+
+  const getRankTitle = (level) => {
+    if (level >= 20) return "Legendary Scholar";
+    if (level >= 15) return "Master Scholar";
+    if (level >= 10) return "Advanced Scholar";
+    if (level >= 5) return "Intermediate Scholar";
+    return "Beginner Scholar";
   };
 
   const handleSaveChanges = async () => {
@@ -207,7 +303,9 @@ const UserManagement = () => {
               <TrendingUp size={20} />
               <p className="font-medium text-gray-600">Growth Rate</p>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mt-1">+12.5%</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">
+              {loading ? '...' : `+${calculateGrowthRate()}%`}
+            </p>
             <p className="text-sm text-gray-500">vs last month</p>
           </div>
         </div>
@@ -368,20 +466,26 @@ const UserManagement = () => {
                 {/* Progress Section */}
                 <div className="bg-[#F8F6FD] border border-[#3C2363]/20 rounded-lg p-5 mt-3">
                   <p className="text-[#3C2363] font-semibold text-lg">
-                    Beginner Scholar
+                    {getUserProgressInfo(selectedUser.userId).rankTitle}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Current GPA</p>
-                      <p className="text-xl font-bold text-[#3C2363]">3.52</p>
+                      <p className="text-xl font-bold text-[#3C2363]">
+                        {getUserProgressInfo(selectedUser.userId).currentGPA.toFixed(2)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Semester GPA</p>
-                      <p className="text-xl font-bold text-[#3C2363]">3.68</p>
+                      <p className="text-xl font-bold text-[#3C2363]">
+                        {getUserProgressInfo(selectedUser.userId).semesterGPA.toFixed(2)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Streak</p>
-                      <p className="text-xl font-bold text-[#3C2363]">7 Days</p>
+                      <p className="text-xl font-bold text-[#3C2363]">
+                        {getUserProgressInfo(selectedUser.userId).streakDays} Days
+                      </p>
                     </div>
                   </div>
                 </div>

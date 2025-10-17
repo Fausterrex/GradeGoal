@@ -4,6 +4,7 @@ import com.project.gradegoal.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,4 +65,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return list of users not having the specified role
      */
     List<User> findByRoleNot(String role);
+    
+    /**
+     * Count users by creation date range and role (excluding specified role)
+     * @param startDate Start date
+     * @param endDate End date
+     * @param role Role to exclude
+     * @return count of users created between dates and not having the specified role
+     */
+    long countByCreatedAtBetweenAndRoleNot(LocalDateTime startDate, LocalDateTime endDate, String role);
 }

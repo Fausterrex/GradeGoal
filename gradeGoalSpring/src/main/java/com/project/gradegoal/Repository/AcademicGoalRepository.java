@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -66,4 +67,12 @@ public interface AcademicGoalRepository extends JpaRepository<AcademicGoal, Long
      * @return count of achieved academic goals
      */
     long countByIsAchievedTrue();
+    
+    /**
+     * Count academic goals by achievement date range
+     * @param startDate Start date
+     * @param endDate End date
+     * @return count of goals achieved between dates
+     */
+    long countByAchievedDateBetween(LocalDate startDate, LocalDate endDate);
 }

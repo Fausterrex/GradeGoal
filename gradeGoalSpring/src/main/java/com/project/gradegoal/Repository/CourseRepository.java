@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,6 +61,31 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      * @return count of active courses
      */
     long countByIsActiveTrue();
+    
+    /**
+     * Count courses by creation date range
+     * @param startDate Start date
+     * @param endDate End date
+     * @return count of courses created between dates
+     */
+    long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+    
+    /**
+     * Find courses by user ID and creation date after specified date
+     * @param userId User ID
+     * @param createdAt Creation date
+     * @return List of courses created after the specified date
+     */
+    List<Course> findByUserIdAndCreatedAtAfter(Long userId, LocalDateTime createdAt);
+    
+    /**
+     * Find courses by user ID and creation date between specified dates
+     * @param userId User ID
+     * @param startDate Start date
+     * @param endDate End date
+     * @return List of courses created between the specified dates
+     */
+    List<Course> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime startDate, LocalDateTime endDate);
 
     // ========================================
     // DATABASE FUNCTION CALLS
