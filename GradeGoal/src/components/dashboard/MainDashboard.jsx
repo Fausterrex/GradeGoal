@@ -941,16 +941,16 @@ function MainDashboard({ initialTab = "overview" }) {
       {/* ========================================
           MOBILE MENU BUTTONS
           ======================================== */}
-      <div className="lg:hidden fixed top-4 left-4 z-30">
+      <div className="lg:hidden fixed top-3 left-3 sm:top-4 sm:left-4 z-30">
         {/* ========================================
             MOBILE SIDEBAR TOGGLE BUTTON
             ======================================== */}
         <button
           onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          className="bg-[#8168C5] text-white p-2 rounded-lg shadow-lg"
+          className="bg-[#8168C5] text-white p-2 sm:p-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <svg
-            className="w-6 h-6"
+            className="w-5 h-5 sm:w-6 sm:h-6"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -968,16 +968,16 @@ function MainDashboard({ initialTab = "overview" }) {
       {/* ========================================
           MOBILE COURSE LIST BUTTON
           ======================================== */}
-      <div className="lg:hidden fixed top-4 right-4 z-30">
+      <div className="lg:hidden fixed top-3 right-3 sm:top-4 sm:right-4 z-30">
         {/* ========================================
             MOBILE COURSE LIST TOGGLE BUTTON
             ======================================== */}
         <button
           onClick={() => setIsMobileCourseListOpen(!isMobileCourseListOpen)}
-          className="bg-[#8168C5] text-white p-2 rounded-lg shadow-lg"
+          className="bg-[#8168C5] text-white p-2 sm:p-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <svg
-            className="w-6 h-6"
+            className="w-5 h-5 sm:w-6 sm:h-6"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1026,13 +1026,13 @@ function MainDashboard({ initialTab = "overview" }) {
               {/* ========================================
                   MOBILE SIDEBAR CLOSE BUTTON
                   ======================================== */}
-              <div className="absolute top-4 right-4 z-10">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
                 <button
                   onClick={() => setIsMobileSidebarOpen(false)}
                   className="bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1046,30 +1046,30 @@ function MainDashboard({ initialTab = "overview" }) {
                   </svg>
                 </button>
               </div>
-              <div className="w-full max-w-sm mx-auto">
+              <div className="w-full max-w-xs sm:max-w-sm mx-auto">
                 {/* ========================================
                     MOBILE SIDEBAR CONTENT
                     ======================================== */}
-                <div className="w-full h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-center items-center px-8 py-6 z-10 rounded-2xl overflow-hidden">
-                  <div className="space-y-8 w-full">
+                <div className="w-full h-screen bg-gradient-to-b from-[#8168C5] to-[#3E325F] text-white flex flex-col justify-center items-center px-6 sm:px-8 py-4 sm:py-6 z-10 rounded-2xl overflow-hidden">
+                  <div className="space-y-6 sm:space-y-8 w-full">
                     {/* ========================================
                         MOBILE SIDEBAR LOGO SECTION
                         ======================================== */}
-                    <div className="flex flex-col items-center justify-center text-2xl font-bold mb-8">
-                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden">
+                    <div className="flex flex-col items-center justify-center text-xl sm:text-2xl font-bold mb-6 sm:mb-8">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center mb-2 sm:mb-3 overflow-hidden">
                         <img 
                           src="/src/drawables/logo.svg" 
                           alt="Grade Goal Logo" 
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <h2 className="text-3xl">Grade Goal</h2>
+                      <h2 className="text-2xl sm:text-3xl">Grade Goal</h2>
                     </div>
 
                     {/* ========================================
                         MOBILE SIDEBAR NAVIGATION ITEMS
                         ======================================== */}
-                    <div className="flex flex-col items-center space-y-6 w-full">
+                    <div className="flex flex-col items-center space-y-4 sm:space-y-6 w-full">
                       {[
                         {
                           icon: <FaTachometerAlt />,
@@ -1096,7 +1096,7 @@ function MainDashboard({ initialTab = "overview" }) {
                        ].map((item) => (
                         <div
                           key={item.tab}
-                          className={`flex items-center justify-center p-4 rounded-xl cursor-pointer w-full transition-all duration-300 ${
+                          className={`flex items-center justify-center p-3 sm:p-4 rounded-xl cursor-pointer w-full transition-all duration-300 ${
                             activeTab === item.tab
                               ? "bg-white/20 text-white shadow-lg scale-105"
                               : "text-white/80 hover:text-white hover:bg-white/10"
@@ -1106,8 +1106,8 @@ function MainDashboard({ initialTab = "overview" }) {
                             setIsMobileSidebarOpen(false);
                           }}
                         >
-                          <div className="text-2xl mr-3">{item.icon}</div>
-                          <span className="text-xl font-medium">
+                          <div className="text-xl sm:text-2xl mr-2 sm:mr-3">{item.icon}</div>
+                          <span className="text-lg sm:text-xl font-medium">
                             {item.label}
                           </span>
                         </div>
