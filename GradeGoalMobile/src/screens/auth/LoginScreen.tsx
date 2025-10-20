@@ -11,6 +11,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../styles/colors';
 import { commonStyles } from '../../styles/commonStyles';
@@ -20,6 +21,7 @@ export const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const navigation = useNavigation();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -153,7 +155,9 @@ export const LoginScreen: React.FC = () => {
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>
                 Don't have an account?{' '}
-                <Text style={styles.signUpLink}>Sign Up</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
+                  <Text style={styles.signUpLink}>Sign Up</Text>
+                </TouchableOpacity>
               </Text>
             </View>
           </View>

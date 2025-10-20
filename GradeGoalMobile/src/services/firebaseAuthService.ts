@@ -18,6 +18,7 @@ import { apiClient } from './apiClient';
 class FirebaseAuthService {
   private currentUser: User | null = null;
   private authStateListeners: ((user: User | null) => void)[] = [];
+  private isRegistering: boolean = false;
 
   constructor() {
     this.initializeAuth();
@@ -26,37 +27,58 @@ class FirebaseAuthService {
   private async initializeAuth() {
     // Listen for authentication state changes
     onAuthStateChanged(auth, async (firebaseUser) => {
+      // Skip auth state handling during registration to prevent 404 errors
+      if (this.isRegistering) {
+        console.log('Registration in progress, skipping auth state change...');
+        return;
+      }
+
       if (firebaseUser) {
         try {
           // Get user profile from database using Firebase UID
           const userProfile = await this.getUserProfileByFirebaseUid(firebaseUser.uid);
-          this.currentUser = {
-            userId: userProfile?.userId || null,
-            email: firebaseUser.email || '',
-            firstName: userProfile?.firstName || firebaseUser.displayName?.split(' ')[0] || '',
-            lastName: userProfile?.lastName || firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-            role: userProfile?.role || 'USER',
-            isActive: userProfile?.isActive ?? true,
-            currentYearLevel: userProfile?.currentYearLevel || '1st Year',
-            createdAt: userProfile?.createdAt || new Date().toISOString(),
-            updatedAt: userProfile?.updatedAt || new Date().toISOString(),
-            profilePictureUrl: firebaseUser.photoURL || userProfile?.profilePictureUrl
-          };
+          
+          if (userProfile) {
+            // User profile exists in database
+            this.currentUser = {
+              userId: userProfile.userId,
+              email: firebaseUser.email || '',
+              firstName: userProfile.firstName || firebaseUser.displayName?.split(' ')[0] || '',
+              lastName: userProfile.lastName || firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+              role: userProfile.role || 'USER',
+              isActive: userProfile.isActive ?? true,
+              currentYearLevel: userProfile.currentYearLevel || '1st Year',
+              createdAt: userProfile.createdAt || new Date().toISOString(),
+              updatedAt: userProfile.updatedAt || new Date().toISOString(),
+              profilePictureUrl: firebaseUser.photoURL || userProfile.profilePictureUrl
+            };
+          } else {
+            // User profile doesn't exist yet (new registration in progress)
+            // Don't set currentUser yet, wait for registration to complete
+            console.log('User profile not found, waiting for registration to complete...');
+            this.currentUser = null;
+          }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
-          // Fallback to Firebase user data only
-          this.currentUser = {
-            userId: null,
-            email: firebaseUser.email || '',
-            firstName: firebaseUser.displayName?.split(' ')[0] || '',
-            lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-            role: 'USER',
-            isActive: true,
-            currentYearLevel: '1st Year',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            profilePictureUrl: firebaseUser.photoURL
-          };
+          // Silently handle 404 errors during registration process
+          if (error.response?.status === 404) {
+            console.log('User profile not found (404), waiting for registration to complete...');
+            this.currentUser = null;
+          } else {
+            console.error('Error fetching user profile:', error);
+            // Only set fallback user for non-404 errors
+            this.currentUser = {
+              userId: null,
+              email: firebaseUser.email || '',
+              firstName: firebaseUser.displayName?.split(' ')[0] || '',
+              lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+              role: 'USER',
+              isActive: true,
+              currentYearLevel: '1st Year',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              profilePictureUrl: firebaseUser.photoURL
+            };
+          }
         }
       } else {
         this.currentUser = null;
@@ -127,6 +149,8 @@ class FirebaseAuthService {
   }
 
   async register(userData: any): Promise<User> {
+    this.isRegistering = true;
+    
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -139,20 +163,27 @@ class FirebaseAuthService {
         throw new Error('Registration failed');
       }
 
-      // Create user profile in database
+      // Create user profile in database first
       const userProfile = await this.createUserProfile(firebaseUser, userData);
       
+      if (!userProfile) {
+        throw new Error('Failed to create user profile in database');
+      }
+      
+      // Add a small delay to ensure backend processing is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const user: User = {
-        userId: userProfile?.userId || null,
+        userId: userProfile.userId,
         email: firebaseUser.email || '',
-        firstName: userProfile?.firstName || userData.firstName || '',
-        lastName: userProfile?.lastName || userData.lastName || '',
-        role: userProfile?.role || 'USER',
-        isActive: userProfile?.isActive ?? true,
-        currentYearLevel: userProfile?.currentYearLevel || '1st Year',
-        createdAt: userProfile?.createdAt || new Date().toISOString(),
-        updatedAt: userProfile?.updatedAt || new Date().toISOString(),
-        profilePictureUrl: firebaseUser.photoURL || userProfile?.profilePictureUrl
+        firstName: userProfile.firstName || userData.firstName || '',
+        lastName: userProfile.lastName || userData.lastName || '',
+        role: userProfile.role || 'USER',
+        isActive: userProfile.isActive ?? true,
+        currentYearLevel: userProfile.currentYearLevel || '1st Year',
+        createdAt: userProfile.createdAt || new Date().toISOString(),
+        updatedAt: userProfile.updatedAt || new Date().toISOString(),
+        profilePictureUrl: firebaseUser.photoURL || userProfile.profilePictureUrl
       };
 
       this.currentUser = user;
@@ -161,7 +192,15 @@ class FirebaseAuthService {
       return user;
     } catch (error) {
       console.error('Registration error:', error);
+      // If registration fails, sign out the Firebase user
+      try {
+        await signOut(auth);
+      } catch (signOutError) {
+        console.error('Error signing out after failed registration:', signOutError);
+      }
       throw error;
+    } finally {
+      this.isRegistering = false;
     }
   }
 
@@ -244,7 +283,10 @@ class FirebaseAuthService {
       const response = await apiClient.get(`/users/firebase-uid/${firebaseUid}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile by Firebase UID:', error);
+      // Only log non-404 errors to reduce console noise during registration
+      if (error.response?.status !== 404) {
+        console.error('Error fetching user profile by Firebase UID:', error);
+      }
       return null;
     }
   }
