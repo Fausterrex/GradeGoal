@@ -23,10 +23,13 @@ export const loadCourseTargetGrade = async (userId, courseId) => {
   try {
     const goals = await getAcademicGoalsByCourse(userId, courseId);
     const courseGradeGoal = goals.find(
-      (goal) =>
-        goal.goalType === "COURSE_GRADE" &&
-        goal.courseId === courseId
+      (goal) => {
+        const typeMatch = goal.goalType === "COURSE_GRADE";
+        const courseMatch = goal.courseId === courseId;
+        return typeMatch && courseMatch;
+      }
     );
+    
     return {
       success: true,
       targetGrade: courseGradeGoal ? courseGradeGoal.targetValue : null

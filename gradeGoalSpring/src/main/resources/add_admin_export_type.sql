@@ -1,3 +1,0 @@
--- Add ADMIN_SYSTEM_OVERVIEW to the export_type enum in export_logs table
-ALTER TABLE export_logs 
-MODIFY COLUMN export_type ENUM('PDF_REPORT','CSV_GRADES','JSON_BACKUP','TRANSCRIPT','ADMIN_SYSTEM_OVERVIEW') NOT NULL;

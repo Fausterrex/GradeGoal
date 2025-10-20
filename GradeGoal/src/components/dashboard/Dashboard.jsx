@@ -25,6 +25,7 @@ import { getAcademicGoalsByCourse, getUserProfile, getUserLoginStreak } from "..
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
 import { percentageToGPA } from "../course/academic_goal/gpaConversionUtils";
+import { auth } from "../../backend/firebase";
 const Dashboard = ({ courses, grades, overallGPA }) => {
   const { currentUser } = useAuth();
   const { showCumulativeData } = useYearLevel();
@@ -105,8 +106,31 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
         setUserId(currentUserId);
       }
 
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       // Fetch all semester GPAs from the new API
-      const response = await fetch(`/api/user-progress/${currentUserId}/all-semester-gpas`);
+      const response = await fetch(`/api/user-progress/${currentUserId}/all-semester-gpas`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         
@@ -118,7 +142,10 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
         const summerSemesterGPA = semesterGPAs.SUMMER || 0;
         
         // Get cumulative GPA from the original endpoint
-        const cumulativeResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`);
+        const cumulativeResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`, {
+          method: "GET",
+          headers,
+        });
         let cumulativeGPA = 0;
         if (cumulativeResponse.ok) {
           const userProgress = await cumulativeResponse.json();
@@ -146,7 +173,10 @@ const Dashboard = ({ courses, grades, overallGPA }) => {
       } else {
         console.error("Failed to fetch semester GPA data");
         // Fallback to original method
-        const fallbackResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`);
+        const fallbackResponse = await fetch(`/api/user-progress/${currentUserId}/with-gpas`, {
+          method: "GET",
+          headers,
+        });
         if (fallbackResponse.ok) {
           const userProgress = await fallbackResponse.json();
           const semesterGPA = userProgress.semesterGpa || userProgress.semester_gpa || 0;

@@ -41,12 +41,12 @@ interface Achievement {
 }
 
 export const ReportsScreen: React.FC = () => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
   const insets = useSafeAreaInsets();
   const [courses, setCourses] = useState<Course[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(false);
   const [resData, setResData] = useState<any>(null);
   const [summary, setSummary] = useState({
     totalCourses: 0,
@@ -56,21 +56,21 @@ export const ReportsScreen: React.FC = () => {
 
   // Fetch courses data
   useEffect(() => {
-    if (loading || !currentUser?.userId) {
+    if (isLoading || !currentUser?.userId) {
       setCourses([]);
       return;
     }
 
-    setIsLoading(true);
+    setIsDataLoading(true);
     fetchCourses();
-  }, [currentUser?.userId, loading, selectedYearLevel]);
+  }, [currentUser?.userId, isLoading, selectedYearLevel]);
 
   // Fetch achievements
   useEffect(() => {
-    if (!currentUser?.userId || loading) return;
+    if (!currentUser?.userId || isLoading) return;
 
     fetchAchievements();
-  }, [currentUser?.userId, loading]);
+  }, [currentUser?.userId, isLoading]);
 
   // Calculate summary
   useEffect(() => {
@@ -100,7 +100,7 @@ export const ReportsScreen: React.FC = () => {
   const fetchCourses = async () => {
     try {
       const response = await apiClient.get(`/dashboard/courses/grouped?userId=${currentUser.userId}`);
-      const allCourses = response.data.courses || [];
+      const allCourses = (response.data as any)?.courses || [];
       setResData(response.data);
       const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
       const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
@@ -108,14 +108,14 @@ export const ReportsScreen: React.FC = () => {
     } catch (error) {
       setCourses([]);
     } finally {
-      setIsLoading(false);
+      setIsDataLoading(false);
     }
   };
 
   const fetchAchievements = async () => {
     try {
       const response = await apiClient.get(`/user-progress/${currentUser.userId}/recent-achievements`);
-      setAchievements(response.data || []);
+      setAchievements((response.data as Achievement[]) || []);
     } catch (error) {
       setAchievements([]);
     }
@@ -123,10 +123,10 @@ export const ReportsScreen: React.FC = () => {
 
 
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} translucent={false} />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background as any} translucent={false} />
         <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -140,7 +140,7 @@ export const ReportsScreen: React.FC = () => {
   if (!currentUser?.userId) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} translucent={false} />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background as any} translucent={false} />
         <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
           <Text style={styles.title}>📊 Academic Report</Text>
           <Text style={styles.subtitle}>Please log in to view your reports.</Text>
@@ -151,7 +151,7 @@ export const ReportsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} translucent={false} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background as any} translucent={false} />
       <View style={[styles.safeArea, { paddingTop: Math.max(insets.top - 20, 0) }]}>
         <View style={styles.header}>
           <Text style={styles.title}>📊 Academic Report</Text>
@@ -166,7 +166,7 @@ export const ReportsScreen: React.FC = () => {
             <View style={styles.userInfoItem}>
               <Text style={styles.userInfoLabel}>Name:</Text>
               <Text style={styles.userInfoValue}>
-                {resData?.name || currentUser?.name || 'N/A'}
+                {resData?.name || `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() || 'N/A'}
               </Text>
             </View>
             <View style={styles.userInfoItem}>
@@ -348,7 +348,7 @@ export const ReportsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.background as any,
   },
   safeArea: {
     flex: 1,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.background as any,
   },
   loadingText: {
     marginTop: 16,
@@ -384,10 +384,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: colors.shadow.color,
-    shadowOffset: colors.shadow.offset,
-    shadowOpacity: colors.shadow.opacity,
-    shadowRadius: colors.shadow.radius,
+    shadowColor: colors.shadow as any,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
   },
   sectionTitle: {
@@ -438,10 +438,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: colors.shadow.color,
-    shadowOffset: colors.shadow.offset,
-    shadowOpacity: colors.shadow.opacity,
-    shadowRadius: colors.shadow.radius,
+    shadowColor: colors.shadow as any,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
   },
   courseHeader: {

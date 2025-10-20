@@ -23,11 +23,27 @@ import {
   getCourseAnalytics 
 } from '../../services/aiAnalysisService';
 import { getGoalsByUserId } from '../../services/goalsService';
+import { apiClient } from '../../services/apiClient';
 import { getApiConfig } from '../../config/environment';
 
 // Get API configuration
 const apiConfig = getApiConfig();
 const API_BASE_URL = apiConfig.baseURL.replace('/api', ''); // Remove /api suffix since we add it in each endpoint
+
+/**
+ * Convert percentage to GPA using the same custom scale as web version
+ * This matches the database function logic exactly
+ */
+const convertPercentageToGPA = (percentage: number): number => {
+  if (percentage >= 95.5) return 4.00;
+  if (percentage >= 89.5) return 3.50;
+  if (percentage >= 83.5) return 3.00;
+  if (percentage >= 77.5) return 2.50;
+  if (percentage >= 71.5) return 2.00;
+  if (percentage >= 65.5) return 1.50;
+  if (percentage >= 59.5) return 1.00;
+  return 0.00; // Below 59.5 = 0.00 (Remedial/Fail)
+};
 
 interface CourseDashboardProps {
   course: any;
@@ -93,37 +109,31 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           targetGradeValue = (course.targetGrade / 100) * 4.0; // Convert percentage to GPA
         }
       } else {
-        // Try to fetch goal data for this course
+        // Try to fetch goal data for this course using course-specific endpoint
         try {
-          const goals = await getGoalsByUserId(userId);
+          const courseId = course.id || course.courseId;
+          const response = await apiClient.get(`/academic-goals/user/${userId}/course/${courseId}`);
+          const goals = response.data as any[];
           
           const courseGoal = goals.find(goal => {
-            // Try both string and number comparison for courseId
-            const courseId = course.id || course.courseId;
-            const courseIdMatch = goal.courseId === courseId || 
-                                 goal.courseId === parseInt(courseId) || 
-                                 goal.courseId === courseId.toString();
             const typeMatch = goal.goalType === 'COURSE_GRADE';
             // Handle undefined status - if status is undefined, consider it active
             const statusMatch = goal.status === 'active' || goal.status === undefined;
-            
-            return courseIdMatch && typeMatch && statusMatch;
+            return typeMatch && statusMatch;
           });
           
           if (courseGoal && courseGoal.targetValue > 0) {
-            
             // Check if targetValue is already in GPA format or percentage format
             if (courseGoal.targetValue <= 4.0) {
               // Already in GPA format
               targetGradeValue = courseGoal.targetValue;
             } else {
-              // In percentage format, convert to GPA
-              targetGradeValue = (courseGoal.targetValue / 100) * 4.0; // 100% -> 4.0 GPA
+              // In percentage format, convert to GPA using the same custom scale as web version
+              targetGradeValue = convertPercentageToGPA(courseGoal.targetValue);
             }
-          } else {
           }
         } catch (error: any) {
-          console.error('❌ [DEBUG] Failed to fetch goals:', error);
+          console.error('❌ [DEBUG] Failed to fetch course goals:', error);
           console.error('❌ [DEBUG] Error details:', {
             message: error?.message,
             response: error?.response?.data,
@@ -284,44 +294,34 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
       const courseId = course.id || course.courseId;
       
       // Use the same approach as web version: get course data first, then fallback to calculation
-      const courseUrl = `${API_BASE_URL}/api/courses/${courseId}`;
+      const courseUrl = `/courses/${courseId}`;
 
-      const courseResponse = await fetch(courseUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (courseResponse.ok) {
-        const courseData = await courseResponse.json();
+      try {
+        const { data: courseData } = await apiClient.get<any>(courseUrl);
         
-        // Check if courseGpa is available (same as web version logic)
+        // EXACTLY match web version logic - accept ANY value including 0
         if (courseData && courseData.courseGpa !== null && courseData.courseGpa !== undefined) {
           return courseData.courseGpa; // This is already in GPA format (0-4.0)
         }
+      } catch (e) {
+        // proceed to calculation fallback
       }
 
       // Fallback: trigger calculation if course_gpa is null (same as web version)
-      const calcUrl = `${API_BASE_URL}/api/database-calculations/course/${courseId}/grade`;
+      const calcUrl = `/database-calculations/course/${courseId}/grade`;
 
-      const calcResponse = await fetch(calcUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (calcResponse.ok) {
-        const calcData = await calcResponse.json();
+      try {
+        const { data: calcData } = await apiClient.get<any>(calcUrl);
         
         // The calculation API returns GPA directly
         const courseGradeGPA = calcData.gpa || 0;
         return courseGradeGPA;
+      } catch (e) {
+        // fall through to local calculation
       }
 
-      console.warn('Both course data and calculation APIs failed, using fallback calculation');
-      return calculateCurrentGrade(); // Final fallback to local calculation
+      const localGrade = calculateCurrentGrade();
+      return localGrade; // Final fallback to local calculation
     } catch (error) {
       console.error('❌ [ERROR] Error fetching course grade from database:', error);
       return calculateCurrentGrade(); // Fallback to local calculation
@@ -352,7 +352,11 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
       }
     });
 
-    return totalWeight > 0 ? totalWeightedScore : 0;
+    const percentageGrade = totalWeight > 0 ? totalWeightedScore : 0;
+    
+    // Return percentage grade as-is (NOT converted to GPA) to match the local calculation
+    // The web version returns percentageGrade here, conversion happens elsewhere
+    return percentageGrade;
   };
 
   const handleRefresh = async () => {
@@ -485,6 +489,7 @@ export const CourseDashboard: React.FC<CourseDashboardProps> = ({
           currentGrade={currentGrade}
           userAnalytics={userAnalytics}
           refreshTrigger={aiAnalysisRefreshTrigger}
+          aiAnalysis={aiAnalysisData}
         />
       )}
     </ScrollView>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import dummyProfile from "../../../drawables/dummyProfile.webp";
 import { getAllUsers } from "../../../backend/adminAPI";
+import { auth } from "../../../backend/firebase";
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +21,18 @@ const UserManagement = () => {
   const [toast, setToast] = useState(null);
   const [userProgressData, setUserProgressData] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const getAuthHeaders = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    return { 'Content-Type': 'application/json' };
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -44,13 +57,14 @@ const UserManagement = () => {
 
   const fetchUserProgressData = async (usersList) => {
     try {
+      const headers = await getAuthHeaders();
       const progressPromises = usersList
         .filter(user => user.role !== 'ADMIN')
         .map(async (user) => {
           try {
             const [progressResponse, streakResponse] = await Promise.all([
-              fetch(`/api/user-progress/${user.userId}/with-gpas`),
-              fetch(`/api/users/${user.userId}/streak`)
+              fetch(`/api/user-progress/${user.userId}/with-gpas`, { headers }),
+              fetch(`/api/users/${user.userId}/streak`, { headers })
             ]);
 
             const progressData = progressResponse.ok ? await progressResponse.json() : null;
@@ -114,9 +128,10 @@ const UserManagement = () => {
   const handleFreezeAccount = async (e) => {
     const freeze = e.target.checked; // true = frozen
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `/api/users/freeze/${selectedUser.userId}?freeze=${freeze}`,
-        { method: "PUT", headers: { "Content-Type": "application/json" } }
+        { method: "PUT", headers }
       );
 
       if (response.ok) {
@@ -213,11 +228,12 @@ const UserManagement = () => {
 
   const handleSaveChanges = async () => {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `/api/users/profile/${selectedUser.userId}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             firstName: selectedUser.firstName,
             lastName: selectedUser.lastName,

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getUserProfile, getAcademicGoalsByUserId, getGradesByCourseId, getAssessmentCategoriesByCourseId, getAIAnalysis, logUserActivities } from "../../backend/api";
 import { useAuth } from "../context/AuthContext";
+import { auth } from "../../backend/firebase";
 const RecentActivities = ({ courses }) => {
   const { currentUser } = useAuth();
   
@@ -82,7 +83,30 @@ const RecentActivities = ({ courses }) => {
       const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
         (import.meta.env.DEV ? '' : 'http://localhost:8080');
       
-      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`);
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         
@@ -116,7 +140,30 @@ const RecentActivities = ({ courses }) => {
       const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
         (import.meta.env.DEV ? '' : 'http://localhost:8080');
       
-      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}/recent-achievements`);
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userId}/recent-achievements`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         
@@ -147,7 +194,30 @@ const RecentActivities = ({ courses }) => {
       const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 
         (import.meta.env.DEV ? '' : 'http://localhost:8080');
       
-      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userIdParam}/all-achievements`);
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/user-progress/${userIdParam}/all-achievements`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         
@@ -261,7 +331,30 @@ const RecentActivities = ({ courses }) => {
           // Fetch assessments for each category
           for (const category of categories) {
             try {
-              const response = await fetch(`/api/assessments/category/${category.categoryId}`);
+              // Get Firebase token for authentication
+              const firebaseUser = auth.currentUser;
+              let authToken = null;
+              
+              if (firebaseUser) {
+                try {
+                  authToken = await firebaseUser.getIdToken();
+                } catch (error) {
+                  console.error('Error getting Firebase token:', error);
+                }
+              }
+
+              const headers = {
+                "Content-Type": "application/json",
+              };
+
+              if (authToken) {
+                headers["Authorization"] = `Bearer ${authToken}`;
+              }
+
+              const response = await fetch(`/api/assessments/category/${category.categoryId}`, {
+                method: "GET",
+                headers,
+              });
               if (response.ok) {
                 const assessments = await response.json();
                 assessments.forEach(assessment => {

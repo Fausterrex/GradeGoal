@@ -123,9 +123,33 @@ export function AuthProvider({ children }) {
 
 
       try {
+        // Check if this is a new user during signup process
+        const isSignupProcess = window.location.pathname === '/signup';
+        
         // Fetch user profile from database to get firstName, lastName, and role
         const { getUserProfile } = await import('../../backend/api');
-        const userProfile = await getUserProfile(user.email);
+        let userProfile;
+        
+        if (isSignupProcess) {
+          // For signup process, wait a bit before trying to fetch profile to avoid 404
+          console.log('AuthContext: Signup process detected, waiting for backend registration...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          userProfile = await getUserProfile(user.email);
+        } else {
+          // For regular login, try immediately with retry
+          try {
+            userProfile = await getUserProfile(user.email);
+          } catch (error) {
+            // If user not found, wait a moment and try again (for newly registered users)
+            if (error.message && error.message.includes('User not found')) {
+              console.log('AuthContext: User not found, waiting for backend registration...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              userProfile = await getUserProfile(user.email);
+            } else {
+              throw error;
+            }
+          }
+        }
         
         // Merge Firebase user data with database profile data
         const enhancedUser = {
@@ -156,19 +180,50 @@ export function AuthProvider({ children }) {
           }
         }
         
+        // If we're on the signup page and user profile is loaded, dispatch a custom event
+        if (window.location.pathname === '/signup' && enhancedUser.userId) {
+          console.log('AuthContext: New user profile loaded, ready for navigation');
+          // Dispatch a custom event that the signup component can listen to
+          window.dispatchEvent(new CustomEvent('userProfileLoaded', { 
+            detail: { user: enhancedUser } 
+          }));
+        }
+        
       } catch (error) {
         console.error('AuthContext: Failed to fetch user profile:', error);
-        // Fallback to Firebase user data only
-        const fallbackUser = {
-          ...user,
-          userId: null,
-          firstName: '',
-          lastName: '',
-          role: 'USER'
-        };
-        setCurrentUser(fallbackUser);
-        setUserRole('USER');
-        localStorage.setItem('userRole', 'USER');
+        
+        // Check if this is a new user (404 error) or a real error
+        if (error.message && error.message.includes('User not found')) {
+          // This is a new user who hasn't been created in the backend yet
+          // This is normal for new signups - they'll be created when they complete the signup form
+          const newUser = {
+            ...user,
+            userId: null,
+            firstName: '',
+            lastName: '',
+            displayName: user.displayName || '',
+            role: 'USER'
+          };
+          setCurrentUser(newUser);
+          setUserRole('USER');
+          localStorage.setItem('userRole', 'USER');
+          
+          // Log this as a normal flow for new users
+          console.log('AuthContext: New user detected - profile will be created during signup completion');
+        } else {
+          // This is a real error - use fallback
+          console.error('AuthContext: Real error fetching user profile:', error);
+          const fallbackUser = {
+            ...user,
+            userId: null,
+            firstName: '',
+            lastName: '',
+            role: 'USER'
+          };
+          setCurrentUser(fallbackUser);
+          setUserRole('USER');
+          localStorage.setItem('userRole', 'USER');
+        }
       }
       
       setLoading(false);

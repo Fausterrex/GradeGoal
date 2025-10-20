@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
+import { auth } from "../../backend/firebase";
 import logo from "../../drawables/logoGG.png"
 const Report = () => {
   const { currentUser, loading } = useAuth();
@@ -11,7 +12,26 @@ const Report = () => {
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resData, setResData] = useState(null);
-  const reportRef = useRef(null); 
+  const reportRef = useRef(null);
+
+  // Helper function to get Firebase auth headers
+  const getAuthHeaders = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  }; 
 
 
   const handleExportToPDF = async () => {
@@ -136,6 +156,7 @@ const Report = () => {
       pdf.save(fileName);
 
       // Optional logging
+      const headers = await getAuthHeaders();
       await axios.post("http://localhost:8080/api/exports/log", {
         userId: currentUser.userId,
         exportType: "PDF_REPORT",
@@ -145,7 +166,7 @@ const Report = () => {
         createdAt,
         completedAt,
         expiresAt,
-      });
+      }, { headers });
 
       alert("✅ Report exported and logged successfully!");
     } catch (error) {
@@ -157,52 +178,80 @@ const Report = () => {
 
 
   useEffect(() => {
-    if (loading || !currentUser?.userId) {
-      setCourses([]); 
-      return;
-    }
+    const fetchCourses = async () => {
+      if (loading || !currentUser?.userId) {
+        setCourses([]); 
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
-      .then((res) => {
-        const allCourses = res.data.courses || [];
-        setResData(res.data);
+      try {
+        // Get Firebase token for authentication
+        const firebaseUser = auth.currentUser;
+        let authToken = null;
+        
+        if (firebaseUser) {
+          try {
+            authToken = await firebaseUser.getIdToken();
+          } catch (error) {
+            console.error('Error getting Firebase token:', error);
+          }
+        }
+
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+
+        const response = await axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`, {
+          headers
+        });
+        
+        const allCourses = response.data.courses || [];
+        setResData(response.data);
         const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
         const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
 
-
         setCourses(finalCourses);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Report: Fetch error:", err);
         setCourses([]);
-      })
-      .finally(() => {
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    fetchCourses();
   }, [currentUser?.userId, loading]);
 
   useEffect(() => {
-    if (currentUser?.userId && !loading) {
-      setIsLoading(true);
+    const fetchCoursesByYearLevel = async () => {
+      if (currentUser?.userId && !loading) {
+        setIsLoading(true);
 
-      axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`)
-        .then((res) => {
+        try {
+          const headers = await getAuthHeaders();
+          const res = await axios.get(`http://localhost:8080/api/dashboard/courses/grouped?userId=${currentUser.userId}`, { headers });
+          
           const allCourses = res.data.courses || [];
           const filteredCourses = filterDataByYearLevel(allCourses, 'creationYearLevel');
           const finalCourses = filteredCourses.length === 0 && allCourses.length > 0 ? allCourses : filteredCourses;
 
           setCourses(finalCourses);
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error("Report: Year level change fetch error:", err);
           setCourses([]);
-        })
-        .finally(() => {
+        } finally {
           setIsLoading(false);
-        });
-    }
+        }
+      }
+    };
+
+    fetchCoursesByYearLevel();
   }, [filterDataByYearLevel]);
 
   if (loading) {
@@ -234,17 +283,41 @@ const Report = () => {
 
   // Fetch achievements separately
   useEffect(() => {
-    if (!currentUser?.userId || loading) return;
+    const fetchAchievements = async () => {
+      if (!currentUser?.userId || loading) return;
 
-    axios
-      .get(`http://localhost:8080/api/user-progress/${currentUser.userId}/recent-achievements`)
-      .then((res) => {
-        setAchievements(res.data || []);
-      })
-      .catch((err) => {
+      try {
+        // Get Firebase token for authentication
+        const firebaseUser = auth.currentUser;
+        let authToken = null;
+        
+        if (firebaseUser) {
+          try {
+            authToken = await firebaseUser.getIdToken();
+          } catch (error) {
+            console.error('Error getting Firebase token:', error);
+          }
+        }
+
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+
+        const response = await axios.get(`http://localhost:8080/api/user-progress/${currentUser.userId}/recent-achievements`, {
+          headers
+        });
+        setAchievements(response.data || []);
+      } catch (err) {
         console.error("Achievements fetch failed:", err);
         setAchievements([]);
-      });
+      }
+    };
+
+    fetchAchievements();
   }, [currentUser?.userId, loading]);
 
   // Calculate summary from filtered courses data instead of separate API call

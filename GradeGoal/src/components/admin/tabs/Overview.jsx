@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Users, BookOpen, Target, AlertTriangle, Clock, X, Download, Calendar } from "lucide-react";
+import { auth } from "../../../backend/firebase";
 
 const Overview = () => {
   const [showModal, setShowModal] = useState(false);
@@ -29,6 +30,25 @@ const Overview = () => {
   });
   const [exportAll, setExportAll] = useState(false);
 
+  // Helper function to get Firebase auth headers
+  const getAuthHeaders = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
+
   useEffect(() => {
     fetchOverviewData();
     fetchStudentsAtRisk();
@@ -38,7 +58,8 @@ const Overview = () => {
 
   const fetchOverviewData = async () => {
     try {
-      const response = await fetch('/api/admin/overview');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/admin/overview', { headers });
       if (response.ok) {
         const data = await response.json();
         setOverviewData(data);
@@ -50,7 +71,8 @@ const Overview = () => {
 
   const fetchStudentsAtRisk = async () => {
     try {
-      const response = await fetch('/api/admin/students-at-risk');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/admin/students-at-risk', { headers });
       if (response.ok) {
         const data = await response.json();
         setStudentsAtRisk(data);
@@ -62,7 +84,8 @@ const Overview = () => {
 
   const fetchRecentActivities = async () => {
     try {
-      const response = await fetch('/api/admin/recent-activities');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/admin/recent-activities', { headers });
       if (response.ok) {
         const data = await response.json();
         setActivities(data);
@@ -76,7 +99,8 @@ const Overview = () => {
 
   const fetchDateLimits = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/admin/export/date-limits');
+      const headers = await getAuthHeaders();
+      const response = await fetch('http://localhost:8080/api/admin/export/date-limits', { headers });
       if (response.ok) {
         const data = await response.json();
         setDateLimits(data);
@@ -106,7 +130,8 @@ const Overview = () => {
         }
       }
       
-      const response = await fetch(`http://localhost:8080/api/admin/export/system-overview?${params.toString()}`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`http://localhost:8080/api/admin/export/system-overview?${params.toString()}`, { headers });
       
       if (!response.ok) {
         const errorText = await response.text();

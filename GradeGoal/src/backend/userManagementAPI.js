@@ -4,36 +4,76 @@
 // Centralized API functions for user-related operations
 // Handles authentication, profile management, and user data
 
+import { auth } from "./firebase";
+
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+  
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // USER AUTHENTICATION
 // ========================================
 
 /**
- * Register a new user
+ * Register a new user with Firebase UID
  * @param {Object} userPayload - User registration data
  * @returns {Promise<Object>} Registration response
  */
 export async function registerUser(userPayload) {
+  // Get the current Firebase user to get the UID
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) {
+    throw new Error("No Firebase user found. Please ensure you're authenticated.");
+  }
+
   // Handle both new format and legacy format
   let newFormat;
 
   if (userPayload.firstName && userPayload.lastName) {
     // New format - direct mapping to User entity
     newFormat = {
+      firebaseUid: firebaseUser.uid,
       email: userPayload.email,
-      password: userPayload.password, // Send plain password, service will hash it
       firstName: userPayload.firstName,
       lastName: userPayload.lastName,
     };
   } else {
     // Legacy format - convert displayName to firstName/lastName
     newFormat = {
+      firebaseUid: firebaseUser.uid,
       email: userPayload.email,
-      password: userPayload.password || "default_password",
       firstName: userPayload.displayName
         ? userPayload.displayName.split(" ")[0]
         : "",
@@ -43,7 +83,7 @@ export async function registerUser(userPayload) {
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/users/register`, {
+  const response = await fetch(`${API_BASE_URL}/api/users/register-firebase`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -60,18 +100,18 @@ export async function registerUser(userPayload) {
 }
 
 /**
- * Login user by email
+ * Login user by email (Firebase authentication)
  * @param {string} email - User email
  * @returns {Promise<Object>} User data
  */
 export async function loginUser(email) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -113,6 +153,7 @@ export async function googleSignIn(userData) {
  * @returns {Promise<Object>} Sign-in response
  */
 export async function facebookSignIn(userData) {
+  // Use the same endpoint as Google sign-in since both are OAuth providers
   const response = await fetch(`${API_BASE_URL}/api/users/google-signin`, {
     method: "POST",
     headers: {
@@ -141,13 +182,13 @@ export async function facebookSignIn(userData) {
  * @returns {Promise<Object>} User profile data
  */
 export async function getUserProfile(email) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -172,13 +213,13 @@ export async function getUserProfile(email) {
  * @returns {Promise<Object|null>} User profile data or null if not found
  */
 export async function getUserProfileByUsername(username) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/username/${encodeURIComponent(username)}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -199,6 +240,8 @@ export async function getUserProfileByUsername(username) {
  * @returns {Promise<Object>} Updated profile data
  */
 export async function updateUserProfile(email, profileData) {
+  const headers = await getAuthHeaders();
+
   // First get the user by email to get the user ID
   const user = await getUserProfile(email);
 
@@ -206,9 +249,7 @@ export async function updateUserProfile(email, profileData) {
     `${API_BASE_URL}/api/users/${user.userId}/profile`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         firstName: profileData.firstName,
         lastName: profileData.lastName,
@@ -235,6 +276,8 @@ export async function updateUserProfile(email, profileData) {
  */
 export async function updateUserPassword(email, passwordData) {
   try {
+    const headers = await getAuthHeaders();
+
     // First get the user by email to get the user ID
     const user = await getUserProfile(email);
     console.log("User found:", user);
@@ -244,9 +287,7 @@ export async function updateUserPassword(email, passwordData) {
       `${API_BASE_URL}/api/users/${user.userId}/password`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(passwordData),
       }
     );
@@ -288,13 +329,13 @@ export async function updateUserPassword(email, passwordData) {
  * @returns {Promise<Object>} Update response
  */
 export async function updateUserPreferences(email, preferences) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/email/${encodeURIComponent(email)}/preferences`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(preferences),
     }
   );
@@ -317,13 +358,13 @@ export async function updateUserPreferences(email, preferences) {
  * @returns {Promise<boolean>} True if available
  */
 export async function checkUsernameAvailability(username) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/username/${encodeURIComponent(username)}/available`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -341,13 +382,13 @@ export async function checkUsernameAvailability(username) {
  * @returns {Promise<Object>} Login streak data
  */
 export async function getUserLoginStreak(userId) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/${userId}/streak`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -365,13 +406,13 @@ export async function getUserLoginStreak(userId) {
  * @returns {Promise<Object>} Updated login streak data
  */
 export async function updateUserLoginStreak(userId) {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(
     `${API_BASE_URL}/api/users/${userId}/update-login-streak`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 

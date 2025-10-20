@@ -277,25 +277,6 @@ function UnifiedRecommendations({
                                   <p className="text-xs text-gray-500">Impact: {rec.impact}</p>
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center">
-                                {/* Mark as Read Button */}
-                                {!recommendation.isRead && (
-                                  <button
-                                    onClick={() => handleMarkAsRead(recommendation.recommendationId)}
-                                    className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
-                                  >
-                                    Mark as Read
-                                  </button>
-                                )}
-                                
-                                {/* Dismiss Button */}
-                                <button
-                                  onClick={() => handleDismissRecommendation(recommendation.recommendationId)}
-                                  className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition-colors"
-                                >
-                                  Dismiss
-                                </button>
-                              </div>
                             </div>
                           ))}
                         </div>

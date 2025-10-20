@@ -22,6 +22,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
 import { gpaToPercentage } from "../course/academic_goal/gpaConversionUtils";
+import { auth } from "../../backend/firebase";
 
 // Utility function to convert percentage to GPA
 const percentageToGPA = (percentage, scale = 4.0) => {
@@ -70,6 +71,26 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
         return;
       }
 
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       // For semester and cumulative modes, we need to load analytics for all courses
       // For individual mode, we load analytics for the selected course
       let allAnalytics = [];
@@ -81,7 +102,10 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
 
         // For individual mode, always fetch ALL analytics for the course, then filter by semester in frontend
         // This ensures we have complete data and can handle semester switching properly
-        const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${courseId}`);
+        const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${courseId}`, {
+          method: "GET",
+          headers,
+        });
         if (analyticsResponse.ok) {
           const analyticsData = await analyticsResponse.json();
           allAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];
@@ -100,7 +124,10 @@ const EnhancedGradeTrends = ({ courses, grades, overallGPA, gpaData }) => {
             const apiUrl = viewMode === "cumulative" 
               ? `/api/database-calculations/user/${userId}/analytics/${courseId}`
               : `/api/database-calculations/user/${userId}/analytics/${courseId}?semester=${currentSemester}`;
-            const analyticsResponse = await fetch(apiUrl);
+            const analyticsResponse = await fetch(apiUrl, {
+              method: "GET",
+              headers,
+            });
             if (analyticsResponse.ok) {
               const analyticsData = await analyticsResponse.json();
               const courseAnalytics = Array.isArray(analyticsData) ? analyticsData : [analyticsData];

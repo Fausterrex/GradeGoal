@@ -4,9 +4,43 @@
 // Centralized API functions for grade-related operations
 // Handles grade CRUD operations, calculations, and grade data
 
+import { auth } from "./firebase";
+
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // GRADE CRUD OPERATIONS
@@ -18,11 +52,11 @@ const API_BASE_URL =
  * @returns {Promise<Object>} Created grade data
  */
 export async function createGrade(gradeData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/grades`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(gradeData),
   });
   
@@ -42,13 +76,13 @@ export async function createGrade(gradeData) {
  * @returns {Promise<Array>} Array of grades
  */
 export async function getGradesByCategoryId(categoryId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/grades/category/${categoryId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -68,13 +102,13 @@ export async function getGradesByCategoryId(categoryId) {
  * @returns {Promise<Array>} Array of grades
  */
 export async function getGradesByCourseId(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/grades/course/${courseId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -95,11 +129,11 @@ export async function getGradesByCourseId(courseId) {
  * @returns {Promise<Object>} Updated grade data
  */
 export async function updateGrade(id, gradeData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/grades/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(gradeData),
   });
   
@@ -119,11 +153,11 @@ export async function updateGrade(id, gradeData) {
  * @returns {Promise<boolean>} True if deleted successfully
  */
 export async function deleteGrade(id) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/grades/${id}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -146,13 +180,13 @@ export async function deleteGrade(id) {
  * @returns {Promise<Object>} Course grade calculation result
  */
 export async function calculateCourseGrade(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/grade`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -172,13 +206,13 @@ export async function calculateCourseGrade(courseId) {
  * @returns {Promise<Object>} Course GPA calculation result
  */
 export async function calculateCourseGPA(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/gpa`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -199,13 +233,13 @@ export async function calculateCourseGPA(courseId) {
  * @returns {Promise<Object>} Category grade calculation result
  */
 export async function calculateCategoryGrade(categoryId, semesterTerm = "MIDTERM") {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/grades/calculate-category-grade`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         categoryId: categoryId,
         semesterTerm: semesterTerm
@@ -238,13 +272,13 @@ export async function addOrUpdateGradeWithCalculation(gradeData) {
     throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
   }
   
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/grade/add-update`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(gradeData),
     }
   );
@@ -266,13 +300,13 @@ export async function addOrUpdateGradeWithCalculation(gradeData) {
  * @returns {Promise<Object>} Course grades update result
  */
 export async function updateCourseGrades(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/update-grades`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -292,13 +326,13 @@ export async function updateCourseGrades(courseId) {
  * @returns {Promise<Object>} GPA calculation result
  */
 export async function calculateGPAFromPercentage(percentage) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/gpa/calculate`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ percentage }),
     }
   );
@@ -319,13 +353,13 @@ export async function calculateGPAFromPercentage(percentage) {
  * @returns {Promise<Object>} Course grade calculation and save result
  */
 export async function calculateAndSaveCourseGrade(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/calculate-and-save`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -346,13 +380,13 @@ export async function calculateAndSaveCourseGrade(courseId) {
  * @returns {Promise<Object>} Update result
  */
 export async function updateCourseHandleMissing(courseId, handleMissing) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/handle-missing`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ handleMissing }),
     }
   );
@@ -373,13 +407,13 @@ export async function updateCourseHandleMissing(courseId, handleMissing) {
  * @returns {Promise<Object>} Debug information
  */
 export async function debugCourseCalculations(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/course/${courseId}/debug`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   

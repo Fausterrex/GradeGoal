@@ -3,6 +3,7 @@
 // Updated to fix module import issues
 
 import { getApiConfig } from '../config/environment';
+import { apiClient } from './apiClient';
 
 // Get API configuration from environment
 const apiConfig = getApiConfig();
@@ -33,37 +34,21 @@ export interface AIAnalysisExistsResult {
  * Check if AI analysis exists for a course
  */
 export async function checkAIAnalysisExists(userId: number, courseId: number): Promise<AIAnalysisExistsResult> {
-  const url = `${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
-  
+  const url = `/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      console.warn(`AI analysis check API returned ${response.status}`);
-      return {
-        success: false,
-        exists: false,
-        error: `HTTP ${response.status}`
-      };
-    }
-    
-    const data = await response.json();
-    
+    const response = await apiClient.get<any>(url);
+    const data = response.data;
     return {
       success: true,
       exists: data.success && data.recommendations && data.recommendations.length > 0
     };
-  } catch (error) {
-    console.error('❌ [ERROR] Error checking AI analysis existence:', error);
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status) console.warn(`AI analysis check API returned ${status}`);
     return {
       success: false,
       exists: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: status ? `HTTP ${status}` : (error?.message || 'Unknown error')
     };
   }
 }
@@ -72,30 +57,17 @@ export async function checkAIAnalysisExists(userId: number, courseId: number): P
  * Get AI analysis for a course
  */
 export async function getAIAnalysis(userId: number, courseId: number): Promise<AIAnalysisResult> {
-  const url = `${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
-  
+  const url = `/recommendations/user/${userId}/course/${courseId}/ai-analysis`;
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      console.warn(`AI analysis API returned ${response.status}`);
-      return {
-        success: false,
-        hasAnalysis: false,
-        error: `HTTP ${response.status}`
-      };
-    }
-    
-    const data = await response.json();
-    
+    const { data } = await apiClient.get<any>(url);
     if (data.success && data.recommendations && data.recommendations.length > 0) {
-      // Get the most recent AI analysis
-      const latestAnalysis = data.recommendations[0];
+      // Get the most recent AI analysis (ensure sorted by timestamp)
+      const latestAnalysis = [...data.recommendations]
+        .sort((a: any, b: any) => {
+          const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return tb - ta;
+        })[0];
       
       return {
         success: true,
@@ -115,12 +87,14 @@ export async function getAIAnalysis(userId: number, courseId: number): Promise<A
       success: true,
       hasAnalysis: false
     };
-  } catch (error) {
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status) console.warn(`AI analysis API returned ${status}`);
     console.error('❌ [ERROR] Error fetching AI analysis:', error);
     return {
       success: false,
       hasAnalysis: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: status ? `HTTP ${status}` : (error?.message || 'Unknown error')
     };
   }
 }
@@ -196,23 +170,12 @@ export function getAchievementProbabilityFromData(analysisData: any): number | n
  * Get user progress with GPA data
  */
 export async function getUserProgressWithGPAs(userId: number): Promise<any> {
-  const url = `${API_BASE_URL}/api/user-progress/${userId}/with-gpas`;
-  
+  const url = `/user-progress/${userId}/with-gpas`;
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
+    const { data } = await apiClient.get<any>(url);
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    const status = error?.response?.status;
     console.error('❌ [ERROR] Error fetching user progress:', error);
     // Return fallback data instead of throwing error
     return {
@@ -229,24 +192,13 @@ export async function getUserProgressWithGPAs(userId: number): Promise<any> {
  * Get course analytics from database
  */
 export async function getCourseAnalytics(userId: number, courseId: number): Promise<any[]> {
-  const url = `${API_BASE_URL}/api/database-calculations/user/${userId}/analytics/${courseId}`;
-  
+  const url = `/database-calculations/user/${userId}/analytics/${courseId}`;
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      console.warn(`Course analytics API returned ${response.status}, using fallback data`);
-      return [];
-    }
-    
-    const data = await response.json();
+    const { data } = await apiClient.get<any[]>(url);
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status) console.warn(`Course analytics API returned ${status}, using fallback data`);
     console.error('❌ [ERROR] Error fetching course analytics:', error);
     // Return empty array instead of throwing error
     return [];

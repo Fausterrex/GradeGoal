@@ -4,9 +4,43 @@
 // Centralized API functions for achievement-related operations
 // Handles achievements, notifications, goals, and user progress
 
+import { auth } from "./firebase";
+
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // ACHIEVEMENT OPERATIONS
@@ -18,13 +52,13 @@ const API_BASE_URL =
  * @returns {Promise<Object>} Recent achievements data
  */
 export async function getRecentAchievements(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/user-progress/${userId}/recent-achievements`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -42,13 +76,13 @@ export async function getRecentAchievements(userId) {
  * @returns {Promise<Object>} User progress with rank data
  */
 export async function getUserProgressWithRank(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/user-progress/${userId}/with-rank`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -66,13 +100,13 @@ export async function getUserProgressWithRank(userId) {
  * @returns {Promise<Object>} Achievement check result
  */
 export async function checkAchievements(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/check/${userId}`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -90,13 +124,13 @@ export async function checkAchievements(userId) {
  * @returns {Promise<Object>} User achievements data
  */
 export async function getUserAchievements(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/user/${userId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -114,13 +148,13 @@ export async function getUserAchievements(userId) {
  * @returns {Promise<Object>} All achievements with progress data
  */
 export async function getAllAchievementsWithProgress(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/user/${userId}/all`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -142,13 +176,13 @@ export async function getAllAchievementsWithProgress(userId) {
  * @returns {Promise<Object>} User notifications data
  */
 export async function getNotifications(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/notifications/${userId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -166,13 +200,13 @@ export async function getNotifications(userId) {
  * @returns {Promise<Object>} Unread notifications data
  */
 export async function getUnreadNotifications(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/notifications/${userId}/unread`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -190,13 +224,13 @@ export async function getUnreadNotifications(userId) {
  * @returns {Promise<Object>} Unread count data
  */
 export async function getUnreadCount(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/notifications/${userId}/unread-count`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -214,13 +248,13 @@ export async function getUnreadCount(userId) {
  * @returns {Promise<Object>} Mark as read result
  */
 export async function markNotificationAsRead(notificationId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/notifications/${notificationId}/read`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -238,13 +272,13 @@ export async function markNotificationAsRead(notificationId) {
  * @returns {Promise<Object>} Mark all as read result
  */
 export async function markAllNotificationsAsRead(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/achievements/notifications/${userId}/mark-all-read`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -266,11 +300,11 @@ export async function markAllNotificationsAsRead(userId) {
  * @returns {Promise<Object>} Created goal data
  */
 export async function createAcademicGoal(goalData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/academic-goals`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(goalData),
   });
   
@@ -290,13 +324,13 @@ export async function createAcademicGoal(goalData) {
  * @returns {Promise<Array>} Array of academic goals
  */
 export async function getAcademicGoalsByUserId(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/academic-goals/user/${userId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -317,13 +351,13 @@ export async function getAcademicGoalsByUserId(userId) {
  * @returns {Promise<Array>} Array of course-specific goals
  */
 export async function getAcademicGoalsByCourse(userId, courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/academic-goals/user/${userId}/course/${courseId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -344,13 +378,13 @@ export async function getAcademicGoalsByCourse(userId, courseId) {
  * @returns {Promise<Array>} Array of goals filtered by achievement status
  */
 export async function getGoalsByAchievementStatus(userId, isAchieved) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/academic-goals/user/${userId}/achievement-status?isAchieved=${isAchieved}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -375,11 +409,11 @@ export async function getGoalsByAchievementStatus(userId, isAchieved) {
  * @returns {Promise<Object>} Activity log result
  */
 export async function logUserActivity(userId, activityType, context, ipAddress = null) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/user-activity/log`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       userId,
       activityType,
@@ -402,11 +436,11 @@ export async function logUserActivity(userId, activityType, context, ipAddress =
  * @returns {Promise<Object>} Batch activity log result
  */
 export async function logUserActivities(activities) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/user-activity/log-batch`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       activities
     }),
@@ -427,13 +461,13 @@ export async function logUserActivities(activities) {
  * @returns {Promise<Object>} Recent activities data
  */
 export async function getRecentUserActivities(userId, days = 7) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/user-activity/user/${userId}/recent?days=${days}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -451,13 +485,13 @@ export async function getRecentUserActivities(userId, days = 7) {
  * @returns {Promise<Object>} Activity statistics data
  */
 export async function getUserActivityStats(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/user-activity/user/${userId}/stats`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 
@@ -481,13 +515,13 @@ export async function getUserActivityStats(userId) {
  * @returns {Promise<Object>} Points award result
  */
 export async function awardPoints(userId, points, activityType) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/user/${userId}/award-points`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ points, activityType }),
     }
   );
@@ -508,13 +542,13 @@ export async function awardPoints(userId, points, activityType) {
  * @returns {Promise<Object>} Goal progress check result
  */
 export async function checkGoalProgress(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/user/${userId}/check-goal-progress`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -534,13 +568,13 @@ export async function checkGoalProgress(userId) {
  * @returns {Promise<Object>} Grade alerts check result
  */
 export async function checkGradeAlerts(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/database-calculations/user/${userId}/check-grade-alerts`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   

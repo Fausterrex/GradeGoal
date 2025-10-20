@@ -32,6 +32,9 @@ public class User {
     @Column(name = "email", unique = true, nullable = false)
     private String email;
     
+    @Column(name = "firebase_uid", unique = true, nullable = true)
+    private String firebaseUid;
+    
     @Column(name = "first_name")
     private String firstName;
     

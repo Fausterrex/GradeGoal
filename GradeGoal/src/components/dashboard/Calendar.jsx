@@ -1,11 +1,12 @@
 // Calendar.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar"; 
 import moment from "moment";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useYearLevel } from "../context/YearLevelContext";
 import CustomEventModal from "../modals/CustomEventModal";
+import { auth } from "../../backend/firebase";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Minimal CSS overrides for react-big-calendar positioning
@@ -57,6 +58,27 @@ const MyCalendar = () => {
   const [date, setDate] = useState(new Date());
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showEventModal, setShowEventModal] = useState(false);
+
+  // Helper function to get Firebase auth headers
+  const getAuthHeaders = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
 
   const MyToolbar = ({ label, onNavigate, onView }) => (
     <div className="h-32 flex justify-between items-center p-6 bg-gradient-to-r from-[#667eea] via-[#764ba2] to-[#667eea] text-white rounded-t-2xl shadow-2xl relative overflow-hidden">
@@ -128,23 +150,25 @@ const MyCalendar = () => {
     </div>
   );
   useEffect(() => {
-    // Don't fetch if auth is still loading or no user
-    if (loading || !currentUser?.userId) {
-      setEvents([]); // Clear previous data
-      return;
-    }
+    const fetchCalendarData = async () => {
+      // Don't fetch if auth is still loading or no user
+      if (loading || !currentUser?.userId) {
+        setEvents([]); // Clear previous data
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    // Fetch both assessments and custom events
-    Promise.all([
-      axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`),
-      axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`)
-    ])
-    .then(([assessmentsRes, customEventsRes]) => {
-      
-      // Format assessments for calendar with course information
-      const assessmentEvents = assessmentsRes.data.map((item) => {
+      try {
+        // Fetch both assessments and custom events with auth headers
+        const headers = await getAuthHeaders();
+        const [assessmentsRes, customEventsRes] = await Promise.all([
+          axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`, { headers }),
+          axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`, { headers })
+        ]);
+        
+        // Format assessments for calendar with course information
+        const assessmentEvents = assessmentsRes.data.map((item) => {
         const now = new Date();
         const dueDate = new Date(item.dueDate);
         const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
@@ -177,8 +201,6 @@ const MyCalendar = () => {
 
       // Format custom events for calendar
       const customEvents = customEventsRes.data.map((item) => {
-        console.log(`Custom Event: ${item.eventTitle}, Start: ${item.eventStart}, End: ${item.eventEnd}`); // Debug log
-
         return {
           id: `custom-${item.eventId}`,
           title: item.eventTitle,
@@ -209,32 +231,35 @@ const MyCalendar = () => {
         return true;
       });
       
-      
-      setEvents(filteredEvents);
-    })
-    .catch((err) => {
-      console.error("Calendar: Failed to fetch calendar data:", err);
-      setEvents([]);
-    })
-    .finally(() => {
-      setIsLoading(false);
-    });
+        
+        setEvents(filteredEvents);
+      } catch (err) {
+        console.error("Calendar: Failed to fetch calendar data:", err);
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCalendarData();
   }, [currentUser?.userId, loading]);
 
   // Reload calendar data when year level changes
   useEffect(() => {
-    if (currentUser?.userId && !loading) {
-      // Trigger the same data loading logic
-      setIsLoading(true);
+    const reloadCalendarData = async () => {
+      if (currentUser?.userId && !loading) {
+        // Trigger the same data loading logic
+        setIsLoading(true);
 
-      Promise.all([
-        axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`),
-        axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`)
-      ])
-      .then(([assessmentsRes, customEventsRes]) => {
-        
-        // Format assessments for calendar with course information
-        const assessmentEvents = assessmentsRes.data.map((item) => {
+        try {
+          const headers = await getAuthHeaders();
+          const [assessmentsRes, customEventsRes] = await Promise.all([
+            axios.get(`http://localhost:8080/api/assessments/user/${currentUser.userId}`, { headers }),
+            axios.get(`http://localhost:8080/api/custom-events/user/${currentUser.userId}`, { headers })
+          ]);
+          
+          // Format assessments for calendar with course information
+          const assessmentEvents = assessmentsRes.data.map((item) => {
           const now = new Date();
           const dueDate = new Date(item.dueDate);
           const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
@@ -296,17 +321,18 @@ const MyCalendar = () => {
           // So we'll show all assessment events for now
           return true;
         });
-        
-        setEvents(filteredEvents);
-      })
-      .catch((err) => {
-        console.error("Calendar: Failed to reload calendar data:", err);
-        setStatus([]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-    }
+          
+          setEvents(filteredEvents);
+        } catch (err) {
+          console.error("Calendar: Failed to reload calendar data:", err);
+          setEvents([]);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    reloadCalendarData();
   }, [selectedYearLevel]);
 
   const handleCustomEventAdded = (newEvent) => {
@@ -325,6 +351,38 @@ const MyCalendar = () => {
     };
     
     setEvents(prevEvents => [...prevEvents, customEvent]);
+  };
+
+  // Handle event click - show event details
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setShowEventModal(true);
+  };
+
+  // Handle custom event deletion
+  const handleDeleteCustomEvent = async (eventId) => {
+    if (!currentUser?.userId) return;
+
+    try {
+      const headers = await getAuthHeaders();
+      
+      // Extract the actual event ID from the custom event ID format
+      const actualEventId = eventId.replace('custom-', '');
+      
+      await axios.delete(`http://localhost:8080/api/custom-events/${actualEventId}`, { headers });
+      
+      // Remove the event from the local state
+      setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      
+      // Close the modal
+      setShowEventModal(false);
+      setSelectedEvent(null);
+      
+      alert('Custom event deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting custom event:', error);
+      alert('Failed to delete custom event. Please try again.');
+    }
   };
 
   const eventStyleGetter = (event) => {
@@ -494,6 +552,7 @@ const MyCalendar = () => {
           onNavigate={setDate}
           style={{ height: "75vh" }} 
           eventPropGetter={eventStyleGetter}
+          onSelectEvent={handleEventClick}
           components={{
             event: EventComponent
           }}
@@ -507,6 +566,110 @@ const MyCalendar = () => {
         onClose={() => setShowCustomEventModal(false)}
         onEventAdded={handleCustomEventAdded}
       />
+
+      {/* Event Details Modal */}
+      {showEventModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {selectedEvent.isCustomEvent ? 'Custom Event' : 'Assessment Details'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEventModal(false);
+                    setSelectedEvent(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Event Details */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-1">Title</label>
+                  <p className="text-lg font-medium text-gray-800">{selectedEvent.title}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-1">Course</label>
+                  <p className="text-gray-800">{selectedEvent.courseName}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-1">Date & Time</label>
+                  <p className="text-gray-800">
+                    {moment(selectedEvent.start).format('MMMM DD, YYYY [at] h:mm A')}
+                  </p>
+                </div>
+
+                {selectedEvent.description && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Description</label>
+                    <p className="text-gray-800">{selectedEvent.description}</p>
+                  </div>
+                )}
+
+                {selectedEvent.categoryName && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Category</label>
+                    <p className="text-gray-800">{selectedEvent.categoryName}</p>
+                  </div>
+                )}
+
+                {selectedEvent.maxPoints && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Max Points</label>
+                    <p className="text-gray-800">{selectedEvent.maxPoints}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-1">Status</label>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    selectedEvent.status === 'OVERDUE' ? 'bg-red-100 text-red-800' :
+                    selectedEvent.status === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
+                    selectedEvent.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                    selectedEvent.status === 'CUSTOM' ? 'bg-purple-100 text-purple-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedEvent.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                {selectedEvent.isCustomEvent && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this custom event?')) {
+                        handleDeleteCustomEvent(selectedEvent.id);
+                      }
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200"
+                  >
+                    Delete Event
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowEventModal(false);
+                    setSelectedEvent(null);
+                  }}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

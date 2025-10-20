@@ -4,7 +4,7 @@
 // This component handles user registration with email/password authentication.
 // It validates user input, creates new user accounts, and manages registration state.
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../../backend/api";
@@ -21,6 +21,21 @@ export default function Signup() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [emailError, setEmailError] = useState("");
+
+  // Listen for user profile loaded event from AuthContext
+  useEffect(() => {
+    const handleUserProfileLoaded = (event) => {
+      console.log('Signup: User profile loaded, navigating to dashboard');
+      // Navigate immediately since the profile is already loaded
+      navigate("/dashboard");
+    };
+
+    window.addEventListener('userProfileLoaded', handleUserProfileLoaded);
+    
+    return () => {
+      window.removeEventListener('userProfileLoaded', handleUserProfileLoaded);
+    };
+  }, [navigate]);
 
   // Validates email format using regex pattern
   // Returns true if valid, false if invalid, and sets error message
@@ -81,7 +96,7 @@ export default function Signup() {
       setSuccess("");
       setLoading(true);
 
-      // Create Firebase account
+      // Create Firebase account first
       const cred = await signup(
         emailRef.current.value,
         passwordRef.current.value
@@ -89,10 +104,9 @@ export default function Signup() {
       const firebaseUser = cred.user;
       const displayName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // Register user in backend
+      // Register user in backend with Firebase UID
       await registerUser({
         email: firebaseUser.email,
-        password: passwordRef.current.value, // Send plain password, service will hash it
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       });
@@ -106,10 +120,8 @@ export default function Signup() {
       passwordRef.current.value = "";
       passwordConfirmRef.current.value = "";
 
-      // Redirect to login page
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      // Don't redirect here - let AuthContext handle it after profile is loaded
+      // The AuthContext will automatically redirect once the user profile is fetched
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setError("An account with this email already exists.");

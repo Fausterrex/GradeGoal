@@ -29,12 +29,13 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
 }) => {
   // Helper function to check if grade has valid score (matching web version)
   const hasValidScore = (grade: any) => {
+    // Exclude score of 0 as it indicates pending/upcoming assessment
     const isValid = grade && 
            grade.score !== null && 
            grade.score !== undefined && 
+           grade.score > 0 &&  // This is the key: exclude 0 scores!
            grade.maxScore && 
            grade.maxScore > 0;
-           // Note: Include grades with 0% scores to match web version behavior
     
     return isValid;
   };
@@ -127,17 +128,24 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
       };
     }
 
-    // Calculate completion rate
+    // Calculate completion rate (EXACTLY matching web version logic)
     let totalAssessments = 0;
+    let totalExpectedAssessments = 0;
     let completedAssessments = 0;
     categories.forEach(category => {
       const categoryGrades = gradesByCategory[category.id] || [];
       totalAssessments += categoryGrades.length;
+      
+      // Each category should have at least 1 assessment for a complete course (web logic)
+      const expectedInCategory = Math.max(categoryGrades.length, 1);
+      totalExpectedAssessments += expectedInCategory;
+      
       completedAssessments += categoryGrades.filter((grade: any) => hasValidScore(grade)).length;
     });
 
-    const completionRate = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
-    const remainingAssessments = totalAssessments - completedAssessments;
+    // Use totalExpectedAssessments instead of totalAssessments (web logic)
+    const completionRate = totalExpectedAssessments > 0 ? (completedAssessments / totalExpectedAssessments) * 100 : 0;
+    const remainingAssessments = totalExpectedAssessments - completedAssessments;
     const gpaGap = targetGPA - currentGPA;
 
     // Calculate likelihood based on current progress and gap (matching web version logic)
@@ -181,7 +189,7 @@ export const CourseGradeBreakdown: React.FC<CourseGradeBreakdownProps> = ({
         gpaGap,
         completionRate,
         remainingAssessments,
-        totalAssessments
+        totalAssessments: totalExpectedAssessments
       }
     };
   };

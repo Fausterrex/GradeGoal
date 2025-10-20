@@ -79,9 +79,22 @@ export const getAIRecommendations = async (userId, courseId) => {
   
   // If not in memory, try to load from database
   try {
+    // Get Firebase auth token
+    const { auth } = await import("../../../backend/firebase");
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+    
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers,
     });
     
     if (response.ok) {

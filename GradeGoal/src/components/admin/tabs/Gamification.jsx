@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trophy } from "lucide-react";
+import { auth } from "../../../backend/firebase";
 
 const Gamification = () => {
   const [achievements, setAchievements] = useState([]);
@@ -17,9 +18,27 @@ const Gamification = () => {
     fetchAchievementData();
   }, []);
 
+  // Function to get Firebase authentication headers
+  const getAuthHeaders = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
+
   const fetchAchievementData = async () => {
     try {
-      const response = await fetch('/api/admin/achievements');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/admin/achievements', {
+        headers
+      });
       if (response.ok) {
         const data = await response.json();
         setAchievements(data.achievements || []);

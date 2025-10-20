@@ -219,7 +219,8 @@ const GoalCard = ({
 
   // Check if course is completed (for course-specific goals)
   const isCourseCompleted = useMemo(() => {
-    if (!goal.courseId) return true; // Non-course goals are always considered "completed" for display purposes
+    // For non-course goals (Cumulative GPA, Semester GPA), they should always be editable
+    if (!goal.courseId) return false;
     const course = courses.find(c => c.courseId === goal.courseId);
     return course?.isCompleted === true;
   }, [goal.courseId, courses]);

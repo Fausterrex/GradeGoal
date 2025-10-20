@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useAchievements } from "../../services/useAchievements";
+import { auth } from "../../../backend/firebase";
 import AddCourse from "../../modals/AddCourse";
 import GradeSuccessFeedback from "../../modals/GradeSuccessFeedback";
 import ConfirmationModal from "../../modals/ConfirmationModal";
@@ -117,9 +118,6 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
   const [courseGrade, setCourseGrade] = useState(0);
   
   // Debug logging for courseGrade changes
-  useEffect(() => {
-    console.log('🔍 [DEBUG] courseGrade state changed to:', courseGrade);
-  }, [courseGrade]);
   const [activeSemesterTerm, setActiveSemesterTerm] = useState('MIDTERM');
   const [isMidtermCompleted, setIsMidtermCompleted] = useState(false);
   
@@ -277,11 +275,22 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
 
   const markMidtermAsDone = async () => {
     try {
+      // Get Firebase auth token
+      const { auth } = await import("../../../backend/firebase");
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+      
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/database-calculations/course/${course.courseId}/mark-midterm-completed`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (response.ok) {
@@ -331,8 +340,31 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         return;
       }
       
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
       // Fetch user progress with accurate GPA values
-      const response = await fetch(`/api/user-progress/${userId}/with-gpas`);
+      const response = await fetch(`/api/user-progress/${userId}/with-gpas`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const progressData = await response.json();
         setUserProgress(progressData);
@@ -377,8 +409,31 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
         return;
       }
       
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
       // Load analytics from database
-      const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${course.courseId}`);
+      const analyticsResponse = await fetch(`/api/database-calculations/user/${userId}/analytics/${course.courseId}`, {
+        method: "GET",
+        headers,
+      });
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
         setUserAnalytics(analyticsData);
@@ -416,19 +471,13 @@ function GradeEntry({ course, onGradeUpdate, onBack, onNavigateToCourse, onClear
     try {
       // Get the course GPA directly from the course_gpa column
       const courseData = await getCourseById(course.id);
-      console.log('🔍 [DEBUG] Course data from getCourseById:', courseData);
-      console.log('🔍 [DEBUG] courseData.courseGpa:', courseData?.courseGpa);
-      console.log('🔍 [DEBUG] courseData.calculatedCourseGrade:', courseData?.calculatedCourseGrade);
       
       if (courseData && courseData.courseGpa !== null && courseData.courseGpa !== undefined) {
-        console.log('🔍 [DEBUG] Setting courseGrade to:', courseData.courseGpa);
         setCourseGrade(courseData.courseGpa);
       } else {
-        console.log('🔍 [DEBUG] courseGpa is null/undefined, falling back to calculation');
         // Fallback: trigger calculation if course_gpa is null
         const result = await calculateAndStoreCourseGrade(course.id);
         if (result.success && result.gpa !== undefined) {
-          console.log('🔍 [DEBUG] Setting courseGrade from calculation result:', result.gpa);
           setCourseGrade(result.gpa);
         }
         }

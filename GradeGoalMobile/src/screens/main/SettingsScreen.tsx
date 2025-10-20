@@ -26,6 +26,7 @@ export const SettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   
   // Profile data
   const [profileData, setProfileData] = useState({
@@ -57,6 +58,7 @@ export const SettingsScreen: React.FC = () => {
       const user = await UserService.getUserProfile(currentUser.email) as any;
       
       setEmailNotificationsEnabled(user?.emailNotificationsEnabled ?? true);
+      setPushNotificationsEnabled(user?.pushNotificationsEnabled ?? true);
       
       const newProfileData = {
         firstName: user?.firstName || '',
@@ -85,6 +87,10 @@ export const SettingsScreen: React.FC = () => {
     setEmailNotificationsEnabled(enabled);
   };
 
+  const handlePushNotificationToggle = (enabled: boolean) => {
+    setPushNotificationsEnabled(enabled);
+  };
+
 
 
   const handleSaveSettings = async () => {
@@ -94,6 +100,7 @@ export const SettingsScreen: React.FC = () => {
     try {
       await UserService.updateUserPreferences(currentUser.email, {
         emailNotificationsEnabled,
+        pushNotificationsEnabled,
       });
 
       Alert.alert('Success', 'Settings saved successfully!');
@@ -226,6 +233,22 @@ export const SettingsScreen: React.FC = () => {
                 onValueChange={handleEmailNotificationToggle}
                 trackColor={{ false: colors.gray[300], true: colors.primary }}
                 thumbColor={emailNotificationsEnabled ? colors.background.primary : colors.gray[100]}
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <View style={styles.settingItemLeft}>
+                <Text style={styles.settingIcon}>📱</Text>
+                <View>
+                  <Text style={styles.settingText}>Push Notifications</Text>
+                  <Text style={styles.settingSubtext}>Receive notifications on your device</Text>
+                </View>
+              </View>
+              <Switch
+                value={pushNotificationsEnabled}
+                onValueChange={handlePushNotificationToggle}
+                trackColor={{ false: colors.gray[300], true: colors.primary }}
+                thumbColor={pushNotificationsEnabled ? colors.background.primary : colors.gray[100]}
               />
             </View>
 

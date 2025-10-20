@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, FC } from 'react';
 import { User } from '../types';
-import { authService } from '../services/authService';
+import { firebaseAuthService } from '../services/firebaseAuthService';
 import { StreakService, StreakData } from '../services/streakService';
 import { DashboardService } from '../services/dashboardService';
 
@@ -34,7 +34,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [streakData, setStreakData] = useState<StreakData | null>(null);
 
   useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
+    const unsubscribe = firebaseAuthService.onAuthStateChanged((user) => {
       setCurrentUser(user);
       setIsLoading(false);
       
@@ -81,7 +81,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const user = await authService.login(email, password);
+      const user = await firebaseAuthService.login(email, password);
       setCurrentUser(user);
       // Update streak on successful login
       if (user?.userId) {
@@ -95,7 +95,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: any) => {
     setIsLoading(true);
     try {
-      const user = await authService.register(userData);
+      const user = await firebaseAuthService.register(userData);
       setCurrentUser(user);
     } finally {
       setIsLoading(false);
@@ -105,7 +105,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      await firebaseAuthService.logout();
       setCurrentUser(null);
     } finally {
       setIsLoading(false);

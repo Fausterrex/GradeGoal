@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getUserProfile } from "../../../backend/api";
+import { auth } from "../../../backend/firebase";
 import ConfirmationModal from "../../modals/ConfirmationModal";
 import GoalHeader from "./GoalHeader";
 import GoalFilter from "./GoalFilter";
@@ -65,7 +66,30 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
       if (!user?.userId) return;
 
       try {
-        const response = await fetch(`http://localhost:8080/api/academic-goals/user/${user.userId}`);
+        // Get Firebase token for authentication
+        const firebaseUser = auth.currentUser;
+        let authToken = null;
+        
+        if (firebaseUser) {
+          try {
+            authToken = await firebaseUser.getIdToken();
+          } catch (error) {
+            console.error('Error getting Firebase token:', error);
+          }
+        }
+
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+
+        const response = await fetch(`http://localhost:8080/api/academic-goals/user/${user.userId}`, {
+          method: "GET",
+          headers,
+        });
         if (response.ok) {
           const goalsData = await response.json();
           setGoals(goalsData);
@@ -271,6 +295,26 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     if (!user?.userId) return;
 
     try {
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       // Prepare goal data with proper validation
       const goalData = {
         userId: parseInt(user.userId),
@@ -301,9 +345,7 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(goalData),
       });
 
@@ -343,8 +385,29 @@ const GoalSetting = ({ userEmail, courses = [], grades = {}, isCompact = false }
     setDeleteConfirm(null);
 
     try {
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`http://localhost:8080/api/academic-goals/${goalToDelete.goalId}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {

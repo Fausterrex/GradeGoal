@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { auth } from "../../backend/firebase";
 const CustomEventModal = ({ isOpen, onClose, onEventAdded }) => {
   const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
@@ -14,6 +15,24 @@ const CustomEventModal = ({ isOpen, onClose, onEventAdded }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const getAuthHeaders = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -54,8 +73,8 @@ const CustomEventModal = ({ isOpen, onClose, onEventAdded }) => {
       console.log('Event date time:', eventDateTime);
       console.log('Event end date time:', eventEndDateTime);
 
-
-      const response = await axios.post('http://localhost:8080/api/custom-events', eventData);
+      const headers = await getAuthHeaders();
+      const response = await axios.post('http://localhost:8080/api/custom-events', eventData, { headers });
       
       if (response.status === 201) {
         // Reset form

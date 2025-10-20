@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { currentConfig } from '../config/environment';
+import { auth } from '../config/firebase';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -18,12 +19,17 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor to add auth token
+    // Request interceptor to add Firebase auth token
     this.client.interceptors.request.use(
       async (config) => {
-        const token = await AsyncStorage.getItem('auth_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const firebaseUser = auth.currentUser;
+        if (firebaseUser) {
+          try {
+            const token = await firebaseUser.getIdToken();
+            config.headers.Authorization = `Bearer ${token}`;
+          } catch (error) {
+            console.error('Error getting Firebase token:', error);
+          }
         }
         return config;
       },
@@ -42,13 +48,15 @@ class ApiClient {
           originalRequest._retry = true;
 
           try {
-            const newToken = await this.refreshToken();
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return this.client(originalRequest);
+            // Refresh Firebase token
+            const firebaseUser = auth.currentUser;
+            if (firebaseUser) {
+              const newToken = await firebaseUser.getIdToken(true); // Force refresh
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              return this.client(originalRequest);
+            }
           } catch (refreshError) {
-            // Refresh failed, redirect to login
-            await AsyncStorage.removeItem('auth_token');
-            await AsyncStorage.removeItem('refresh_token');
+            console.error('Error refreshing Firebase token:', refreshError);
             return Promise.reject(refreshError);
           }
         }
@@ -58,19 +66,15 @@ class ApiClient {
     );
   }
 
+  // Firebase handles token refresh automatically
+  // This method is kept for compatibility but not used with Firebase
   private async refreshToken(): Promise<string> {
-    const refreshToken = await AsyncStorage.getItem('refresh_token');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      throw new Error('No Firebase user available');
     }
-
-    const response = await axios.post(`${this.baseURL}/auth/refresh`, {
-      refreshToken,
-    });
-
-    const { accessToken } = response.data;
-    await AsyncStorage.setItem('auth_token', accessToken);
-    return accessToken;
+    
+    return await firebaseUser.getIdToken(true);
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {

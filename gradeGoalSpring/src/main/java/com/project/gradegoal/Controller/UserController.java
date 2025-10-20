@@ -4,6 +4,7 @@ import com.project.gradegoal.Entity.User;
 import com.project.gradegoal.Repository.UserRepository;
 import com.project.gradegoal.Service.UserService;
 import com.project.gradegoal.Service.LoginStreakService;
+import com.project.gradegoal.DTO.FirebaseUserRegistrationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,47 @@ public class UserController {
     private UserService userService;
     @Autowired
     private UserRepository userRepository;
+
+    @PostMapping("/register-firebase")
+    public ResponseEntity<?> registerUserWithFirebase(@RequestBody FirebaseUserRegistrationRequest request) {
+        try {
+            // Basic input validation
+            if (request.getFirebaseUid() == null || request.getFirebaseUid().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Firebase UID is required");
+            }
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is required");
+            }
+            if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("First name is required");
+            }
+            if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Last name is required");
+            }
+
+            // Check if user already exists with this Firebase UID
+            if (userRepository.existsByFirebaseUid(request.getFirebaseUid())) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this Firebase UID already exists");
+            }
+
+            // Check if user already exists with this email
+            if (userRepository.existsByEmail(request.getEmail())) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this email already exists");
+            }
+
+            User user = userService.createUserWithFirebaseUid(
+                request.getFirebaseUid(),
+                request.getEmail(),
+                request.getFirstName(),
+                request.getLastName()
+            );
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
+        }
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
@@ -127,6 +169,20 @@ public class UserController {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch user");
+        }
+    }
+
+    @GetMapping("/firebase-uid/{firebaseUid}")
+    public ResponseEntity<?> getUserByFirebaseUid(@PathVariable String firebaseUid) {
+        try {
+            Optional<User> user = userService.findByFirebaseUid(firebaseUid);
+            if (user.isPresent()) {
+                return ResponseEntity.ok(user.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching user: " + e.getMessage());
         }
     }
 

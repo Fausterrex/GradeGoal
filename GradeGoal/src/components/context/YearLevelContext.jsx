@@ -12,12 +12,18 @@ export const useYearLevel = () => {
 };
 
 export const YearLevelProvider = ({ children }) => {
-  const { currentUser } = useAuth();
+  const auth = useAuth();
+  const currentUser = auth?.currentUser;
   const [selectedYearLevel, setSelectedYearLevel] = useState('all'); // 'all', '1', '2', '3', '4'
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize selectedYearLevel from user's currentYearLevel
+  // Always call useEffect to maintain hook order
   useEffect(() => {
+    // Only initialize if auth is available and not loading
+    if (!auth || auth.loading) {
+      return;
+    }
+
     const initializeYearLevel = async () => {
       if (currentUser && !isInitialized) {
         try {
@@ -40,7 +46,25 @@ export const YearLevelProvider = ({ children }) => {
     };
 
     initializeYearLevel();
-  }, [currentUser, isInitialized]);
+  }, [currentUser, isInitialized, auth]);
+
+  // Handle case where auth context is not available or still loading
+  if (!auth || auth.loading) {
+    return (
+      <YearLevelContext.Provider value={{
+        selectedYearLevel: 'all',
+        changeYearLevel: () => {},
+        syncWithUserYearLevel: () => {},
+        isAllYearsView: true,
+        isSpecificYearView: false,
+        getYearLevelLabel: () => 'All Years',
+        filterDataByYearLevel: (data) => data,
+        showCumulativeData: () => true
+      }}>
+        {children}
+      </YearLevelContext.Provider>
+    );
+  }
 
   const isAllYearsView = selectedYearLevel === 'all';
   const isSpecificYearView = selectedYearLevel !== 'all';

@@ -19,6 +19,7 @@ import { getCourseColorScheme } from "../utils/courseColors";
 import AddCourse from "../modals/AddCourse";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import AIPredictionRatingModal from "../modals/AIPredictionRatingModal";
+import { auth } from "../../backend/firebase";
 function CourseManager({
   onCourseUpdate,
   onCourseSelect = () => {},
@@ -28,6 +29,24 @@ function CourseManager({
 }) {
   const { currentUser } = useAuth();
   const { selectedYearLevel, filterDataByYearLevel } = useYearLevel();
+
+  const getAuthHeaders = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
 
 
   // ========================================
@@ -154,9 +173,11 @@ function CourseManager({
     try {
       setRatingModal(prev => ({ ...prev, isLoading: true }));
       
+      const headers = await getAuthHeaders();
       const response = await axios.put(
         `http://localhost:8080/api/courses/${ratingModal.courseId}/complete-with-rating`,
-        { aiPredictionRating: rating }
+        { aiPredictionRating: rating },
+        { headers }
       );
       
       if (response.status === 200) {
@@ -204,7 +225,8 @@ function CourseManager({
       tipMessage: "",
       onConfirm: async () => {
         try {
-          const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/uncomplete`);
+          const headers = await getAuthHeaders();
+          const response = await axios.put(`http://localhost:8080/api/courses/${courseId}/uncomplete`, {}, { headers });
           if (response.status === 200) {
             // Update the local course state and refresh the course list
             const updatedCourses = courses.map(course => 

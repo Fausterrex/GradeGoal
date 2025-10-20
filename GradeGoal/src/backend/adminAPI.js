@@ -5,10 +5,43 @@
 // Handles user management, course management, and admin dashboard data
 
 import { getAssessmentCategoriesByCourseId } from './courseManagementAPI.js';
+import { auth } from "./firebase";
 
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // ADMIN USER MANAGEMENT
@@ -19,11 +52,11 @@ const API_BASE_URL =
  * @returns {Promise<Array>} Array of all users
  */
 export async function getAllUsers() {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/users`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -40,11 +73,11 @@ export async function getAllUsers() {
  * @returns {Promise<Object>} User data
  */
 export async function getUserById(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -62,11 +95,11 @@ export async function getUserById(userId) {
  * @returns {Promise<Object>} Updated user data
  */
 export async function updateUserProfileAdmin(userId, userData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}/profile`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       firstName: userData.firstName,
       lastName: userData.lastName,
@@ -92,11 +125,11 @@ export async function updateUserProfileAdmin(userId, userData) {
  * @returns {Promise<Object>} Update response
  */
 export async function updateUserAccountStatus(userId, isActive) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}/status`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       isActive: isActive
     }),
@@ -116,11 +149,11 @@ export async function updateUserAccountStatus(userId, isActive) {
  * @returns {Promise<boolean>} True if deleted successfully
  */
 export async function deleteUserAccount(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -140,11 +173,11 @@ export async function deleteUserAccount(userId) {
  * @returns {Promise<Array>} Array of all courses
  */
 export async function getAllCourses() {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/all`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -162,11 +195,11 @@ export async function getAllCourses() {
  * @returns {Promise<Array>} Array of assessments
  */
 export async function getAssessmentsByCategoryId(categoryId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/assessments/category/${categoryId}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {

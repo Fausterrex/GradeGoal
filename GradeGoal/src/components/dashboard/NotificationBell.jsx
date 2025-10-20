@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FaBell, FaTimes, FaTrophy, FaCheckCircle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAchievementNotifications } from "../context/AchievementContext";
+import { auth } from "../../backend/firebase";
 const NotificationBell = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -23,7 +24,30 @@ const NotificationBell = ({ userId }) => {
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`);
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         
@@ -83,7 +107,30 @@ const NotificationBell = ({ userId }) => {
     if (!userId) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}/unread-count`);
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/achievements/notifications/${userId}/unread-count`, {
+        method: "GET",
+        headers,
+      });
       if (response.ok) {
         const data = await response.json();
         setUnreadCount(data.count);
@@ -96,9 +143,32 @@ const NotificationBell = ({ userId }) => {
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(
         `${API_BASE_URL}/api/achievements/notifications/${notificationId}/read`,
-        { method: 'PUT' }
+        { 
+          method: 'PUT',
+          headers,
+        }
       );
       if (response.ok) {
         setNotifications(notifications.map(n => 
@@ -114,9 +184,32 @@ const NotificationBell = ({ userId }) => {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
+      // Get Firebase token for authentication
+      const firebaseUser = auth.currentUser;
+      let authToken = null;
+      
+      if (firebaseUser) {
+        try {
+          authToken = await firebaseUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(
         `${API_BASE_URL}/api/achievements/notifications/${userId}/mark-all-read`,
-        { method: 'PUT' }
+        { 
+          method: 'PUT',
+          headers,
+        }
       );
       if (response.ok) {
         setNotifications(notifications.map(n => ({ ...n, isRead: true })));

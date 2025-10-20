@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Brain, Activity, CheckCircle2, RefreshCw } from "lucide-react";
+import { auth } from "../../../backend/firebase";
 
 const AIPrediction = () => {
   const [predictionData, setPredictionData] = useState({
@@ -11,11 +12,29 @@ const AIPrediction = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Function to get Firebase authentication headers
+  const getAuthHeaders = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  };
+
   // Function to fetch AI prediction statistics from backend
   const fetchAIPredictionStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/courses/ai-prediction-stats');
+      const headers = await getAuthHeaders();
+      const response = await fetch('http://localhost:8080/api/courses/ai-prediction-stats', {
+        headers
+      });
       if (response.ok) {
         const data = await response.json();
         

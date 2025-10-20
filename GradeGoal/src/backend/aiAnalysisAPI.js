@@ -4,9 +4,43 @@
 // Centralized API functions for AI-related operations
 // Handles AI recommendations, analysis, and predictions
 
+import { auth } from "./firebase";
+
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // AI RECOMMENDATIONS
@@ -49,11 +83,11 @@ export async function saveAIAnalysis(userId, courseId, analysisData, analysisTyp
   
   console.log('🌐 [API DEBUG] Request body size:', JSON.stringify(requestBody).length, 'characters');
   
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/save-ai-analysis`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(requestBody),
   });
   
@@ -87,11 +121,11 @@ export async function saveAIAnalysis(userId, courseId, analysisData, analysisTyp
  * @returns {Promise<Object>} AI recommendations data
  */
 export async function getAIRecommendations(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -111,11 +145,11 @@ export async function getAIRecommendations(userId) {
  * @returns {Promise<Object>} Course-specific AI recommendations
  */
 export async function getAIRecommendationsForCourse(userId, courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -134,11 +168,11 @@ export async function getAIRecommendationsForCourse(userId, courseId) {
  * @returns {Promise<Object>} Mark as read result
  */
 export async function markRecommendationAsRead(recommendationId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/${recommendationId}/mark-read`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -157,11 +191,11 @@ export async function markRecommendationAsRead(recommendationId) {
  * @returns {Promise<Object>} Dismiss result
  */
 export async function dismissRecommendation(recommendationId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/recommendations/${recommendationId}/dismiss`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -199,11 +233,11 @@ export async function dismissRecommendation(recommendationId) {
  * @returns {Promise<Object>} Save prediction result
  */
 export async function saveAIAssessmentPrediction(userId, courseId, assessmentId, predictedScore, predictedPercentage, predictedGpa, confidenceLevel, recommendedScore, recommendedPercentage, analysisReasoning) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/ai-analysis/assessment-prediction/save`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       userId,
       courseId,
@@ -235,11 +269,11 @@ export async function saveAIAssessmentPrediction(userId, courseId, assessmentId,
  * @returns {Promise<Object>} Assessment predictions data
  */
 export async function getAIAssessmentPredictions(userId, courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/ai-analysis/course/${courseId}/user/${userId}/predictions`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -264,11 +298,11 @@ export async function getAIAssessmentPredictions(userId, courseId) {
  */
 export async function checkAIAnalysisExists(userId, courseId) {
   try {
+    const headers = await getAuthHeaders();
+    
     const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     });
     
     if (!response.ok) {
@@ -301,11 +335,11 @@ export async function checkAIAnalysisExists(userId, courseId) {
  */
 export async function getAIAnalysis(userId, courseId) {
   try {
+    const headers = await getAuthHeaders();
+    
     const response = await fetch(`${API_BASE_URL}/api/recommendations/user/${userId}/course/${courseId}/ai-analysis`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     });
     
     if (!response.ok) {

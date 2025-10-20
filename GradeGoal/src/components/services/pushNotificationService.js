@@ -1,4 +1,4 @@
-import { messaging } from "../../backend/firebase";
+import { messaging, auth } from "../../backend/firebase";
 import { getToken, onMessage } from "firebase/messaging";
 import axios from "axios";
 const API_BASE_URL = 'http://localhost:8080/api/push-notifications';
@@ -15,6 +15,28 @@ class PushNotificationService {
     this.vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
     this.isSupported = 'Notification' in window && 'serviceWorker' in navigator;
     this.currentToken = null;
+  }
+
+  /**
+   * Get Firebase authentication headers
+   * @returns {Promise<Object>} Headers object with auth token
+   */
+  async getAuthHeaders() {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
   }
 
   /**
@@ -84,10 +106,11 @@ class PushNotificationService {
    */
   async registerToken(userEmail, token) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/register`, {
         userEmail,
         fcmToken: token
-      });
+      }, { headers });
       
       return true;
     } catch (error) {
@@ -103,10 +126,11 @@ class PushNotificationService {
    */
   async unregisterToken(userEmail, token) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/unregister`, {
         userEmail,
         fcmToken: token
-      });
+      }, { headers });
       
       return true;
     } catch (error) {

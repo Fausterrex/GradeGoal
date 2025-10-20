@@ -94,10 +94,6 @@ function UnifiedGradeBreakdown({
 
   // Calculate current GPA - handle both number and string formats
   const currentGPA = (() => {
-    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - currentGrade prop:', currentGrade, typeof currentGrade);
-    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - course prop:', course);
-    console.log('🔍 [DEBUG] UnifiedGradeBreakdown - course?.courseGpa:', course?.courseGpa);
-    
     if (typeof currentGrade === 'number') {
       return currentGrade;
     } else if (typeof currentGrade === 'string') {
@@ -370,9 +366,6 @@ function UnifiedGradeBreakdown({
             <div className="text-3xl font-bold text-gray-900">
               {(() => {
                 const gpa = course?.courseGpa || currentGPA;
-                console.log('🔍 [DEBUG] Overall GPA calculation - course?.courseGpa:', course?.courseGpa);
-                console.log('🔍 [DEBUG] Overall GPA calculation - currentGPA:', currentGPA);
-                console.log('🔍 [DEBUG] Overall GPA calculation - final gpa value:', gpa);
                 if (typeof gpa === 'string' && gpa === 'R') return 'R';
                 return parseFloat(gpa).toFixed(2);
               })()}

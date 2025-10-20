@@ -1,5 +1,6 @@
 import axios from "axios";
 import pushNotificationService from "./pushNotificationService";
+import { auth } from "../../backend/firebase";
 const API_BASE_URL = 'http://localhost:8080/api/realtime-notifications';
 const PUSH_API_BASE_URL = 'http://localhost:8080/api/push-notifications';
 
@@ -12,6 +13,28 @@ const PUSH_API_BASE_URL = 'http://localhost:8080/api/push-notifications';
 class RealtimeNotificationService {
   
   /**
+   * Get Firebase authentication headers
+   * @returns {Promise<Object>} Headers object with auth token
+   */
+  static async getAuthHeaders() {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  }
+  
+  /**
    * Send grade alert notification
    * @param {string} userEmail - User's email address
    * @param {string} courseName - Course name
@@ -21,6 +44,7 @@ class RealtimeNotificationService {
    */
   static async sendGradeAlert(userEmail, courseName, assessmentName, score, maxScore) {
     try {
+      const headers = await this.getAuthHeaders();
       // Send email notification
       const emailResponse = await axios.post(`${API_BASE_URL}/grade-alert`, {
         userEmail,
@@ -28,7 +52,7 @@ class RealtimeNotificationService {
         assessmentName,
         score,
         maxScore
-      });
+      }, { headers });
       // Send push notification if enabled
       if (pushNotificationService.isEnabled()) {
         try {
@@ -38,7 +62,7 @@ class RealtimeNotificationService {
             assessmentName,
             score,
             maxScore
-          });
+          }, { headers });
         } catch (pushError) {
           // Push notification failed, but email was sent
         }
@@ -54,7 +78,7 @@ class RealtimeNotificationService {
               assessmentName,
               score,
               maxScore
-            });
+            }, { headers });
           }
         } catch (initError) {
           // Failed to initialize push notifications
@@ -77,13 +101,14 @@ class RealtimeNotificationService {
    */
   static async sendCourseCompletion(userEmail, courseName, finalGrade, semester) {
     try {
+      const headers = await this.getAuthHeaders();
       // Send email notification
       const emailResponse = await axios.post(`${API_BASE_URL}/course-completion`, {
         userEmail,
         courseName,
         finalGrade,
         semester
-      });
+      }, { headers });
 
       // Send push notification if enabled
       if (pushNotificationService.isEnabled()) {
@@ -93,7 +118,7 @@ class RealtimeNotificationService {
             courseName,
             finalGrade,
             semester
-          });
+          }, { headers });
         } catch (pushError) {
           // Push notification failed, but email was sent
         }
@@ -108,7 +133,7 @@ class RealtimeNotificationService {
               courseName,
               finalGrade,
               semester
-            });
+            }, { headers });
           }
         } catch (initError) {
           // Failed to initialize push notifications
@@ -131,12 +156,13 @@ class RealtimeNotificationService {
    */
   static async sendCustomReminder(userEmail, reminderTitle, reminderMessage, reminderType) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/custom-reminder`, {
         userEmail,
         reminderTitle,
         reminderMessage,
         reminderType
-      });
+      }, { headers });
       return response.data;
     } catch (error) {
       throw error;

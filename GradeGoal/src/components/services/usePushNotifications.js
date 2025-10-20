@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import pushNotificationService from "../services/pushNotificationService";
+import { auth } from "../../backend/firebase";
 /**
  * Custom hook for managing push notifications
  * 
@@ -33,7 +34,31 @@ export const usePushNotifications = () => {
     const syncWithDatabase = async () => {
       if (currentUser?.email) {
         try {
-          const response = await fetch(`http://localhost:8080/api/users/email/${encodeURIComponent(currentUser.email)}`);
+          // Get Firebase token for authentication
+          const firebaseUser = auth.currentUser;
+          let authToken = null;
+          
+          if (firebaseUser) {
+            try {
+              authToken = await firebaseUser.getIdToken();
+            } catch (error) {
+              console.error('Error getting Firebase token:', error);
+            }
+          }
+
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (authToken) {
+            headers["Authorization"] = `Bearer ${authToken}`;
+          }
+
+          const response = await fetch(`http://localhost:8080/api/users/email/${encodeURIComponent(currentUser.email)}`, {
+            method: "GET",
+            headers,
+          });
+          
           if (response.ok) {
             const user = await response.json();
             // Update local state to match database state

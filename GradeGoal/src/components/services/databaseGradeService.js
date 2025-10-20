@@ -5,10 +5,33 @@
 // This service calls MySQL stored procedures and functions for grade calculations
 
 import axios from "axios";
+import { auth } from "../../backend/firebase";
 // Base API URL - adjust according to your Spring Boot backend URL
 const API_BASE_URL = 'http://localhost:8080/api';
 
 class DatabaseGradeService {
+  
+  /**
+   * Get Firebase authentication headers
+   * @returns {Promise<Object>} Headers object with auth token
+   */
+  static async getAuthHeaders() {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  }
   
   /**
    * Calculate GPA from percentage using database function
@@ -18,9 +41,10 @@ class DatabaseGradeService {
    */
   static async calculateGPA(percentage) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/grades/calculate-gpa`, {
         percentage: percentage
-      });
+      }, { headers });
       return response.data.gpa || 0.00;
     } catch (error) {
       console.error('Error calculating GPA:', error);
@@ -36,9 +60,10 @@ class DatabaseGradeService {
    */
   static async calculateCumulativeGPA(userId) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/grades/calculate-cumulative-gpa`, {
         userId: userId
-      });
+      }, { headers });
       return response.data.cumulativeGPA || 0.00;
     } catch (error) {
       console.error('Error calculating cumulative GPA:', error);
@@ -54,9 +79,10 @@ class DatabaseGradeService {
    */
   static async calculateCourseGrade(courseId) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/grades/calculate-course-grade`, {
         courseId: courseId
-      });
+      }, { headers });
       return response.data.courseGrade || 0.00;
     } catch (error) {
       console.error('Error calculating course grade:', error);
@@ -72,9 +98,10 @@ class DatabaseGradeService {
    */
   static async calculateCategoryGrade(categoryId) {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await axios.post(`${API_BASE_URL}/grades/calculate-category-grade`, {
         categoryId: categoryId
-      });
+      }, { headers });
       return response.data.categoryGrade || 0.00;
     } catch (error) {
       console.error('Error calculating category grade:', error);
@@ -90,7 +117,8 @@ class DatabaseGradeService {
    */
   static async addOrUpdateGrade(gradeData) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/grades/add-or-update`, gradeData);
+      const headers = await this.getAuthHeaders();
+      const response = await axios.post(`${API_BASE_URL}/grades/add-or-update`, gradeData, { headers });
       return {
         success: true,
         gradeId: response.data.gradeId,
@@ -114,9 +142,10 @@ class DatabaseGradeService {
    */
   static async updateCourseGrades(courseId) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/grades/update-course-grades`, {
         courseId: courseId
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error updating course grades:', error);
@@ -134,11 +163,12 @@ class DatabaseGradeService {
    */
   static async awardPoints(userId, points, activityType) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/progress/award-points`, {
         userId: userId,
         points: points,
         activityType: activityType
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error awarding points:', error);
@@ -154,9 +184,10 @@ class DatabaseGradeService {
    */
   static async checkGoalProgress(userId) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/goals/check-progress`, {
         userId: userId
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error checking goal progress:', error);
@@ -172,9 +203,10 @@ class DatabaseGradeService {
    */
   static async checkGradeAlerts(userId) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/alerts/check-grade-alerts`, {
         userId: userId
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error checking grade alerts:', error);
@@ -190,9 +222,10 @@ class DatabaseGradeService {
    */
   static async checkUserAchievements(userId) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/achievements/check-user-achievements`, {
         userId: userId
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error checking user achievements:', error);
@@ -209,10 +242,11 @@ class DatabaseGradeService {
    */
   static async updateUserAnalytics(userId, courseId = null) {
     try {
+      const headers = await this.getAuthHeaders();
       await axios.post(`${API_BASE_URL}/analytics/update-user-analytics`, {
         userId: userId,
         courseId: courseId
-      });
+      }, { headers });
       return true;
     } catch (error) {
       console.error('Error updating user analytics:', error);

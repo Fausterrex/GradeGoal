@@ -364,11 +364,6 @@ const AIRecommendations = ({ courses }) => {
                 <div className="text-sm text-gray-600 mb-3">
                   <span className="font-medium">Impact:</span> {rec.impact}
                 </div>
-                
-                {/* Footer */}
-                <div className="flex items-center justify-end">
-                  {/* Action buttons removed for main dashboard */}
-                </div>
               </div>
             );
           })}

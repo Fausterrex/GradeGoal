@@ -25,7 +25,7 @@ public class ExportLog {
     private Long userId;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "export_type", nullable = false)
+    @Column(name = "export_type", nullable = false, length = 50)
     private ExportType exportType;
     
     @Column(name = "file_name", nullable = false, length = 500)
@@ -55,7 +55,7 @@ public class ExportLog {
         CSV_GRADES,
         JSON_BACKUP,
         TRANSCRIPT,
-        ADMIN_SYSTEM_OVERVIEW
+        ADMIN_OVERVIEW  // Shortened from ADMIN_SYSTEM_OVERVIEW to fit database column
     }
     
     public enum ExportStatus {

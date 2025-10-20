@@ -110,9 +110,9 @@ export const GoalProgress: React.FC<GoalProgressProps> = ({
             <Text style={styles.progressLabel}>Progress</Text>
           </View>
 
-          {/* GPA Goal Probability Section - Show if target grade is set OR if AI analysis exists */}
+          {/* GPA Goal Probability Section - Only show if AI analysis exists */}
           {(() => {
-            const shouldShow = (targetGrade && targetGrade > 0) || (aiAnalysis && (successRate !== null || bestPossibleGPA !== null));
+            const shouldShow = aiAnalysis && (successRate !== null || bestPossibleGPA !== null);
             return shouldShow;
           })() ? (
             <View style={styles.gpaGoalSection}>

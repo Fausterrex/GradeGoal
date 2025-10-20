@@ -1,5 +1,6 @@
 package com.project.gradegoal.Config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -16,6 +18,9 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    
+    @Autowired
+    private FirebaseAuthenticationFilter firebaseAuthenticationFilter;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -41,13 +46,18 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(authz -> authz
                 // Allow public access to registration and login
                 .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                // Allow public access to Firebase registration
+                .requestMatchers("/api/users/register-firebase").permitAll()
+                // Allow public access to Google/Facebook sign-in
+                .requestMatchers("/api/users/google-signin").permitAll()
                 // Allow public access to health check endpoints
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                // Allow all API endpoints for now (since you're using Firebase Auth)
-                .requestMatchers("/api/**").permitAll()
+                // Require authentication for all other API endpoints
+                .requestMatchers("/api/**").authenticated()
                 // Allow all other requests (static resources, etc.)
                 .anyRequest().permitAll()
             )

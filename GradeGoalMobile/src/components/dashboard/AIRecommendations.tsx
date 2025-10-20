@@ -9,6 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { colors } from '../../styles/colors';
+import { firebaseAuthService } from '../../services/firebaseAuthService';
+import { checkAIAnalysisExists, getAIAnalysis } from '../../services/aiAnalysisService';
 
 const { width } = Dimensions.get('window');
 
@@ -74,71 +76,158 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
     try {
       setIsLoading(true);
       
-      // Create 6 recommendations to match the web version grid
-      const realRecommendations: Recommendation[] = [
-        {
-          id: 'rec-1',
-          title: 'Maintain current performance in quizzes and exams',
-          description: 'Continue reviewing and practicing past quiz questions, and maintain a consistent study routine to ensure excellent performance in upcoming assessments.',
-          priority: 'HIGH',
-          category: 'DataBase',
-          impact: 'High impact on grade/performance',
-          courseName: 'DataBase',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'rec-2',
-          title: 'Maintain current performance in exams',
-          description: 'Continue reviewing and practicing past exam questions, and maintain a consistent study routine to ensure excellent performance in upcoming assessments.',
-          priority: 'HIGH',
-          category: 'DataBase',
-          impact: 'High impact on grade/performance',
-          courseName: 'DataBase',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'rec-3',
-          title: 'Enhance Laboratory Activity Performance',
-          description: 'The student needs to focus on improving Lab 5 by spending 1 hour daily reviewing Project Management concepts and practicing past laboratory exercises.',
-          priority: 'MEDIUM',
-          category: 'Project Management',
-          impact: 'Expected impact on grade/performance',
-          courseName: 'Project Management',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'rec-4',
-          title: 'Focus on Laboratory Activity',
-          description: 'Lab 5 has no score yet, and the student needs to focus on improving this area.',
-          priority: 'HIGH',
-          category: 'Project Management',
-          impact: 'Improving Laboratory Activity performance will significantly impact your grade',
-          courseName: 'Project Management',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'rec-5',
-          title: 'Achieve at least 90% in Quizzes',
-          description: 'Given the student\'s performance in previous Quizzes, it\'s essential to focus on achieving at least 90% in the upcoming Quizzes to reach the target grade.',
-          priority: 'HIGH',
-          category: '123',
-          impact: 'High impact on grade',
-          courseName: '123',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'rec-6',
-          title: 'Focus on Quizzes',
-          description: 'No grades yet',
-          priority: 'MEDIUM',
-          category: '123',
-          impact: 'Improving Quizzes performance will significantly impact your grade',
-          courseName: '123',
-          createdAt: new Date().toISOString(),
-        },
-      ];
+      // If no courses, show empty state
+      if (!courses || courses.length === 0) {
+        setRecommendations([]);
+        setLastUpdated(new Date());
+        return;
+      }
 
-      setRecommendations(realRecommendations);
+      // Fetch real AI recommendations from backend for each course (same source as web)
+      const allRecommendations: Recommendation[] = [];
+      
+      // Use authenticated user's id
+      const currentUser = firebaseAuthService.getCurrentUserSync();
+      const userId = currentUser?.userId;
+
+      for (const course of courses) {
+        try {
+          const courseId = course.courseId || course.id;
+          if (!userId || !courseId) { continue; }
+
+          // First, check if analysis exists for this course
+          const existsRes = await checkAIAnalysisExists(Number(userId), Number(courseId));
+          if (!existsRes.success || !existsRes.exists) { continue; }
+
+          // Get the AI analysis record (matches web service)
+          const analysisRes = await getAIAnalysis(Number(userId), Number(courseId));
+          if (!analysisRes.success || !analysisRes.hasAnalysis || !analysisRes.analysis) { continue; }
+
+          const analysis = analysisRes.analysis;
+
+          // Parse content into object
+          let analysisData: any = analysis.analysisData;
+          
+          // First parse if string
+          if (typeof analysisData === 'string') {
+            try { analysisData = JSON.parse(analysisData); } catch { analysisData = null; }
+          }
+          if (!analysisData) { continue; }
+          
+          // Backend sometimes wraps the actual analysis in a 'content' field that's also stringified
+          // Check if we have a 'content' field that needs parsing
+          if (analysisData?.content && typeof analysisData.content === 'string') {
+            try {
+              const innerContent = JSON.parse(analysisData.content);
+              // If the inner content has the fields we need, use it instead
+              if (innerContent.topPriorityRecommendations || innerContent.studyStrategy || innerContent.focusIndicators) {
+                analysisData = innerContent;
+              }
+            } catch (e) {
+              console.warn('⚠️ [DASHBOARD DEBUG] Failed to parse inner content:', e);
+            }
+          }
+
+
+          // 1) Top priority recommendations array
+          if (Array.isArray(analysisData.topPriorityRecommendations)) {
+            analysisData.topPriorityRecommendations.forEach((rec: any, index: number) => {
+              const recommendation: Recommendation = {
+                id: `rec-${courseId}-${index}`,
+                title: rec.title || `Recommendation ${index + 1}`,
+                description: rec.description || rec.content || 'AI-generated recommendation',
+                priority: (rec.priority as 'HIGH'|'MEDIUM'|'LOW') || 'MEDIUM',
+                category: rec.category || 'Course-Specific',
+                impact: rec.impact || 'Significant impact on academic performance',
+                courseName: course.courseName || course.name,
+                createdAt: analysis.updatedAt || analysis.createdAt || new Date().toISOString(),
+              };
+              allRecommendations.push(recommendation);
+            });
+          }
+
+          // 2) Focus indicators needing attention (HIGH priority only like web)
+          if (analysisData.focusIndicators) {
+            Object.entries(analysisData.focusIndicators).forEach(([category, indicator]: any) => {
+              if (indicator?.needsAttention && indicator?.priority === 'HIGH') {
+                // Use categoryName from indicator if available, otherwise use the key
+                const catName = (indicator.categoryName || category || '').toString();
+                const prettyName = catName
+                  ? catName.charAt(0).toUpperCase() + catName.slice(1)
+                  : 'This Area';
+                
+                const recommendation: Recommendation = {
+                  id: `focus-${courseId}-${category}`,
+                  title: `Focus on ${prettyName}`,
+                  description: indicator.reason || `This ${catName || 'area'} needs immediate attention`,
+                  priority: 'HIGH',
+                  category: 'Course-Specific',
+                  impact: `Improving ${catName || 'this area'} performance will significantly impact your grade`,
+                  courseName: course.courseName || course.name,
+                  createdAt: analysis.updatedAt || analysis.createdAt || new Date().toISOString(),
+                };
+                allRecommendations.push(recommendation);
+              }
+            });
+          }
+
+          // 3) Empty categories flagged by analysis
+          if (analysisData.focusIndicators && Array.isArray(analysisData.focusIndicators.emptyCategories)) {
+            analysisData.focusIndicators.emptyCategories.forEach((emptyCat: any, index: number) => {
+              if (emptyCat?.needsAttention) {
+            const recommendation: Recommendation = {
+                  id: `empty-${courseId}-${index}`,
+                  title: `Add Assessments to ${emptyCat.categoryName}`,
+                  description: `This category represents ${emptyCat.weight}% of your final grade but has no assessments. ${emptyCat.recommendations ? emptyCat.recommendations.join(' ') : 'Add assessments to complete your course structure.'}`,
+                  priority: (emptyCat.priority as 'HIGH'|'MEDIUM'|'LOW') || 'HIGH',
+                  category: 'Empty Category',
+                  impact: 'Will complete course structure and allow accurate grade calculation',
+                  courseName: course.courseName || course.name,
+                  createdAt: analysis.updatedAt || analysis.createdAt || new Date().toISOString(),
+            };
+            allRecommendations.push(recommendation);
+              }
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch AI analysis for course ${course.courseName || course.name}:`, error);
+        }
+      }
+
+      // If no AI recommendations found, show helpful message
+      if (allRecommendations.length === 0) {
+        const emptyRecommendation: Recommendation = {
+          id: 'empty-1',
+          title: 'Start adding courses and grades',
+          description: 'Add your courses and enter some grades to get personalized AI recommendations for improving your academic performance.',
+          priority: 'MEDIUM',
+          category: 'Getting Started',
+          impact: 'AI recommendations will appear once you have course data',
+          courseName: 'Getting Started',
+          createdAt: new Date().toISOString(),
+        };
+        allRecommendations.push(emptyRecommendation);
+      }
+
+      // Group by course and sort like web: priority HIGH first, then by updatedAt desc, take top 2 per course
+      const priorityOrder: Record<'HIGH'|'MEDIUM'|'LOW', number> = { HIGH: 1, MEDIUM: 2, LOW: 3 };
+      const byCourse: Record<string, Recommendation[]> = {};
+      for (const rec of allRecommendations) {
+        const key = rec.courseName || 'course';
+        if (!byCourse[key]) byCourse[key] = [];
+        byCourse[key].push(rec);
+      }
+      const sorted: Recommendation[] = [];
+      Object.values(byCourse).forEach((recs) => {
+        const s = recs.sort((a, b) => {
+          const pdiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+          if (pdiff !== 0) return pdiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }).slice(0, 2);
+        sorted.push(...s);
+      });
+
+      setRecommendations(sorted);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ Error loading recommendations:', error);
@@ -146,6 +235,44 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Token retrieval no longer needed here; apiClient attaches Firebase token
+
+  // Helper functions to extract data from AI analysis content
+  const extractRecommendationTitle = (content: string): string => {
+    // Extract title from AI analysis content
+    const lines = content.split('\n');
+    const titleLine = lines.find(line => line.includes('recommendation') || line.includes('focus') || line.includes('improve'));
+    return titleLine ? titleLine.replace(/[#*-]/g, '').trim() : 'AI Recommendation';
+  };
+
+  const extractRecommendationDescription = (content: string): string => {
+    // Extract description from AI analysis content
+    const lines = content.split('\n');
+    const descriptionLines = lines.filter(line => 
+      line.length > 20 && 
+      !line.includes('recommendation') && 
+      !line.includes('priority') &&
+      !line.includes('impact')
+    );
+    return descriptionLines.slice(0, 2).join(' ').substring(0, 150) + '...';
+  };
+
+  const extractPriority = (content: string): 'HIGH' | 'MEDIUM' | 'LOW' => {
+    if (content.toLowerCase().includes('high') || content.toLowerCase().includes('critical')) return 'HIGH';
+    if (content.toLowerCase().includes('medium') || content.toLowerCase().includes('moderate')) return 'MEDIUM';
+    return 'LOW';
+  };
+
+  const extractImpact = (content: string): string => {
+    if (content.toLowerCase().includes('significant') || content.toLowerCase().includes('major')) {
+      return 'High impact on grade/performance';
+    }
+    if (content.toLowerCase().includes('moderate') || content.toLowerCase().includes('some')) {
+      return 'Moderate impact on grade/performance';
+    }
+    return 'Expected impact on grade/performance';
   };
 
   const handleRecommendationPress = (recommendation: Recommendation) => {
@@ -174,6 +301,31 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ courses })
     return (
       <View style={styles.container}>
         <Text style={styles.loadingText}>Loading AI recommendations...</Text>
+      </View>
+    );
+  }
+
+  // Show empty state if no recommendations
+  if (recommendations.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.titleRow}>
+              <Text style={styles.headerIcon}>💡</Text>
+              <Text style={styles.title}>AI Recommendations</Text>
+            </View>
+            <Text style={styles.subtitle}>Personalized recommendations based on your academic data</Text>
+          </View>
+        </View>
+        
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>📚</Text>
+          <Text style={styles.emptyTitle}>No recommendations yet</Text>
+          <Text style={styles.emptyDescription}>
+            Add courses and enter some grades to get personalized AI recommendations for improving your academic performance.
+          </Text>
+        </View>
       </View>
     );
   }
@@ -438,5 +590,31 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 16,
     padding: 20,
+  },
+  
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  
+  emptyDescription: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

@@ -38,6 +38,26 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User createUserWithFirebaseUid(String firebaseUid, String email, String firstName, String lastName) {
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("User with email " + email + " already exists");
+        }
+        if (userRepository.existsByFirebaseUid(firebaseUid)) {
+            throw new IllegalArgumentException("User with Firebase UID " + firebaseUid + " already exists");
+        }
+
+        User user = new User();
+        user.setFirebaseUid(firebaseUid);
+        user.setEmail(email);
+        user.setUsername(email); // Use email as username for now
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setIsActive(true);
+        user.setRole("USER");
+
+        return userRepository.save(user);
+    }
+
     public User authenticateUser(String emailOrUsername, String password) {
         // Try to find user by email first
         Optional<User> userOpt = userRepository.findByEmail(emailOrUsername);
@@ -64,6 +84,10 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public Optional<User> findByFirebaseUid(String firebaseUid) {
+        return userRepository.findByFirebaseUid(firebaseUid);
     }
 
     public Optional<User> findById(Long userId) {

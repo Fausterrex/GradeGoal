@@ -27,9 +27,21 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   // Configure build plugins
   plugins: [
-    react(),        // Enable React JSX support and Fast Refresh
+    react({
+      // Use modern JSX transform for better performance
+      jsxRuntime: 'automatic'
+    }),        // Enable React JSX support and Fast Refresh
     tailwindcss()   // Enable Tailwind CSS processing
   ],
+  
+  // Optimize dependencies to handle JSX transform warnings
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-big-calendar'
+    ]
+  },
   
   // Development server configuration
   server: {
@@ -42,6 +54,12 @@ export default defineConfig({
       }
     },
     // Enable SPA fallback for development server
-    historyApiFallback: true
+    historyApiFallback: true,
+    // Add headers to handle COOP policy issues for Firebase Auth
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+    }
   }
 })

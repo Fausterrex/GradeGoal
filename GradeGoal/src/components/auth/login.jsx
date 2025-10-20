@@ -115,19 +115,23 @@ function Login() {
       }, 1500);
     } catch (error) {
       if (error.code === "auth/invalid-credential") {
-        setError("Incorrect email or password. Please try again.");
+        setError("Invalid credentials. Please check your email/username and password, or create a new account if you don't have one.");
       } else if (error.code === "auth/user-not-found") {
-        setError("Incorrect email or password. Please try again.");
+        setError("No account found with this email. Please check your email or create a new account.");
       } else if (error.code === "auth/wrong-password") {
-        setError("Incorrect email or password. Please try again.");
+        setError("Incorrect password. Please try again or reset your password.");
       } else if (error.code === "auth/invalid-email") {
         setError("Please enter a valid email address.");
       } else if (error.code === "auth/weak-password") {
         setError("Password must be at least 6 characters long.");
       } else if (error.code === "auth/too-many-requests") {
         setError("Too many failed login attempts. Please try again later.");
+      } else if (error.code === "auth/user-disabled") {
+        setError("This account has been disabled. Please contact support.");
+      } else if (error.code === "auth/operation-not-allowed") {
+        setError("Email/password authentication is not enabled. Please contact support.");
       } else {
-        setError("Failed to log in: " + (error.message || "Unknown error"));
+        setError("Login failed. Please check your credentials or create a new account if you don't have one.");
       }
     }
     setLoading(false);
@@ -284,7 +288,21 @@ function Login() {
                         ======================================== */}
           {error && (
             <div className="w-full mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium">{error}</p>
+                  {error.includes("No account found") && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Don't have an account? <Link to="/signup" className="underline font-medium">Create one here</Link>
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           {success && (

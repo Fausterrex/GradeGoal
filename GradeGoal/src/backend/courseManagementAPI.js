@@ -4,9 +4,43 @@
 // Centralized API functions for course-related operations
 // Handles course CRUD operations, categories, and course data
 
+import { auth } from "./firebase";
+
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "" : "http://localhost:8080");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get Firebase authentication headers
+ * @returns {Promise<Object>} Headers with Firebase token
+ */
+async function getAuthHeaders() {
+  const firebaseUser = auth.currentUser;
+  let authToken = null;
+
+  if (firebaseUser) {
+    try {
+      authToken = await firebaseUser.getIdToken();
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Firebase token to headers if available
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  return headers;
+}
 
 // ========================================
 // COURSE CRUD OPERATIONS
@@ -18,11 +52,11 @@ const API_BASE_URL =
  * @returns {Promise<Object>} Created course data
  */
 export async function createCourse(courseData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(courseData),
   });
   
@@ -42,11 +76,11 @@ export async function createCourse(courseData) {
  * @returns {Promise<Object>} Course data
  */
 export async function getCourseById(id) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -66,11 +100,11 @@ export async function getCourseById(id) {
  * @returns {Promise<Object>} Updated course data
  */
 export async function updateCourse(id, courseData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(courseData),
   });
   
@@ -92,11 +126,11 @@ export async function updateCourse(id, courseData) {
 export async function deleteCourse(id) {
   console.log('🗑️ [API] Attempting to delete course with id:', id);
   
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   console.log('🗑️ [API] Delete course response status:', response.status);
@@ -130,11 +164,11 @@ export async function deleteCourse(id) {
  * @returns {Promise<Object>} Archived course data
  */
 export async function archiveCourse(id) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}/archive`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -153,11 +187,11 @@ export async function archiveCourse(id) {
  * @returns {Promise<Object>} Unarchived course data
  */
 export async function unarchiveCourse(id) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/${id}/unarchive`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -180,11 +214,11 @@ export async function unarchiveCourse(id) {
  * @returns {Promise<Array>} Array of courses
  */
 export async function getCoursesByUserId(userId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(`${API_BASE_URL}/api/courses/user/${userId}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   });
   
   if (!response.ok) {
@@ -203,13 +237,13 @@ export async function getCoursesByUserId(userId) {
  * @returns {Promise<Array>} Array of courses
  */
 export async function getCoursesByUid(email) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/user/${encodeURIComponent(email)}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -229,13 +263,13 @@ export async function getCoursesByUid(email) {
  * @returns {Promise<Array>} Array of active courses
  */
 export async function getActiveCoursesByUid(uid) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/active`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -255,13 +289,13 @@ export async function getActiveCoursesByUid(uid) {
  * @returns {Promise<Array>} Array of archived courses
  */
 export async function getArchivedCoursesByUid(uid) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/user/${encodeURIComponent(uid)}/archived`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -285,13 +319,13 @@ export async function getArchivedCoursesByUid(uid) {
  * @returns {Promise<Array>} Array of assessment categories
  */
 export async function getAssessmentCategoriesByCourseId(courseId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/${courseId}/categories`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
   
@@ -313,13 +347,13 @@ export async function getAssessmentCategoriesByCourseId(courseId) {
  * @returns {Promise<Object>} Created category data
  */
 export async function addCategoryToCourse(courseId, categoryData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/${courseId}/categories`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(categoryData),
     }
   );
@@ -341,13 +375,13 @@ export async function addCategoryToCourse(courseId, categoryData) {
  * @returns {Promise<Object>} Created category data
  */
 export async function createAssessmentCategory(courseId, categoryData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/courses/${courseId}/categories`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(categoryData),
     }
   );
@@ -370,13 +404,13 @@ export async function createAssessmentCategory(courseId, categoryData) {
  * @returns {Promise<Object>} Updated category data
  */
 export async function updateAssessmentCategory(categoryId, categoryData) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/assessment-categories/${categoryId}`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(categoryData),
     }
   );
@@ -397,13 +431,13 @@ export async function updateAssessmentCategory(categoryId, categoryData) {
  * @returns {Promise<boolean>} True if deleted successfully
  */
 export async function deleteAssessmentCategory(categoryId) {
+  const headers = await getAuthHeaders();
+  
   const response = await fetch(
     `${API_BASE_URL}/api/assessment-categories/${categoryId}`,
     {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     }
   );
 

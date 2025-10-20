@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -47,8 +46,7 @@ public class AdminController {
     @Autowired
     private ExportLogRepository exportLogRepository;
     
-    @Autowired
-    private RestTemplate restTemplate;
+    // Removed unused RestTemplate field
 
     /**
      * Get overview statistics for admin dashboard
@@ -781,14 +779,10 @@ public class AdminController {
                 // Format based on activity type
                 if ("grade_entry".equals(activityType)) {
                     String courseName = jsonNode.has("courseName") ? jsonNode.get("courseName").asText() : "";
-                    String score = jsonNode.has("score") ? jsonNode.get("score").asText() : "";
-                    
                     if (!title.isEmpty() && !courseName.isEmpty()) {
                         return String.format("%s for %s - %s", title, courseName, description);
                     }
                 } else if ("goal_created".equals(activityType)) {
-                    String goalType = jsonNode.has("goalType") ? jsonNode.get("goalType").asText() : "";
-                    
                     if (!title.isEmpty()) {
                         return String.format("%s - %s", title, description);
                     }
@@ -826,7 +820,7 @@ public class AdminController {
         try {
             ExportLog exportLog = new ExportLog();
             exportLog.setUserId(adminUserId);
-            exportLog.setExportType(ExportLog.ExportType.ADMIN_SYSTEM_OVERVIEW);
+            exportLog.setExportType(ExportLog.ExportType.ADMIN_OVERVIEW);
             
             // Generate filename with timestamp
             String timestamp = LocalDateTime.now().toString().replace(":", "-").substring(0, 19);
@@ -864,7 +858,7 @@ public class AdminController {
     public ResponseEntity<?> getAdminExportLogs() {
         try {
             List<ExportLog> adminExports = exportLogRepository.findByExportTypeOrderByCreatedAtDesc(
-                ExportLog.ExportType.ADMIN_SYSTEM_OVERVIEW.toString());
+                ExportLog.ExportType.ADMIN_OVERVIEW.toString());
             
             List<Map<String, Object>> exportLogs = new ArrayList<>();
             for (ExportLog export : adminExports) {
@@ -881,6 +875,7 @@ public class AdminController {
                 if (export.getExportParameters() != null) {
                     try {
                         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        @SuppressWarnings("unchecked")
                         Map<String, Object> parameters = mapper.readValue(export.getExportParameters(), Map.class);
                         logData.put("exportParameters", parameters);
                     } catch (Exception e) {
