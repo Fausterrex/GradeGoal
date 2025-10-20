@@ -511,7 +511,7 @@ function CourseManager({
           ACTIVE COURSES GRID
           ======================================== */}
       {showCourses && (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8 relative z-10">
             {courses
              .filter((course) => course.isActive !== false && course.isCompleted !== true)
               .map((course) => {
@@ -817,7 +817,7 @@ function CourseManager({
 
         {showArchived &&
           (archivedCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {archivedCourses.map((course) => {
                 // Get course color scheme using stored colorIndex or fallback to generated
                 const colorScheme = getCourseColorScheme(
@@ -1091,7 +1091,7 @@ function CourseManager({
 
         {showCompleted &&
           (getFilteredCompletedCourses().length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {getFilteredCompletedCourses().map((course) => {
                 // Get course color scheme using stored colorIndex or fallback to generated
                 const colorScheme = getCourseColorScheme(

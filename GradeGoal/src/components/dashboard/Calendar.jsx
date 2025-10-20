@@ -81,7 +81,8 @@ const MyCalendar = () => {
   };
 
   const MyToolbar = ({ label, onNavigate, onView }) => (
-    <div className="h-32 flex justify-between items-center p-6 bg-gradient-to-r from-[#667eea] via-[#764ba2] to-[#667eea] text-white rounded-t-2xl shadow-2xl relative overflow-hidden">
+    <div className="h-auto md:h-auto flex flex-col md:flex-col justify-between items-center gap-6 md:gap-6 p-6 bg-gradient-to-r from-[#667eea] via-[#764ba2] to-[#667eea] text-white rounded-t-2xl shadow-2xl relative overflow-hidden">
+
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent"></div>

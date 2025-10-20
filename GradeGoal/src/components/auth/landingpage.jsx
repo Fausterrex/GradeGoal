@@ -245,7 +245,7 @@ export default function LandingPage() {
           FEATURES SECTION
           ======================================== */}
       <section id="features" className="w-full bg-white">
-        <div className="w-full mx-auto px-7">
+        <div className="w-full mx-auto px">
           <section className="bg-white ">
             {/* ========================================
                 FEATURES HEADER
@@ -255,7 +255,7 @@ export default function LandingPage() {
                 {/* ========================================
                     LOGO
                     ======================================== */}
-                <div className="w-32 h-32 flex items-center justify-center text-white text-2xl mx-5 mr-20 bg-[url('./drawables/logo.svg')] bg-cover bg-center"></div>
+                <div className="w-32 h-32 md:w-auto md:p-20 flex items-center justify-center text-white text-2xl mx-5 mr-20 bg-[url('./drawables/logo.svg')] bg-cover bg-center"></div>
                 {/* ========================================
                     FEATURES TITLE AND DESCRIPTION
                     ======================================== */}
@@ -283,9 +283,9 @@ export default function LandingPage() {
               {features.map((f, idx) => (
                 <div
                   key={idx}
-                  className="w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-6 bg-[#D8CFE5] shadow-lg hover:scale-105 transition duration-300"
+                  className="w-full max-w-sm sm:max-w-md rounded-3xl p-4 md:h-110 sm:p-6 bg-[#D8CFE5] shadow-lg hover:scale-105 transition duration-300"
                 >
-                  <div className="rounded-2xl shadow-md bg-white p-4 sm:p-6 text-center flex flex-col items-center justify-center h-[320px] sm:h-[360px]">
+                  <div className="rounded-2xl shadow-md bg-white p-4 sm:p-6 md:h-100 text-center flex flex-col items-center justify-center h-[320px] sm:h-[360px]">
                     {/* ========================================
                         FEATURE ICON
                         ======================================== */}
@@ -397,7 +397,7 @@ export default function LandingPage() {
       {/* About Us */}
       <section id="aboutUs" className="bg-white text-gray-800 ">
         <div
-          className="h-45 w-[97.1%] flex items-center justify-center mx-auto bg-center bg-cover bg-no-repeat"
+          className="h-45 w-[97.1%] md:w-full flex items-center justify-center mx-auto bg-center bg-cover bg-no-repeat"
           style={{ backgroundImage: "url('/src/drawables/aboutusheader.png')" }}
         >
         </div>
@@ -432,32 +432,37 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="p-14 rounded-3xl max-w-7xl mx-auto shadow-inner border-50 border-[#856DFF] overflow-visible bg-center bg-contain bg-no-repeat"
+        <div
+          className="p-8 md:p-14 rounded-3xl max-w-full md:max-w-full mx-auto shadow-inner md:border-50 border-50 border-[#856DFF] overflow-visible bg-center bg-contain bg-no-repeat flex flex-col items-center"
           style={{ backgroundImage: "url('/src/drawables/teambg.png')" }}
         >
-          <div className="text-center mb-10 relative ">
-            <h2 className="text-4xl font-semibold text-white bg-[#856DFF] py-4 rounded-lg inline-block px-6 absolute -top-32 left-90">
+          {/* ======= TITLE ======= */}
+          <div className="text-center mb-16 relative w-full flex justify-center">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white bg-[#856DFF] py-3 md:py-4 rounded-lg px-6 inline-block absolute -top-20 md:-top-32">
               “MEET OUR TEAM”
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-12 gap-y-20 justify-center">
+
+          {/* ======= TEAM GRID ======= */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-12 gap-y-16 md:gap-y-20 justify-center place-items-center w-full">
             {teamMembers.map((member, index) => (
               <div
                 key={index}
-                className="relative bg-[#25045A] rounded-t-[100px] shadow-md overflow-visible border border-gray-100 w-[280px] h-[350px] flex flex-col justify-between mx-auto"
+                className="relative bg-[#25045A] rounded-t-[80px] md:rounded-t-[100px] shadow-md overflow-visible border border-gray-100 w-[90%] sm:w-[260px] md:w-[280px] h-[320px] md:h-[350px] flex flex-col justify-between mx-auto"
               >
-                <div className="bg-[#25045A] flex justify-center items-center h-56 relative rounded-t-xl overflow-visible">
+                {/* IMAGE */}
+                <div className="bg-[#25045A] flex justify-center items-center h-48 md:h-56 relative rounded-t-xl overflow-visible">
                   <img
                     src={member.image}
                     alt={member.name}
-                    className="h-90 w-[100%] object-cover absolute -top-28"
+                    className="h-72 md:h-80 w-full object-cover absolute -top-24 md:-top-28"
                   />
                 </div>
 
-                {/* Name + Role */}
-                <div className="bg-white shadow-md px-4 py-3 text-center flex flex-col justify-center h-[100px] overflow-hidden">
-                  <h3 className="font-semibold text-gray-900 text-md">{member.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1 overflow-hidden text-ellipsis line-clamp-3">
+                {/* NAME + ROLE */}
+                <div className="bg-white shadow-md px-4 py-3 text-center flex flex-col justify-center h-[90px] md:h-[100px] overflow-hidden">
+                  <h3 className="font-semibold text-gray-900 text-sm md:text-md">{member.name}</h3>
+                  <p className="text-gray-600 text-xs md:text-sm mt-1 overflow-hidden text-ellipsis line-clamp-3">
                     {member.role.split("||").map((line, i) => (
                       <span key={i}>
                         {line.trim()}
@@ -465,13 +470,12 @@ export default function LandingPage() {
                       </span>
                     ))}
                   </p>
-
                 </div>
               </div>
             ))}
           </div>
-
         </div>
+
       </section>
 
 
